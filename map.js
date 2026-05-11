@@ -13,6 +13,22 @@ map.getContainer().addEventListener('contextmenu', e => e.preventDefault());
 map.on('contextmenu', () => {});
 
 // --- State ---
+// Migrate old completedMarkers format (label__x__y) to new (label only)
+// Old entries contained __ separators; strip them on first load
+(function migrateCompletedMarkers() {
+  const raw = localStorage.getItem('completedMarkers');
+  if (!raw) return;
+  try {
+    const old = JSON.parse(raw);
+    if (!Array.isArray(old) || old.length === 0) return;
+    // If any entry contains __ it's the old format — extract just the label part
+    if (old.some(id => id.includes('__'))) {
+      const migrated = [...new Set(old.map(id => id.includes('__') ? id.split('__')[0] : id))];
+      localStorage.setItem('completedMarkers', JSON.stringify(migrated));
+    }
+  } catch(e) { localStorage.removeItem('completedMarkers'); }
+})();
+
 const completedMarkers = new Set(JSON.parse(localStorage.getItem('completedMarkers')||'[]'));
 let hideCompleted = false;
 const _savedLayout = localStorage.getItem('layoutMode');
@@ -26,7 +42,7 @@ const categoryRegistry = {};
 function saveCompleted() {
   localStorage.setItem('completedMarkers', JSON.stringify([...completedMarkers]));
 }
-function getMarkerId(item) { return `${item.label}__${item.x}__${item.y}`; }
+function getMarkerId(item) { return `${item.label}`; }
 function getMarkerDomEl(marker) {
   const el = marker.getElement();
   if (!el) return null;
@@ -133,7 +149,7 @@ function initMap(data) {
     'Chests':new cMarker({fillColor:"#c68a09",color:"#fffb00"}).props,
     'Orb chests':new cMarker({fillColor:"#bb5b11",color:"#fffb00"}).props,
     'Ores':new cMarker({fillColor:"#8758d3"}).props,'NPCs':new cMarker({fillColor:"#27ad71"}).props,
-    'Haydn Seek':new cMarker({fillColor:"#129a27"}).props,'Obelisks':new cMarker({fillColor:"rgb(110,26,199)"}).props,
+    'Haydn Seek':new cMarker({fillColor:"#00d2d9"}).props,'Obelisks':new cMarker({fillColor:"rgb(110,26,199)"}).props,
     'Mobs':new cMarker({fillColor:"#d13a3a",radius:8}).props,'Sparkling mobs':new cMarker({fillColor:"#eb19c8"}).props,
     'Dungeons':new cMarker({fillColor:"#430dd8"}).props,'Checkpoints':new cMarker({fillColor:"#4db3db"}).props,
     'Minibosses':new cMarker({fillColor:"#eb681c"}).props,'Critters':new cMarker({fillColor:"#de58ff"}).props,
@@ -607,8 +623,19 @@ function buildTopMenu(layers) {
 
   const bottomRight = document.createElement('div');
   bottomRight.id = 'top-bottom-right';
-  bottomRight.appendChild(searchBtn);
-  bottomRight.appendChild(welcomeBtn);
+
+  // Wrap searchBtn + searchBar in a relative container so searchBar positions under searchBtn
+  const searchWrap = document.createElement('div');
+  searchWrap.className = 'float-btn-wrap';
+  searchWrap.appendChild(searchBtn);
+
+  // Wrap welcomeBtn + welcomePanel in a relative container
+  const welcomeWrap = document.createElement('div');
+  welcomeWrap.className = 'float-btn-wrap';
+  welcomeWrap.appendChild(welcomeBtn);
+
+  bottomRight.appendChild(searchWrap);
+  bottomRight.appendChild(welcomeWrap);
   bottomRight.appendChild(sideBtn);
   bottomRow.appendChild(bottomLeft);
   bottomRow.appendChild(bottomRight);
@@ -649,22 +676,22 @@ function buildTopMenu(layers) {
     };
     setTimeout(_wireMini, 0);
   } else {
-    // Desktop: search bar and welcome panel live inside bottomRight, expand leftward
-    bottomRight.appendChild(searchBar);
-    bottomRight.appendChild(welcomePanel);
+    // Desktop: each popup lives inside its own wrap, positioned relative to its button
+    searchWrap.appendChild(searchBar);
+    welcomeWrap.appendChild(welcomePanel);
   }
 
   toolbar.appendChild(chipsWrap);
   toolbar.appendChild(actions);
 
   ui.appendChild(toolbar);
-  // On mobile: searchBar and welcomePanel go BEFORE bottomRow so the arrow is always at the bottom
+  // On mobile: searchBar and welcomePanel go before bottomRow
+  // bottomRow is LAST so the orange collapse arrow always appears at the very bottom
   if (window.innerWidth < 768) {
     ui.appendChild(searchBar);
     ui.appendChild(welcomePanel);
   }
   ui.appendChild(bottomRow);
-  // Desktop: searchBar and welcomePanel are inside bottomRight (already appended above)
 
   // Insert as first child of .page--flex
   const pageEl = document.querySelector('.page--flex');
@@ -689,11 +716,12 @@ function buildTopMenu(layers) {
     wasDesktop = isDesktop;
     if (isDesktop) {
       bottomRight.style.display = '';
-      bottomRight.appendChild(searchBtn);
-      bottomRight.appendChild(welcomeBtn);
-      bottomRight.appendChild(sideBtn);
-      bottomRight.appendChild(searchBar);
-      bottomRight.appendChild(welcomePanel);
+      bottomRight.insertBefore(searchWrap, bottomRight.firstChild);
+      searchWrap.insertBefore(searchBtn, searchWrap.firstChild);
+      searchWrap.appendChild(searchBar);
+      bottomRight.insertBefore(welcomeWrap, sideBtn);
+      welcomeWrap.insertBefore(welcomeBtn, welcomeWrap.firstChild);
+      welcomeWrap.appendChild(welcomePanel);
       bottomRow.style.display = '';
     } else {
       actions.insertBefore(searchBtn, hideBtn);
@@ -873,7 +901,7 @@ function sep(){const s=document.createElement('span');s.className='sidebar-separ
 function getColourMap(){
   return{
     'Misc':'#ffa958','Plants':'#ee74a3','Chests':'#c68a09','Orb chests':'#bb5b11',
-    'Ores':'#8758d3','NPCs':'#27ad71','Haydn Seek':'#129a27','Obelisks':'rgb(110,26,199)',
+    'Ores':'#8758d3','NPCs':'#27ad71','Haydn Seek':'#00d2d9','Obelisks':'rgb(110,26,199)',
     'Mobs':'#d13a3a','Sparkling mobs':'#eb19c8','Dungeons':'#430dd8','Checkpoints':'#4db3db',
     'Minibosses':'#eb681c','Critters':'#de58ff','Recipes':'#9b7700','Secret orbs':'#a23030',
   };

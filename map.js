@@ -230,7 +230,7 @@ function buildSidebar(layers) {
     row.setAttribute('data-tip', name);
     const indicator = iconUrl
       ? `<img src="${iconUrl}" class="sb-cat-icon" alt="">`
-      : `<span class="sb-cat-dot" style="background:${colour}"></span>`;
+      : `<span class="sb-cat-dot-wrap"><span class="sb-cat-dot" style="background:${colour}"></span></span>`;
     row.innerHTML = `
       <input type="checkbox" data-layer="${name}" class="category" style="display:none">
       <span class="sb-check-img"></span>

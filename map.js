@@ -162,10 +162,15 @@ function buildSidebar(layers) {
   title.textContent = 'Farever Map';
 
   const viewBtns = mk('div', {id:'sb-view-btns'});
-  const btnCompact = mkViewBtn('compact', SVG.compact, 'Compact view', savedView === 'compact');
-  const btnFull    = mkViewBtn('full',    SVG.full,    'Full view',    savedView === 'full');
-  viewBtns.appendChild(btnCompact);
-  viewBtns.appendChild(btnFull);
+  // Single toggle: shows compact icon when full, full icon when compact
+  const btnToggleView = mk('button', {id:'sb-btn-toggle-view', class:'sb-view-btn'});
+  const isCompact = () => sidebar.classList.contains('compact');
+  const updateViewBtn = () => {
+    btnToggleView.innerHTML = isCompact() ? SVG.full : SVG.compact;
+    btnToggleView.setAttribute('data-tip', isCompact() ? 'Expand sidebar' : 'Compact sidebar');
+  };
+  updateViewBtn();
+  viewBtns.appendChild(btnToggleView);
 
   hdr.appendChild(title);
   hdr.appendChild(viewBtns);
@@ -190,27 +195,22 @@ function buildSidebar(layers) {
   sidebar.appendChild(aboutPanel);
   sidebar.appendChild(sep());
 
-  // ── Search ───────────────────────────────────────────────────────
+  // ── Tools: search + hide + reset — one section, one separator each side ──
+  // Full mode shows: search input row + hide/reset buttons
+  // Compact mode shows: search icon + hide icon + reset icon (no extra separators between them)
+
   const searchRow = mk('div', {id:'sb-search-row', class:'full-only'});
   searchRow.innerHTML = `<input id="sb-search" type="text" placeholder="🔍 Search markers…" autocomplete="off"><button id="sb-search-clear" style="display:none">✕</button>`;
   sidebar.appendChild(searchRow);
-  sidebar.appendChild(sep());
 
-  // ── Icon tools (search icon in compact, full buttons in full) ────
   const iconTools = mk('div', {id:'sb-icon-tools'});
-
-  // Search tool (compact only — clicking opens float search)
-  const searchToolBtn = mkToolBtn('sb-search-tool', SVG.search, 'Search', 'compact-only');
+  const searchToolBtn = mkToolBtn('sb-search-tool', SVG.search, 'Search');
+  searchToolBtn.classList.add('compact-only');
+  const hideBtn   = mkToolBtn('sb-hide-btn',   SVG.eye,   'Hide Completed');
+  const resetBtn  = mkToolBtn('sb-reset-btn',  SVG.reset, 'Reset Completed');
   iconTools.appendChild(searchToolBtn);
-
-  // Hide completed
-  const hideBtn = mkToolBtn('sb-hide-btn', SVG.eye, 'Hide Completed', '');
   iconTools.appendChild(hideBtn);
-
-  // Reset completed
-  const resetBtn = mkToolBtn('sb-reset-btn', SVG.reset, 'Reset Completed', '');
   iconTools.appendChild(resetBtn);
-
   sidebar.appendChild(iconTools);
   sidebar.appendChild(sep());
 
@@ -281,42 +281,33 @@ function buildSidebar(layers) {
     sidebarOpen = !sidebarOpen;
     saveView();
     applyLayout(true);
-    if (!sidebarOpen) buildFloatingSearch(layers);
+    if (!sidebarOpen) buildFloatingSearch(layers, toggle);
     else document.getElementById('sb-search-float')?.remove();
   });
 
-  // Compact / Full buttons
-  btnCompact.addEventListener('click', () => {
-    sidebar.classList.add('compact');
-    btnCompact.classList.add('active');
-    btnFull.classList.remove('active');
-    saveView(); applyLayout(true);
-  });
-  btnFull.addEventListener('click', () => {
-    sidebar.classList.remove('compact');
-    btnFull.classList.add('active');
-    btnCompact.classList.remove('active');
+  // View toggle (compact ↔ full)
+  btnToggleView.addEventListener('click', () => {
+    if (isCompact()) {
+      sidebar.classList.remove('compact');
+      searchToolBtn.style.display = 'none';
+    } else {
+      sidebar.classList.add('compact');
+      searchToolBtn.style.display = '';
+    }
+    updateViewBtn();
     saveView(); applyLayout(true);
   });
 
   applyLayout(false);
   window.addEventListener('resize', () => applyLayout(false));
 
-  // ── Hide/show compact-only tool ───────────────────────────────────
-  // In full mode hide the search tool (sidebar search is visible)
-  // In compact mode it shows and triggers float search
+  // Search tool button (compact mode) — pops out floating search to the left
+  searchToolBtn.style.display = isCompact() ? '' : 'none';
   searchToolBtn.addEventListener('click', () => {
-    buildFloatingSearch(layers);
-    const fs = document.getElementById('sb-search-float');
-    if (fs) {
-      fs.style.display = 'flex';
-      setTimeout(() => document.getElementById('sb-float-input')?.focus(), 50);
-    }
+    buildFloatingSearch(layers, searchToolBtn);
   });
-  // Only show in compact mode via CSS — handled by hiding in full mode
-  searchToolBtn.style.display = sidebar.classList.contains('compact') ? '' : 'none';
-  btnCompact.addEventListener('click', () => { searchToolBtn.style.display = ''; });
-  btnFull.addEventListener('click', () => { searchToolBtn.style.display = 'none'; });
+
+  // Keep compact-only visibility in sync with view toggle (handled above in btnToggleView)
 
   // ── Checkboxes ────────────────────────────────────────────────────
   document.querySelectorAll('#sb-cat-list input[type="checkbox"]').forEach(cb => {
@@ -361,31 +352,37 @@ function buildSidebar(layers) {
 }
 
 // ─── Floating search ──────────────────────────────────────────────────────────
-function buildFloatingSearch(layers) {
-  document.getElementById('sb-search-float')?.remove();
-  const wrap = mk('div', {id:'sb-search-float'});
+function buildFloatingSearch(layers, anchorEl) {
+  // Toggle: if already open, close it
+  const existing = document.getElementById('sb-search-float');
+  if (existing) { existing.remove(); return; }
 
-  const btn = mk('button', {id:'sb-search-float-btn'});
-  btn.innerHTML = SVG.search;
-  btn.title = 'Search markers';
+  const wrap = mk('div', {id:'sb-search-float'});
 
   const inputWrap = mk('div', {id:'sb-float-input-wrap'});
   const input = mk('input');
   Object.assign(input, {type:'text', placeholder:'Search markers…', id:'sb-float-input', autocomplete:'off'});
+  const closeBtn = mk('button', {id:'sb-float-close'});
+  closeBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg>`;
+  closeBtn.title = 'Close search';
   inputWrap.appendChild(input);
-
-  wrap.appendChild(btn);
+  inputWrap.appendChild(closeBtn);
   wrap.appendChild(inputWrap);
-  document.body.appendChild(wrap);
 
-  let open = false;
-  btn.addEventListener('click', () => {
-    open = !open;
-    inputWrap.style.display = open ? 'block' : 'none';
-    btn.classList.toggle('active', open);
-    if (open) setTimeout(() => input.focus(), 50);
-    else { input.value=''; clearSearch(layers, {}); }
-  });
+  // Position: fixed, right-aligned to left edge of sidebar, vertically near anchor
+  const sidebarEl = document.getElementById('sidebar');
+  const sbRect = sidebarEl ? sidebarEl.getBoundingClientRect() : null;
+  const anchorRect = anchorEl ? anchorEl.getBoundingClientRect() : null;
+  wrap.style.position = 'fixed';
+  wrap.style.right = sbRect ? (window.innerWidth - sbRect.left + 8) + 'px' : '320px';
+  wrap.style.top   = anchorRect ? anchorRect.top + 'px' : '50%';
+  wrap.style.zIndex = '1200';
+  wrap.style.display = 'flex';
+
+  document.body.appendChild(wrap);
+  setTimeout(() => input.focus(), 50);
+
+  closeBtn.addEventListener('click', () => wrap.remove());
 
   wireSearch(input, null, inputWrap, layers);
 }
@@ -494,8 +491,8 @@ function mkViewBtn(id, svg, tip, active) {
   b.innerHTML = svg;
   return b;
 }
-function mkToolBtn(id, svg, tip, extraClass) {
-  const b = mk('button', {id, class:'sb-tool-btn' + (extraClass ? ' ' + extraClass : '')});
+function mkToolBtn(id, svg, tip) {
+  const b = mk('button', {id, class:'sb-tool-btn'});
   b.setAttribute('data-tip', tip);
   b.innerHTML = `${svg}<span class="sb-tool-label">${tip}</span>`;
   return b;

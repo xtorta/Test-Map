@@ -341,16 +341,16 @@ html, body {
 }
 .sb-cat-row input:checked ~ .sb-check-img { background-image: url("check1.png"); }
 
-/* PNG icon (iconDict cats) — 28×28 matching map markers */
+/* PNG icon — centred in fixed 28px slot */
 .sb-cat-icon {
   width: 28px; height: 28px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
-/* Colour square (non-icon cats) — 22×22 (20% smaller than icons) */
+/* Colour dot — same 28px width as PNG icon so text aligns uniformly */
 .sb-cat-dot {
-  width: 22px; height: 22px;
+  width: 28px; height: 22px;
   border-radius: 4px;
   flex-shrink: 0;
   display: inline-block;

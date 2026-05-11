@@ -243,10 +243,18 @@ label { font-weight: bold; }
 #top-bottom-right .act-label { font-size: 0.82em; font-weight: bold; opacity: 0.95; }
 
 /* Search popup — expands LEFTWARD from the search button */
+/* Each button+popup pair sits in its own relative wrapper */
+.float-btn-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
 #top-search-bar {
   position: absolute;
-  top: 100%;    /* below the floating buttons */
-  right: 100%;  /* starts at left edge of #top-bottom-right — grows left */
+  top: 100%;       /* below the search button */
+  right: 0;        /* aligns to the right edge of the search wrap */
   left: auto;
   width: 0;
   display: flex;
@@ -255,9 +263,9 @@ label { font-weight: bold; }
   padding: 0;
   overflow: hidden;
   transition: width 0.22s ease, padding 0.22s ease;
-  background: rgb(80,60,30);
-  border-radius: 0 0 0 8px;
-  box-shadow: -4px 6px 16px rgba(0,0,0,0.3);
+  background: rgb(207,207,207);   /* match sidebar/menu bg colour */
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
   z-index: 599;
   pointer-events: none;
   white-space: nowrap;
@@ -271,7 +279,7 @@ label { font-weight: bold; }
   flex: 1;
   min-width: 0;
   padding: 0.38em 0.65em;
-  border: none;
+  border: 1.5px solid #a09880;
   border-radius: 4px;
   font-family: Noto, sans-serif;
   font-size: 0.9em;
@@ -280,10 +288,10 @@ label { font-weight: bold; }
   outline: none;
 }
 #top-search-bar #top-search-clear {
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.3);
+  background: none;
+  border: 1px solid #a09880;
   border-radius: 4px;
-  color: white;
+  color: #555;
   padding: 0.3em 0.5em;
   cursor: pointer;
   font-size: 0.85em;
@@ -293,13 +301,14 @@ label { font-weight: bold; }
 /* ---- MOBILE: search bar goes back to normal flow ---- */
 @media (max-width: 767px) {
   /* bottomRow stays visible on mobile (for collapse button) — only bottomRight is hidden via JS */
+  .float-btn-wrap { position: static; display: contents; }
   #top-search-bar {
     position: static;
     width: auto;
     max-height: 0;
     border-radius: 0;
     box-shadow: none;
-    background: rgb(200,196,188);
+    background: rgb(207,207,207);
     pointer-events: none;
     border-top: 0 solid rgba(0,0,0,0.12);
     transition: max-height 0.2s ease, padding 0.2s ease;
@@ -380,24 +389,25 @@ label { font-weight: bold; }
 .mini-float-btn:hover { background: rgb(95,70,35); }
 .mini-float-btn.active { background: rgb(65,48,22); }
 
-/* ---- WELCOME PANEL — floats leftward from Info button (desktop) ---- */
+/* ---- WELCOME PANEL — floats down from Info button, right-aligned ---- */
 #top-welcome-panel {
   position: absolute;
   top: 100%;
-  right: 100%;  /* left edge of #top-bottom-right = grows leftward */
+  right: 0;        /* right-align with info button */
+  left: auto;
   width: 0;
-  max-width: 420px;
+  max-width: 380px;
   overflow: hidden;
   transition: width 0.22s ease, padding 0.22s ease;
-  background: rgb(80,60,30);
-  border-radius: 0 0 0 8px;
-  box-shadow: -4px 6px 16px rgba(0,0,0,0.3);
+  background: rgb(207,207,207);
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
   z-index: 598;
   pointer-events: none;
   padding: 0;
 }
 #top-welcome-panel.open {
-  width: 420px;
+  width: 380px;
   padding: 0.65em 0.9em;
   pointer-events: all;
 }
@@ -432,11 +442,11 @@ label { font-weight: bold; }
 .top-welcome-text {
   font-size: 0.8em;
   font-weight: 600;
-  color: white;
+  color: rgb(70,50,25);
   line-height: 1.55;
   white-space: normal;
 }
-.top-welcome-text a { color: rgb(180,200,255); text-decoration: none; }
+.top-welcome-text a { color: rgb(31,31,199); text-decoration: none; }
 .top-welcome-text a:hover { text-decoration: underline; }
 
 /* Mobile welcome text colour */

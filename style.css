@@ -384,7 +384,20 @@ html, body {
 
 /* cat tooltip handled in tool-btn section above */
 
-/* ── Hint bar ── */
+/* ── Compact scroll indicators ── */
+#sb-scroll-up, #sb-scroll-down {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(80, 58, 30, 0.85);
+  flex-shrink: 0;
+  padding: 0.2em 0;
+  cursor: pointer;
+  pointer-events: none; /* visual only */
+  z-index: 10;
+}
+#sb-scroll-up  { border-bottom: 1px solid rgba(255,255,255,0.1); }
+#sb-scroll-down { border-top:   1px solid rgba(255,255,255,0.1); }
 #sb-hint {
   display: flex;
   align-items: center;

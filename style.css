@@ -61,9 +61,9 @@ html, body {
 /* Hide the separator that follows the about section in compact (about is hidden so sep is orphaned) */
 #sidebar.compact #sb-sep-about { display: none !important; }
 
-/* ── Sidebar header ── */
+/* ── Sidebar header — sharp angle #785a37 → #8e6a41 ── */
 #sb-header {
-  background: rgb(120, 90, 55);
+  background: linear-gradient(135deg, #785a37 50%, #8e6a41 50%);
   color: white;
   padding: 0.7em 0.8em;
   display: flex;
@@ -154,10 +154,10 @@ html, body {
   cursor: pointer;
   flex-shrink: 0;
   user-select: none;
-  background: #388e9f;
+  background: linear-gradient(135deg, #4c9da8 50%, #74babe 50%);
   color: white;
 }
-#sb-about-row:hover { background: #2d7a8a; }
+#sb-about-row:hover { filter: brightness(0.92); }
 #sb-about-row span:first-child { font-size: 0.82em; font-weight: 700; color: white; }
 #sb-about-chevron { font-size: 0.72em; color: rgba(255,255,255,0.8); }
 #sb-about-panel {
@@ -384,12 +384,12 @@ html, body {
 
 /* cat tooltip handled in tool-btn section above */
 
-/* ── Compact scroll indicators ── */
+/* ── Scroll indicators — only visible when off-screen content exists ── */
 #sb-scroll-up, #sb-scroll-down {
   display: none;
   align-items: center;
   justify-content: center;
-  background: rgb(210, 120, 0);
+  background: linear-gradient(135deg, #b2a46f 50%, #ccba8c 50%);
   flex-shrink: 0;
   padding: 0.22em 0;
   pointer-events: none;
@@ -397,12 +397,14 @@ html, body {
 }
 #sb-scroll-up  { border-bottom: 1px solid rgba(255,255,255,0.15); }
 #sb-scroll-down { border-top:   1px solid rgba(255,255,255,0.15); }
+
+/* ── Hint bar — sharp angle #b0665d → #ce715c ── */
 #sb-hint {
   display: flex;
   align-items: center;
   gap: 0.5em;
   padding: 0.55em 0.85em;
-  background: #c86356;
+  background: linear-gradient(135deg, #b0665d 50%, #ce715c 50%);
   color: white;
   font-size: 0.78em;
   font-weight: bold;

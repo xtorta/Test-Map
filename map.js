@@ -14,7 +14,7 @@ const SB_COMPACT = () => isMobile() ? 52  : 52;
 
 const COLOURS = {
   'Misc':'#ffa958','Plants':'#ee74a3','Chests':'#c68a09','Orb chests':'#bb5b11',
-  'Ores':'#8758d3','NPCs':'#27ad71','Haydn Seek':'#00d2d9','Obelisks':'#6e1ac7',
+  'Ores':'#8758d3','NPCs':'#27ad71','Haydn Seek':'#388e9f','Obelisks':'#6e1ac7',
   'Mobs':'#d13a3a','Sparkling mobs':'#eb19c8','Dungeons':'#430dd8',
   'Checkpoints':'#4db3db','Minibosses':'#eb681c','Critters':'#de58ff',
   'Recipes':'#9b7700','Secret orbs':'#a23030',
@@ -83,7 +83,7 @@ function initMap(data) {
     'Chests':new cMarker({fillColor:'#c68a09',color:'#fffb00'}).props,
     'Orb chests':new cMarker({fillColor:'#bb5b11',color:'#fffb00'}).props,
     'Ores':new cMarker({fillColor:'#8758d3'}).props,'NPCs':new cMarker({fillColor:'#27ad71'}).props,
-    'Haydn Seek':new cMarker({fillColor:'#00d2d9'}).props,'Obelisks':new cMarker({fillColor:'#6e1ac7'}).props,
+    'Haydn Seek':new cMarker({fillColor:'#388e9f'}).props,'Obelisks':new cMarker({fillColor:'#6e1ac7'}).props,
     'Mobs':new cMarker({fillColor:'#d13a3a',radius:8}).props,'Sparkling mobs':new cMarker({fillColor:'#eb19c8'}).props,
     'Dungeons':new cMarker({fillColor:'#430dd8'}).props,'Checkpoints':new cMarker({fillColor:'#4db3db'}).props,
     'Minibosses':new cMarker({fillColor:'#eb681c'}).props,'Critters':new cMarker({fillColor:'#de58ff'}).props,
@@ -101,7 +101,7 @@ function initMap(data) {
   const circleDict = {
     'Recipes':new circleArea({fillColor:'#9b7700',radius:coordToMapScalar*40,opacity:0.5,fillOpacity:0.5}).props,
     'Secret orbs':new circleArea({fillColor:'#a23030',radius:coordToMapScalar*40,opacity:0.5,fillOpacity:0.5}).props,
-    'Haydn Seek':new circleArea({fillColor:'#00d2d9',radius:coordToMapScalar*70,opacity:0.5,fillOpacity:0.5}).props,
+    'Haydn Seek':new circleArea({fillColor:'#388e9f',radius:coordToMapScalar*70,opacity:0.5,fillOpacity:0.5}).props,
   };
 
   data.forEach((item, idx) => {
@@ -193,7 +193,7 @@ function buildSidebar(layers) {
   });
   sidebar.appendChild(aboutRow);
   sidebar.appendChild(aboutPanel);
-  sidebar.appendChild(sep());
+  sidebar.appendChild(sep({id:'sb-sep-about'}));
 
   // ── Tools: search + hide + reset — one section, one separator each side ──
   // Full mode shows: search input row + hide/reset buttons
@@ -281,8 +281,12 @@ function buildSidebar(layers) {
     sidebarOpen = !sidebarOpen;
     saveView();
     applyLayout(true);
-    if (!sidebarOpen) buildFloatingSearch(layers, toggle);
-    else document.getElementById('sb-search-float')?.remove();
+    if (!sidebarOpen) {
+      // Only show floating search in compact mode (not plain closed on mobile)
+      if (sidebar.classList.contains('compact')) buildFloatingSearch(layers, toggle);
+    } else {
+      document.getElementById('sb-search-float')?.remove();
+    }
   });
 
   // View toggle (compact ↔ full)
@@ -382,7 +386,22 @@ function buildFloatingSearch(layers, anchorEl) {
   document.body.appendChild(wrap);
   setTimeout(() => input.focus(), 50);
 
-  closeBtn.addEventListener('click', () => wrap.remove());
+  closeBtn.addEventListener('click', () => {
+    clearSearch(layers, {}); // reset all filters to saved state
+    allMarkers.forEach(({markerId, marker}) => {
+      const d = getMarkerDomEl(marker); if (!d) return;
+      d.style.outline = '';
+      applyCompletedStyle(marker, completedMarkers.has(markerId));
+    });
+    // Restore checkboxes to saved state
+    const saved = JSON.parse(localStorage.getItem('checkedBoxes')) || [];
+    document.querySelectorAll('#sb-cat-list input[type="checkbox"]').forEach(cb => {
+      const n = cb.dataset.layer;
+      if (saved.includes(n)) { cb.checked=true; map.addLayer(layers[n]); }
+      else { cb.checked=false; map.removeLayer(layers[n]); }
+    });
+    wrap.remove();
+  });
 
   wireSearch(input, null, inputWrap, layers);
 }

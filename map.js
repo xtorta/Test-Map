@@ -622,15 +622,12 @@ function buildTopMenu(layers) {
       return b;
     };
     const miniSearch = mkIconOnly('top-search', '<circle cx="6.5" cy="6.5" r="4"/><line x1="10" y1="10" x2="14" y2="14"/>', 'Search');
-    const miniInfo   = mkIconOnly('top-info', '<circle cx="8" cy="8" r="6"/><line x1="8" y1="7" x2="8" y2="11"/><circle cx="8" cy="5" r="0.5" fill="currentColor"/>', 'Info');
     const miniSide   = mkIconOnly('top-side', '<rect x="1" y="1" width="12" height="12" rx="1"/><line x1="9" y1="1" x2="9" y2="13"/>', 'Side Menu');
     bottomRight.appendChild(miniSearch);
-    bottomRight.appendChild(miniInfo);
     bottomRight.appendChild(miniSide);
     bottomRight.style.display = 'none';
     const _wireMini = () => {
       miniSearch.addEventListener('click', () => searchIsOpen ? closeSearch() : openSearch());
-      miniInfo.addEventListener('click', () => applyWelcome(!welcomeIsCollapsed));
       miniSide.addEventListener('click', () => {
         layoutMode = 'sidebar'; localStorage.setItem('layoutMode', 'sidebar');
         buildSidebar(layers); loadChecked(layers); updateCounts();
@@ -652,11 +649,12 @@ function buildTopMenu(layers) {
   toolbar.appendChild(actionsWrap);
 
   ui.appendChild(toolbar);
+  ui.appendChild(bottomRow);
+  // Mobile: searchBar and welcomePanel go AFTER bottomRow so they appear below the arrow
   if (window.innerWidth < 768) {
     ui.appendChild(searchBar);
     ui.appendChild(welcomePanel);
   }
-  ui.appendChild(bottomRow);
 
   // Insert as first child of .page--flex
   const pageEl = document.querySelector('.page--flex');
@@ -698,17 +696,19 @@ function buildTopMenu(layers) {
     const mobile = window.innerWidth < 768;
     if (collapsed) {
       toolbar.style.display = 'none';
-      ui.style.height = '0';
-      ui.style.overflow = 'visible';
-      ui.style.minHeight = '0';
-      // On mobile: show icon-only floating buttons when collapsed
+      if (!mobile) {
+        // Desktop: collapse ui to 0 so map fills top, floating tabs remain
+        ui.style.height = '0';
+        ui.style.overflow = 'visible';
+        ui.style.minHeight = '0';
+      }
+      // Mobile: show icon-only floating buttons (search + side)
       if (mobile) bottomRight.style.display = '';
     } else {
       toolbar.style.display = '';
       ui.style.height = '';
       ui.style.overflow = '';
       ui.style.minHeight = '';
-      // On mobile: hide them again when expanded (they're in the actions column)
       if (mobile) bottomRight.style.display = 'none';
     }
     toolbarCollapseBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${collapsed ? svgChevronDown : svgChevronUp}</svg>`;

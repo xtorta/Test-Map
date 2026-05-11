@@ -1,4 +1,4 @@
-// ─── Map init ─────────────────────────────────────────────────────────────────
+// ─── Map ──────────────────────────────────────────────────────────────────────
 const map = L.map('map', { crs: L.CRS.Simple, minZoom: -8, tap: true, tapTolerance: 15 });
 const bounds = [[0,0],[5120,3584]];
 const s1=0.89, s2=0.89, b1=-1595, b2=1724, coordToMapScalar=0.89;
@@ -8,9 +8,9 @@ map.getContainer().addEventListener('contextmenu', e => e.preventDefault());
 map.on('contextmenu', () => {});
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const SIDEBAR_W    = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sb-w')) || 310;
-const COMPACT_W    = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sb-compact-w')) || 56;
-const isMobile     = () => window.innerWidth < 768;
+const isMobile = () => window.innerWidth < 768;
+const SB_FULL    = () => isMobile() ? 290 : 310;
+const SB_COMPACT = () => isMobile() ? 52  : 52;
 
 const COLOURS = {
   'Misc':'#ffa958','Plants':'#ee74a3','Chests':'#c68a09','Orb chests':'#bb5b11',
@@ -27,7 +27,6 @@ const ICONS = {
 };
 
 // ─── State ────────────────────────────────────────────────────────────────────
-// Migrate old completed-marker IDs
 (function migrate() {
   const raw = localStorage.getItem('completedMarkers');
   if (!raw) return;
@@ -51,8 +50,7 @@ function getMarkerDomEl(marker) {
   return el.closest ? (el.closest('.leaflet-marker-icon') || el) : el;
 }
 function applyCompletedStyle(marker, done) {
-  const d = getMarkerDomEl(marker);
-  if (!d) return;
+  const d = getMarkerDomEl(marker); if (!d) return;
   if (done) {
     if (hideCompleted) d.style.display = 'none';
     else { d.style.display=''; d.style.opacity='0.4'; d.style.filter='grayscale(60%)'; }
@@ -71,12 +69,11 @@ async function loadData() {
     const r = await fetch('assets.json');
     if (!r.ok) throw new Error(r.status);
     initMap(await r.json());
-  } catch(e) { console.error('Failed to load assets.json:', e); }
+  } catch(e) { console.error('Failed:', e); }
 }
 
 function initMap(data) {
   const layers = {};
-
   class iconMarker { constructor(f={}){const s=28;this.props={iconUrl:'./icons/mapMarker1.png',iconSize:[s,s],iconAnchor:[s/2,s/2],popupAnchor:[0,-s/2]};for(const[k,v]of Object.entries(f))this.props[k]=v;}}
   class cMarker    { constructor(f={}){this.props={radius:9,fillColor:'#ffa958',color:'#ffffff',weight:1.05,opacity:1,fillOpacity:1};for(const[k,v]of Object.entries(f))this.props[k]=v;}}
   class circleArea { constructor(f={}){this.props={radius:coordToMapScalar*50,fillColor:'#ffa958',color:'#ffffff',weight:1.05,opacity:1,fillOpacity:1};for(const[k,v]of Object.entries(f))this.props[k]=v;}}
@@ -107,15 +104,13 @@ function initMap(data) {
     'Haydn Seek':new circleArea({fillColor:'#00d2d9',radius:coordToMapScalar*70,opacity:0.5,fillOpacity:0.5}).props,
   };
 
-  // Register categories
   data.forEach((item, idx) => {
     const cat = item.categories?.[0] || 'Misc';
-    if (!categoryRegistry[cat]) categoryRegistry[cat] = { total:0, markerIds:[], markers:[] };
+    if (!categoryRegistry[cat]) categoryRegistry[cat] = { total:0, markerIds:[] };
     categoryRegistry[cat].total++;
     categoryRegistry[cat].markerIds.push(getMarkerId(item, idx));
   });
 
-  // Place markers
   data.forEach((item, idx) => {
     const coords = [(s1*(4096-item.y)+b1), s2*(item.x+b2)];
     const cat = item.categories?.[0] || 'Misc';
@@ -125,11 +120,8 @@ function initMap(data) {
     else if (cat in circleDict)  m = L.circle(coords, circleDict[cat]);
     else if (cat in stylingDict) m = L.circleMarker(coords, stylingDict[cat]);
     else                         m = L.circleMarker(coords, new cMarker().props);
-
     const mid = getMarkerId(item, idx);
     allMarkers.push({ markerId:mid, marker:m, category:cat, label:item.label, coords });
-    categoryRegistry[cat].markers.push({ markerId:mid, marker:m, label:item.label, coords });
-
     m.bindPopup(`<div style="text-align:center;font-family:Noto,sans-serif;">${item.label}</div>`);
     m.on('contextmenu', e => { L.DomEvent.preventDefault(e); L.DomEvent.stopPropagation(e); m.closePopup(); toggleComplete(mid, m); });
     m.on('add', () => setTimeout(() => applyCompletedStyle(m, completedMarkers.has(mid)), 0));
@@ -141,41 +133,52 @@ function initMap(data) {
   updateCounts();
 }
 
+// ─── SVG helpers ──────────────────────────────────────────────────────────────
+const SVG = {
+  search: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4"/><line x1="10" y1="10" x2="14" y2="14"/></svg>`,
+  eye:    `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>`,
+  eyeOff:`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/><line x1="2" y1="2" x2="14" y2="14"/></svg>`,
+  reset:  `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,4 1,1 4,1"/><path d="M1 1 A7 7 0 1 1 1 10"/></svg>`,
+  compact:`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="1" width="12" height="12" rx="1.5"/><line x1="5" y1="1" x2="5" y2="13"/></svg>`,
+  full:   `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="1" width="12" height="12" rx="1.5"/><line x1="1" y1="5" x2="13" y2="5"/></svg>`,
+};
+
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 function buildSidebar(layers) {
   document.getElementById('sidebar')?.remove();
   document.getElementById('sb-toggle')?.remove();
   document.getElementById('sb-search-float')?.remove();
 
-  // Saved states
-  const sbW         = isMobile() ? 290 : 310;
-  const savedView   = localStorage.getItem('sbView') || 'full';   // 'full' | 'compact' | 'closed'
-  const aboutOpen   = localStorage.getItem('sbAboutOpen') !== '0'; // default open
+  const savedView  = localStorage.getItem('sbView') || 'full'; // 'full'|'compact'|'closed'
+  const aboutOpen  = localStorage.getItem('sbAboutOpen') !== '0';
 
+  // ── Shell ────────────────────────────────────────────────────────
   const sidebar = mk('div', {id:'sidebar'});
   if (savedView === 'compact') sidebar.classList.add('compact');
 
-  // ── Header ──────────────────────────────────────────────────────
+  // ── Header ───────────────────────────────────────────────────────
   const hdr = mk('div', {id:'sb-header'});
-  hdr.innerHTML = `
-    <span id="sb-title" class="sb-text">Farever Map</span>
-    <div id="sb-header-right">
-      <span id="sb-total">0/0</span>
-      <div id="sb-view-btns">
-        <button id="btn-compact" title="Compact view" class="${savedView==='compact'?'active':''}">⊡</button>
-        <button id="btn-full"    title="Full view"    class="${savedView==='full'?'active':''}">⊞</button>
-      </div>
-    </div>`;
+  const title = mk('span', {id:'sb-title'});
+  title.textContent = 'Farever Map';
+
+  const viewBtns = mk('div', {id:'sb-view-btns'});
+  const btnCompact = mkViewBtn('compact', SVG.compact, 'Compact view', savedView === 'compact');
+  const btnFull    = mkViewBtn('full',    SVG.full,    'Full view',    savedView === 'full');
+  viewBtns.appendChild(btnCompact);
+  viewBtns.appendChild(btnFull);
+
+  hdr.appendChild(title);
+  hdr.appendChild(viewBtns);
   sidebar.appendChild(hdr);
   sidebar.appendChild(sep());
 
   // ── About ────────────────────────────────────────────────────────
-  const aboutRow = mk('div', {id:'sb-about-row', class:'sb-text'});
-  aboutRow.innerHTML = `<span>ℹ️ About this map</span><span id="sb-about-chevron">${aboutOpen?'▲':'▼'}</span>`;
-  const aboutPanel = mk('div', {id:'sb-about-panel', class:'sb-text'});
+  const aboutRow = mk('div', {id:'sb-about-row', class:'full-only'});
+  aboutRow.innerHTML = `<span>ℹ️ About</span><span id="sb-about-chevron">${aboutOpen?'▲':'▼'}</span>`;
+  const aboutPanel = mk('div', {id:'sb-about-panel', class:'full-only'});
   aboutPanel.style.display = aboutOpen ? 'block' : 'none';
   aboutPanel.innerHTML = `Welcome to the Farever interactive map, built by the <a href="https://farever.wiki" target="_blank">Farever Wiki</a> team.<br><br>
-    This map pulls data directly from the game. Use the filters to control what is displayed. Some item locations are slightly obscured to preserve exploration.<br><br>
+    This map pulls data directly from the game. Use the filters to control what is shown. Some locations are slightly obscured to preserve exploration.<br><br>
     Feedback: <strong>@IceCaveBear</strong> on Discord.`;
   aboutRow.addEventListener('click', () => {
     const open = aboutPanel.style.display === 'block';
@@ -188,30 +191,37 @@ function buildSidebar(layers) {
   sidebar.appendChild(sep());
 
   // ── Search ───────────────────────────────────────────────────────
-  const searchRow = mk('div', {id:'sb-search-row', class:'sb-text'});
-  searchRow.innerHTML = `
-    <input id="sb-search" type="text" placeholder="🔍 Search markers…" autocomplete="off">
-    <button id="sb-search-clear" style="display:none">✕</button>`;
+  const searchRow = mk('div', {id:'sb-search-row', class:'full-only'});
+  searchRow.innerHTML = `<input id="sb-search" type="text" placeholder="🔍 Search markers…" autocomplete="off"><button id="sb-search-clear" style="display:none">✕</button>`;
   sidebar.appendChild(searchRow);
   sidebar.appendChild(sep());
 
-  // ── Toolbar ──────────────────────────────────────────────────────
-  const toolbar = mk('div', {id:'sb-toolbar', class:'sb-text'});
-  const hideBtn  = mk('button', {id:'sb-hide-btn'});  hideBtn.textContent  = '👁 Hide Completed';
-  const resetBtn = mk('button', {id:'sb-reset-btn'}); resetBtn.textContent = '🗑 Reset Completed';
-  toolbar.appendChild(hideBtn); toolbar.appendChild(resetBtn);
-  sidebar.appendChild(toolbar);
+  // ── Icon tools (search icon in compact, full buttons in full) ────
+  const iconTools = mk('div', {id:'sb-icon-tools'});
+
+  // Search tool (compact only — clicking opens float search)
+  const searchToolBtn = mkToolBtn('sb-search-tool', SVG.search, 'Search', 'compact-only');
+  iconTools.appendChild(searchToolBtn);
+
+  // Hide completed
+  const hideBtn = mkToolBtn('sb-hide-btn', SVG.eye, 'Hide Completed', '');
+  iconTools.appendChild(hideBtn);
+
+  // Reset completed
+  const resetBtn = mkToolBtn('sb-reset-btn', SVG.reset, 'Reset Completed', '');
+  iconTools.appendChild(resetBtn);
+
+  sidebar.appendChild(iconTools);
   sidebar.appendChild(sep());
 
-  // ── Category list ────────────────────────────────────────────────
+  // ── Category list ─────────────────────────────────────────────────
   const catList = mk('div', {id:'sb-cat-list'});
   Object.keys(layers).forEach(name => {
     const colour  = COLOURS[name] || '#ffa958';
     const iconUrl = ICONS[name];
     const total   = categoryRegistry[name]?.total || 0;
     const row = mk('label', {class:'sb-cat-row'});
-    row.addEventListener('mouseover', () => row.style.background = 'rgba(0,0,0,0.06)');
-    row.addEventListener('mouseout',  () => row.style.background = '');
+    row.setAttribute('data-tip', name);
     const indicator = iconUrl
       ? `<img src="${iconUrl}" class="sb-cat-icon" alt="">`
       : `<span class="sb-cat-dot" style="background:${colour}"></span>`;
@@ -219,73 +229,96 @@ function buildSidebar(layers) {
       <input type="checkbox" data-layer="${name}" class="category" style="display:none">
       <span class="sb-check-img"></span>
       ${indicator}
-      <span class="sb-cat-name sb-text" style="color:${colour}">${name}</span>
-      <span class="sb-cat-count sb-text" data-cat="${name}">0/${total}</span>`;
+      <span class="sb-cat-name" style="color:${colour}">${name}</span>
+      <span class="sb-cat-count" data-cat="${name}">0/${total}</span>`;
     catList.appendChild(row);
   });
   sidebar.appendChild(catList);
   sidebar.appendChild(sep({id:'sb-sep-hint'}));
 
-  // ── Hint bar ─────────────────────────────────────────────────────
-  const hintBar = mk('div', {id:'sb-hint'});
-  hintBar.innerHTML = `<span class="sb-hint-icon">🖱️</span><span class="sb-hint-text"><strong>Right-click</strong> any marker to mark it complete</span>`;
-  sidebar.appendChild(hintBar);
+  // ── Hint bar ──────────────────────────────────────────────────────
+  const hint = mk('div', {id:'sb-hint'});
+  hint.innerHTML = `<span class="sb-hint-icon">🖱️</span><span class="sb-hint-text"><strong>Right-click</strong> any marker to mark it complete</span>`;
+  sidebar.appendChild(hint);
 
   document.body.appendChild(sidebar);
 
-  // ── Toggle arrow (outside sidebar, always visible) ───────────────
+  // ── Toggle arrow ──────────────────────────────────────────────────
   const toggle = mk('button', {id:'sb-toggle'});
   document.body.appendChild(toggle);
 
-  // ── Sidebar open/close state ─────────────────────────────────────
+  // ── Sidebar state management ──────────────────────────────────────
   let sidebarOpen = savedView !== 'closed';
 
-  function getSbW() {
-    return sidebar.classList.contains('compact') ? (isMobile() ? 52 : 56) : (isMobile() ? 290 : 310);
+  function curW() {
+    return sidebar.classList.contains('compact') ? SB_COMPACT() : SB_FULL();
   }
 
   function applyLayout(animate) {
-    const w = getSbW();
-    if (!animate) { sidebar.style.transition = 'none'; toggle.style.transition = 'none'; }
-    sidebar.style.transform  = sidebarOpen ? '' : `translateX(${w}px)`;
-    toggle.style.right       = sidebarOpen ? w + 'px' : '0';
-    toggle.innerHTML         = sidebarOpen ? '▶' : '◀';
+    if (!animate) { sidebar.style.transition = 'none'; toggle.style.transition = 'none'; document.getElementById('map').style.transition = 'none'; }
+    const w = curW();
+    sidebar.style.transform = sidebarOpen ? '' : `translateX(${w}px)`;
+    toggle.style.right      = sidebarOpen ? w + 'px' : '0';
+    toggle.innerHTML        = sidebarOpen ? '▶' : '◀';
     document.getElementById('map').style.right = (sidebarOpen && !isMobile()) ? w + 'px' : '0';
-    const fsearch = document.getElementById('sb-search-float');
-    if (fsearch) fsearch.style.display = sidebarOpen ? 'none' : 'flex';
-    if (!animate) { requestAnimationFrame(() => { sidebar.style.transition=''; toggle.style.transition=''; }); }
+    // Floating search: show when closed
+    const fs = document.getElementById('sb-search-float');
+    if (fs) fs.style.display = sidebarOpen ? 'none' : 'flex';
+    if (!animate) requestAnimationFrame(() => {
+      sidebar.style.transition = ''; toggle.style.transition = '';
+      document.getElementById('map').style.transition = '';
+    });
     setTimeout(() => map.invalidateSize(), 270);
   }
 
+  function saveView() {
+    const v = !sidebarOpen ? 'closed' : sidebar.classList.contains('compact') ? 'compact' : 'full';
+    localStorage.setItem('sbView', v);
+  }
+
+  // Toggle open/close
   toggle.addEventListener('click', () => {
     sidebarOpen = !sidebarOpen;
-    localStorage.setItem('sbView', sidebarOpen ? (sidebar.classList.contains('compact') ? 'compact' : 'full') : 'closed');
+    saveView();
     applyLayout(true);
     if (!sidebarOpen) buildFloatingSearch(layers);
     else document.getElementById('sb-search-float')?.remove();
   });
 
-  // View buttons (full / compact)
-  document.getElementById('btn-full').addEventListener('click', () => {
-    sidebar.classList.remove('compact');
-    document.getElementById('btn-full').classList.add('active');
-    document.getElementById('btn-compact').classList.remove('active');
-    localStorage.setItem('sbView', 'full');
-    applyLayout(true);
-  });
-  document.getElementById('btn-compact').addEventListener('click', () => {
+  // Compact / Full buttons
+  btnCompact.addEventListener('click', () => {
     sidebar.classList.add('compact');
-    document.getElementById('btn-compact').classList.add('active');
-    document.getElementById('btn-full').classList.remove('active');
-    localStorage.setItem('sbView', 'compact');
-    applyLayout(true);
+    btnCompact.classList.add('active');
+    btnFull.classList.remove('active');
+    saveView(); applyLayout(true);
+  });
+  btnFull.addEventListener('click', () => {
+    sidebar.classList.remove('compact');
+    btnFull.classList.add('active');
+    btnCompact.classList.remove('active');
+    saveView(); applyLayout(true);
   });
 
   applyLayout(false);
-
   window.addEventListener('resize', () => applyLayout(false));
 
-  // ── Checkboxes ───────────────────────────────────────────────────
+  // ── Hide/show compact-only tool ───────────────────────────────────
+  // In full mode hide the search tool (sidebar search is visible)
+  // In compact mode it shows and triggers float search
+  searchToolBtn.addEventListener('click', () => {
+    buildFloatingSearch(layers);
+    const fs = document.getElementById('sb-search-float');
+    if (fs) {
+      fs.style.display = 'flex';
+      setTimeout(() => document.getElementById('sb-float-input')?.focus(), 50);
+    }
+  });
+  // Only show in compact mode via CSS — handled by hiding in full mode
+  searchToolBtn.style.display = sidebar.classList.contains('compact') ? '' : 'none';
+  btnCompact.addEventListener('click', () => { searchToolBtn.style.display = ''; });
+  btnFull.addEventListener('click', () => { searchToolBtn.style.display = 'none'; });
+
+  // ── Checkboxes ────────────────────────────────────────────────────
   document.querySelectorAll('#sb-cat-list input[type="checkbox"]').forEach(cb => {
     cb.addEventListener('change', e => {
       const n = e.target.dataset.layer;
@@ -294,7 +327,7 @@ function buildSidebar(layers) {
     });
   });
 
-  // ── Search (sidebar) ─────────────────────────────────────────────
+  // ── Search ────────────────────────────────────────────────────────
   wireSearch(
     document.getElementById('sb-search'),
     document.getElementById('sb-search-clear'),
@@ -302,15 +335,19 @@ function buildSidebar(layers) {
     layers
   );
 
-  // ── Hide completed ───────────────────────────────────────────────
+  // ── Hide completed ────────────────────────────────────────────────
   hideBtn.addEventListener('click', () => {
     hideCompleted = !hideCompleted;
-    hideBtn.textContent = hideCompleted ? '👁 Show Completed' : '👁 Hide Completed';
+    document.querySelector('#sb-hide-btn .sb-tool-label').textContent = hideCompleted ? 'Show Completed' : 'Hide Completed';
     hideBtn.classList.toggle('active', hideCompleted);
+    hideBtn.innerHTML = hideCompleted
+      ? `${SVG.eyeOff}<span class="sb-tool-label">Show Completed</span>`
+      : `${SVG.eye}<span class="sb-tool-label">Hide Completed</span>`;
+    hideBtn.setAttribute('data-tip', hideCompleted ? 'Show Completed' : 'Hide Completed');
     allMarkers.forEach(({markerId, marker}) => applyCompletedStyle(marker, completedMarkers.has(markerId)));
   });
 
-  // ── Reset completed ──────────────────────────────────────────────
+  // ── Reset completed ───────────────────────────────────────────────
   resetBtn.addEventListener('click', () => {
     if (!completedMarkers.size) return;
     if (!confirm(`Reset all ${completedMarkers.size} completed marker(s)?`)) return;
@@ -323,7 +360,37 @@ function buildSidebar(layers) {
   });
 }
 
-// ─── Search wiring (shared by sidebar + floating) ────────────────────────────
+// ─── Floating search ──────────────────────────────────────────────────────────
+function buildFloatingSearch(layers) {
+  document.getElementById('sb-search-float')?.remove();
+  const wrap = mk('div', {id:'sb-search-float'});
+
+  const btn = mk('button', {id:'sb-search-float-btn'});
+  btn.innerHTML = SVG.search;
+  btn.title = 'Search markers';
+
+  const inputWrap = mk('div', {id:'sb-float-input-wrap'});
+  const input = mk('input');
+  Object.assign(input, {type:'text', placeholder:'Search markers…', id:'sb-float-input', autocomplete:'off'});
+  inputWrap.appendChild(input);
+
+  wrap.appendChild(btn);
+  wrap.appendChild(inputWrap);
+  document.body.appendChild(wrap);
+
+  let open = false;
+  btn.addEventListener('click', () => {
+    open = !open;
+    inputWrap.style.display = open ? 'block' : 'none';
+    btn.classList.toggle('active', open);
+    if (open) setTimeout(() => input.focus(), 50);
+    else { input.value=''; clearSearch(layers, {}); }
+  });
+
+  wireSearch(input, null, inputWrap, layers);
+}
+
+// ─── Shared search wiring ─────────────────────────────────────────────────────
 function wireSearch(input, clearBtn, container, layers) {
   let searchActive = false, savedVis = {}, resultsBox = null;
 
@@ -341,22 +408,16 @@ function wireSearch(input, clearBtn, container, layers) {
     allMarkers.forEach(({label, marker}) => {
       const d = getMarkerDomEl(marker); if (!d) return;
       const hit = label.toLowerCase().includes(q);
-      d.style.display  = hit ? '' : 'none';
-      d.style.outline  = hit ? '2px solid #f39c12' : '';
+      d.style.display = hit ? '' : 'none';
+      d.style.outline = hit ? '2px solid #f39c12' : '';
     });
-    showResults(matches.slice(0, 10));
-  }
-
-  function showResults(matches) {
     if (!matches.length) return;
     resultsBox = mk('div', {id: container.id === 'sb-search-row' ? 'sb-search-results' : 'sb-float-results'});
-    matches.forEach(({label, coords, category}) => {
+    matches.slice(0, 10).forEach(({label, coords, category}) => {
       const item = mk('div', {class:'sb-result-item'});
-      const colour = COLOURS[category] || '#ffa958';
-      item.innerHTML = `<span class="sb-result-dot" style="background:${colour}"></span><span>${label}</span>`;
+      item.innerHTML = `<span class="sb-result-dot" style="background:${COLOURS[category]||'#ffa958'}"></span><span>${label}</span>`;
       item.addEventListener('click', () => {
-        // Fly to location at comfortable zoom
-        map.flyTo(coords, 0, {animate: true, duration: 0.8});
+        map.flyTo(coords, 0, {animate:true, duration:0.8});
         removeResults();
         input.value = label;
         if (clearBtn) clearBtn.style.display = '';
@@ -374,65 +435,27 @@ function wireSearch(input, clearBtn, container, layers) {
   input.addEventListener('keydown', e => {
     if (e.key === 'Escape') { input.value=''; if(clearBtn) clearBtn.style.display='none'; clearSearch(layers, savedVis); searchActive=false; removeResults(); }
   });
-  if (clearBtn) {
-    clearBtn.addEventListener('click', () => { input.value=''; clearBtn.style.display='none'; clearSearch(layers, savedVis); searchActive=false; removeResults(); });
-  }
-}
-
-// ─── Floating search (sidebar hidden) ────────────────────────────────────────
-function buildFloatingSearch(layers) {
-  document.getElementById('sb-search-float')?.remove();
-  const wrap = mk('div', {id:'sb-search-float'});
-
-  const btn   = mk('button', {id:'sb-search-float-btn'});
-  btn.title   = 'Search markers';
-  btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4"/><line x1="10" y1="10" x2="14" y2="14"/></svg>`;
-
-  const inputWrap = mk('div', {id:'sb-float-input-wrap'});
-  const input = mk('input');
-  Object.assign(input, {type:'text', placeholder:'Search markers…', id:'sb-float-input', autocomplete:'off'});
-  inputWrap.appendChild(input);
-  inputWrap.style.cssText = `position:relative; display:none;`;
-
-  wrap.appendChild(btn);
-  wrap.appendChild(inputWrap);
-  document.body.appendChild(wrap);
-
-  let isOpen = false;
-  btn.addEventListener('click', () => {
-    isOpen = !isOpen;
-    inputWrap.style.display = isOpen ? 'block' : 'none';
-    btn.classList.toggle('active', isOpen);
-    if (isOpen) setTimeout(() => input.focus(), 50);
-  });
-
-  wireSearch(input, null, inputWrap, layers);
+  if (clearBtn) clearBtn.addEventListener('click', () => { input.value=''; clearBtn.style.display='none'; clearSearch(layers, savedVis); searchActive=false; removeResults(); });
 }
 
 // ─── Counts ───────────────────────────────────────────────────────────────────
 function updateCounts() {
-  let totalDone = 0;
   Object.keys(categoryRegistry).forEach(cat => {
     const reg  = categoryRegistry[cat];
     const done = reg.markerIds.filter(id => completedMarkers.has(id)).length;
-    totalDone += done;
-    const el = document.querySelector(`.sb-cat-count[data-cat="${cat}"]`);
+    const el   = document.querySelector(`.sb-cat-count[data-cat="${cat}"]`);
     if (!el) return;
-    el.textContent = `${done}/${reg.total}`;
-    el.style.color = done === reg.total && reg.total > 0 ? '#27ae60' : done > 0 ? '#e67e22' : '#777';
+    el.textContent   = `${done}/${reg.total}`;
+    el.style.color   = done===reg.total&&reg.total>0 ? '#27ae60' : done>0 ? '#e67e22' : '#777';
     el.style.fontWeight = done > 0 ? 'bold' : 'normal';
   });
-  const t = document.getElementById('sb-total');
-  if (t) {
-    t.textContent = `${totalDone}/${allMarkers.length}`;
-    t.style.color = totalDone === allMarkers.length && allMarkers.length > 0 ? '#4caf50' : totalDone > 0 ? '#f39c12' : 'rgba(255,255,255,0.75)';
-  }
+  // No global total displayed — removed
 }
 
 // ─── localStorage ─────────────────────────────────────────────────────────────
 function updateLocalStorage() {
   const checked = [];
-  document.querySelectorAll('#sb-cat-list input[type="checkbox"]').forEach(cb => { if (cb.checked) checked.push(cb.dataset.layer); });
+  document.querySelectorAll('#sb-cat-list input[type="checkbox"]').forEach(cb => { if(cb.checked) checked.push(cb.dataset.layer); });
   localStorage.setItem('checkedBoxes', JSON.stringify(checked));
 }
 function loadChecked(layers) {
@@ -463,9 +486,19 @@ function mk(tag, attrs={}) {
   return e;
 }
 function sep(attrs={}) {
-  const s = mk('span', attrs);
-  s.classList.add('sb-sep');
-  return s;
+  const s = mk('span', attrs); s.classList.add('sb-sep'); return s;
+}
+function mkViewBtn(id, svg, tip, active) {
+  const b = mk('button', {id:`sb-btn-${id}`, class:'sb-view-btn' + (active ? ' active' : '')});
+  b.setAttribute('data-tip', tip);
+  b.innerHTML = svg;
+  return b;
+}
+function mkToolBtn(id, svg, tip, extraClass) {
+  const b = mk('button', {id, class:'sb-tool-btn' + (extraClass ? ' ' + extraClass : '')});
+  b.setAttribute('data-tip', tip);
+  b.innerHTML = `${svg}<span class="sb-tool-label">${tip}</span>`;
+  return b;
 }
 
 loadData();

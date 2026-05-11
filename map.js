@@ -94,47 +94,13 @@ function toggleComplete(markerId, marker) {
   updateCounts();
 }
 
-// --- File loader ---
-function showFilePickerOverlay() {
-  const ov=document.createElement('div');
-  ov.style.cssText=`position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;
-    align-items:center;justify-content:center;z-index:9999;font-family:Noto,sans-serif;`;
-  ov.innerHTML=`<div style="background:rgb(233,233,233);border-radius:8px;padding:2em 2.5em;
-    max-width:420px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
-    <div style="font-size:1.4em;font-weight:bold;color:rgb(153,122,84);margin-bottom:0.5em;">Farever Map</div>
-    <div style="font-size:0.95em;color:#555;margin-bottom:1.5em;line-height:1.5;">
-      Select your <strong>assets.json</strong> file to load the map data.</div>
-    <label style="display:inline-block;cursor:pointer;background:rgb(153,122,84);color:white;
-      border-radius:5px;padding:0.6em 1.4em;font-size:1em;font-weight:bold;"
-      onmouseover="this.style.background='rgb(120,95,60)'"
-      onmouseout="this.style.background='rgb(153,122,84)'">
-      📂 Choose assets.json
-      <input type="file" id="json-file-input" accept=".json,application/json" style="display:none;"/>
-    </label>
-    <div id="file-error" style="color:#c0392b;font-size:0.85em;margin-top:1em;display:none;"></div>
-    <div style="font-size:0.75em;color:#999;margin-top:1.5em;">
-      Your file is loaded locally — nothing is uploaded anywhere.</div>
-  </div>`;
-  document.body.appendChild(ov);
-  document.getElementById('json-file-input').addEventListener('change',function(e){
-    const file=e.target.files[0]; if(!file) return;
-    const reader=new FileReader();
-    reader.onload=evt=>{
-      try{const data=JSON.parse(evt.target.result);ov.remove();initMap(data);}
-      catch{document.getElementById('file-error').textContent='Could not parse JSON.';
-            document.getElementById('file-error').style.display='block';}
-    };
-    reader.readAsText(file);
-  });
-}
-
 async function loadData() {
   try {
     const r = await fetch('assets.json');
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     initMap(await r.json());
   } catch (e) {
-    showFilePickerOverlay();
+    console.error('Failed to load assets.json:', e);
   }
 }
 

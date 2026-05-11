@@ -565,7 +565,8 @@ function buildTopMenu(layers) {
   searchBar.id = 'top-search-bar';
   searchBar.innerHTML = `
     <input id="top-search-input" type="text" placeholder="Search markers…" autocomplete="off">
-    <button id="top-search-clear" style="display:none;">✕</button>`;
+    <button id="top-search-clear" style="display:none;">✕</button>
+    <button id="top-search-close" class="search-close-btn" title="Close search">✕</button>`;
 
   // ---- WELCOME PANEL — floats below the Info button ----
   const welcomePanel = document.createElement('div');
@@ -770,6 +771,9 @@ function buildTopMenu(layers) {
   }
 
   searchBtn.addEventListener('click', () => searchIsOpen ? closeSearch() : openSearch());
+
+  // Close button (mobile) — closes the search bar
+  document.getElementById('top-search-close')?.addEventListener('click', () => closeSearch());
 
   searchInput.addEventListener('input', () => {
     const q = searchInput.value.trim().toLowerCase();

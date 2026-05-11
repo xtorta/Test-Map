@@ -132,7 +132,8 @@ label { font-weight: bold; }
 #top-toolbar-collapse-btn:hover { background:rgb(175,95,0); }
 
 #top-bottom-right {
-  display:flex; flex-direction:row; align-items:flex-start; pointer-events:all;
+  display:flex; flex-direction:row; align-items:flex-start;
+  pointer-events:all; position:relative;
 }
 
 /* Each button+popup pair — relative context for its popup */
@@ -172,11 +173,11 @@ label { font-weight: bold; }
 .mini-float-btn:hover { background:rgb(95,70,35); }
 .mini-float-btn.active { background:rgb(65,48,22); }
 
-/* ---- SEARCH POPUP — expands LEFTWARD from search button ---- */
+/* ---- SEARCH POPUP — attached to bottomRight, appears left of all tabs ---- */
 #top-search-bar {
-  position:absolute; top:100%;
-  right:100%;   /* right edge = left edge of searchWrap, grows leftward */
-  left:auto; width:0;
+  position:absolute; top:0;
+  right:100%;   /* left of all bottomRight content */
+  left:auto; width:0; height:100%;
   display:flex; align-items:center; gap:0.4em;
   padding:0; overflow:hidden;
   transition:width 0.22s ease, padding 0.22s ease;
@@ -222,28 +223,31 @@ label { font-weight: bold; }
 @media (max-width:767px) {
   .float-btn-wrap { position:static; display:contents; }
 
-  /* Search bar: in-flow, slides open below toolbar */
+  /* Search bar: in-flow, slides open below toolbar, full width, proper height */
   #top-search-bar {
-    position:static; width:auto; max-height:0; overflow:hidden;
-    border-radius:0; box-shadow:none; background:rgb(207,207,207);
-    pointer-events:none; transition:max-height 0.2s ease, padding 0.2s ease;
-    padding:0 0.6em; white-space:normal; right:auto;
+    position:static; width:100%; max-height:0; overflow:hidden;
+    border-radius:0; box-shadow:none; background:rgb(215,210,200);
+    pointer-events:none; transition:max-height 0.2s ease;
+    padding:0; white-space:normal; right:auto; height:auto;
   }
   #top-search-bar.open {
-    width:auto; max-height:3.5em; padding:0.4em 0.6em; pointer-events:all;
+    width:100%; max-height:4em; pointer-events:all; padding:0.6em 0.8em;
   }
-  #top-search-bar input { background:rgb(232,228,218); color:#1a1a1a; }
+  #top-search-bar input {
+    width:100%; background:rgb(232,228,218); color:#1a1a1a;
+    font-size:1em; padding:0.5em 0.7em;
+  }
   #top-search-bar #top-search-clear { background:none; border:1px solid #a09880; color:#555; }
 
   /* Info panel: in-flow, slides open */
   #top-welcome-panel {
-    position:static; width:auto; max-width:none; max-height:0; overflow:hidden;
-    border-radius:0; box-shadow:none; background:rgb(207,207,207);
+    position:static; width:100%; max-width:none; max-height:0; overflow:hidden;
+    border-radius:0; box-shadow:none; background:rgb(215,210,200);
     pointer-events:none; padding:0; right:auto;
-    transition:max-height 0.25s ease, padding 0.25s ease;
+    transition:max-height 0.25s ease;
   }
   #top-welcome-panel.open {
-    width:auto; max-height:20em; pointer-events:all; padding:0;
+    width:100%; max-height:20em; pointer-events:all; padding:0;
   }
   #top-welcome-panel .top-welcome-text { color:rgb(100,70,30); padding:0.5em 0.8em 0.6em; }
   #top-welcome-panel .top-welcome-text a { color:rgb(31,31,199); }

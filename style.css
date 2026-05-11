@@ -389,15 +389,14 @@ html, body {
   display: none;
   align-items: center;
   justify-content: center;
-  background: rgba(80, 58, 30, 0.85);
+  background: rgb(210, 120, 0);
   flex-shrink: 0;
-  padding: 0.2em 0;
-  cursor: pointer;
-  pointer-events: none; /* visual only */
+  padding: 0.22em 0;
+  pointer-events: none;
   z-index: 10;
 }
-#sb-scroll-up  { border-bottom: 1px solid rgba(255,255,255,0.1); }
-#sb-scroll-down { border-top:   1px solid rgba(255,255,255,0.1); }
+#sb-scroll-up  { border-bottom: 1px solid rgba(255,255,255,0.15); }
+#sb-scroll-down { border-top:   1px solid rgba(255,255,255,0.15); }
 #sb-hint {
   display: flex;
   align-items: center;

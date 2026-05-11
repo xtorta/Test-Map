@@ -503,6 +503,11 @@ function buildTopMenu(layers) {
   document.getElementById('sidebar')?.remove();
   document.getElementById('sidebar-toggle')?.remove();
   document.getElementById('top-ui')?.remove();
+  // Remove any previous resize listener attached by this function
+  if (window._topMenuResizeHandler) {
+    window.removeEventListener('resize', window._topMenuResizeHandler);
+    window._topMenuResizeHandler = null;
+  }
 
   // Hide all original top-layout elements — we rebuild everything ourselves
   document.querySelectorAll('.text--area, .legend').forEach(el => el.style.display = 'none');
@@ -585,20 +590,22 @@ function buildTopMenu(layers) {
 
   actions.appendChild(hideBtn);
   actions.appendChild(resetBtn);
-  // sideBtn moves to bottomRight on desktop (added below)
+  // Search goes in action column on desktop too — popup floats below
+  actions.appendChild(searchBtn);
+  // sideBtn goes to bottomRight
 
-  // Bottom-right row: search + info + side menu (desktop only)
+  // Bottom-right row: info + side menu (desktop); collapse arrow always shown
   const bottomRow = document.createElement('div');
   bottomRow.id = 'top-bottom-row';
 
-  // ---- SEARCH BAR (hidden by default, floats from bottomRight) ----
+  // ---- SEARCH BAR — floats below the action column ----
   const searchBar = document.createElement('div');
   searchBar.id = 'top-search-bar';
   searchBar.innerHTML = `
     <input id="top-search-input" type="text" placeholder="Search markers…" autocomplete="off">
     <button id="top-search-clear" style="display:none;">✕</button>`;
 
-  // ---- WELCOME PANEL — floats leftward from info button (like search bar) ----
+  // ---- WELCOME PANEL — floats below the Info button ----
   const welcomePanel = document.createElement('div');
   welcomePanel.id = 'top-welcome-panel';
   if (welcomeCollapsed) welcomePanel.classList.add('collapsed');
@@ -610,7 +617,7 @@ function buildTopMenu(layers) {
     Please send any feedback about this map or the wiki to <strong>@IceCaveBear</strong> on Discord.
   </div>`;
 
-  // ---- TOOLBAR COLLAPSE button — centred tab below the whole top-ui ----
+  // ---- TOOLBAR COLLAPSE button ----
   const toolbarCollapseBtn = document.createElement('button');
   toolbarCollapseBtn.id = 'top-toolbar-collapse-btn';
   toolbarCollapseBtn.title = 'Hide filter bar';
@@ -618,53 +625,39 @@ function buildTopMenu(layers) {
 
   const bottomLeft = document.createElement('div');
   bottomLeft.id = 'top-bottom-left';
-  // Centre collapse button across the full width
   bottomLeft.appendChild(toolbarCollapseBtn);
 
   const bottomRight = document.createElement('div');
   bottomRight.id = 'top-bottom-right';
 
-  // Wrap searchBtn + searchBar in a relative container so searchBar positions under searchBtn
-  const searchWrap = document.createElement('div');
-  searchWrap.className = 'float-btn-wrap';
-  searchWrap.appendChild(searchBtn);
-
-  // Wrap welcomeBtn + welcomePanel in a relative container
+  // Welcome wrap — info button + welcome panel popup
   const welcomeWrap = document.createElement('div');
   welcomeWrap.className = 'float-btn-wrap';
   welcomeWrap.appendChild(welcomeBtn);
 
-  bottomRight.appendChild(searchWrap);
   bottomRight.appendChild(welcomeWrap);
   bottomRight.appendChild(sideBtn);
   bottomRow.appendChild(bottomLeft);
   bottomRow.appendChild(bottomRight);
 
-  // On mobile: show icon-only buttons in bottomRight (no text labels)
-  // bottomRow stays visible always now
   if (window.innerWidth < 768) {
-    // Mobile action column: search+info+side stay there
-    actions.insertBefore(searchBtn, hideBtn);
-    actions.insertBefore(welcomeBtn, hideBtn);
+    // Mobile: search+info+side all in actions column
+    actions.appendChild(welcomeBtn);  // re-add since we removed from wrap
     actions.appendChild(sideBtn);
-    // Mobile bottomRight: icon-only versions of search/info/side for when toolbar is collapsed
+    // bottomRight gets icon-only mini buttons for collapsed state
     const mkIconOnly = (id, svg, title) => {
       const b = document.createElement('button');
-      b.id = id + '-mini';
-      b.title = title;
-      b.className = 'mini-float-btn';
+      b.id = id + '-mini'; b.title = title; b.className = 'mini-float-btn';
       b.innerHTML = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svg}</svg>`;
       return b;
     };
     const miniSearch = mkIconOnly('top-search', '<circle cx="6.5" cy="6.5" r="4"/><line x1="10" y1="10" x2="14" y2="14"/>', 'Search');
-    const miniInfo   = mkIconOnly('top-info',   '<circle cx="8" cy="8" r="6"/><line x1="8" y1="7" x2="8" y2="11"/><circle cx="8" cy="5" r="0.5" fill="currentColor"/>', 'Info');
-    const miniSide   = mkIconOnly('top-side',   '<rect x="1" y="1" width="12" height="12" rx="1"/><line x1="9" y1="1" x2="9" y2="13"/>', 'Side Menu');
+    const miniInfo   = mkIconOnly('top-info', '<circle cx="8" cy="8" r="6"/><line x1="8" y1="7" x2="8" y2="11"/><circle cx="8" cy="5" r="0.5" fill="currentColor"/>', 'Info');
+    const miniSide   = mkIconOnly('top-side', '<rect x="1" y="1" width="12" height="12" rx="1"/><line x1="9" y1="1" x2="9" y2="13"/>', 'Side Menu');
     bottomRight.appendChild(miniSearch);
     bottomRight.appendChild(miniInfo);
     bottomRight.appendChild(miniSide);
-    // mini buttons are only shown when toolbar is collapsed — CSS handles this
-    bottomRight.style.display = 'none'; // hidden by default; shown when toolbar collapses
-    // Wire mini buttons — deferred so openSearch/applyWelcome are defined first
+    bottomRight.style.display = 'none';
     const _wireMini = () => {
       miniSearch.addEventListener('click', () => searchIsOpen ? closeSearch() : openSearch());
       miniInfo.addEventListener('click', () => applyWelcome(!welcomeIsCollapsed));
@@ -676,17 +669,24 @@ function buildTopMenu(layers) {
     };
     setTimeout(_wireMini, 0);
   } else {
-    // Desktop: each popup lives inside its own wrap, positioned relative to its button
-    searchWrap.appendChild(searchBar);
+    // Desktop: welcome panel inside its wrap
     welcomeWrap.appendChild(welcomePanel);
   }
 
   toolbar.appendChild(chipsWrap);
   toolbar.appendChild(actions);
 
+  // Action column wraps search bar for desktop (relative positioning)
+  const actionsWrap = document.createElement('div');
+  actionsWrap.id = 'top-actions-wrap';
+  actionsWrap.appendChild(actions);
+  if (window.innerWidth >= 768) actionsWrap.appendChild(searchBar);
+
+  // Replace actions in toolbar with actionsWrap
+  toolbar.removeChild(actions);
+  toolbar.appendChild(actionsWrap);
+
   ui.appendChild(toolbar);
-  // On mobile: searchBar and welcomePanel go before bottomRow
-  // bottomRow is LAST so the orange collapse arrow always appears at the very bottom
   if (window.innerWidth < 768) {
     ui.appendChild(searchBar);
     ui.appendChild(welcomePanel);
@@ -708,30 +708,19 @@ function buildTopMenu(layers) {
   }
   setTimeout(updateMapHeight, 50);
 
-  // On resize, move search+info between bottom-row and actions column
+  // On resize: just rebuild the whole top menu rather than moving DOM nodes
   let wasDesktop = window.innerWidth >= 768;
-  window.addEventListener('resize', () => {
+  const _resizeHandler = () => {
     const isDesktop = window.innerWidth >= 768;
     if (isDesktop === wasDesktop) return;
     wasDesktop = isDesktop;
-    if (isDesktop) {
-      bottomRight.style.display = '';
-      bottomRight.insertBefore(searchWrap, bottomRight.firstChild);
-      searchWrap.insertBefore(searchBtn, searchWrap.firstChild);
-      searchWrap.appendChild(searchBar);
-      bottomRight.insertBefore(welcomeWrap, sideBtn);
-      welcomeWrap.insertBefore(welcomeBtn, welcomeWrap.firstChild);
-      welcomeWrap.appendChild(welcomePanel);
-      bottomRow.style.display = '';
-    } else {
-      actions.insertBefore(searchBtn, hideBtn);
-      actions.insertBefore(welcomeBtn, hideBtn);
-      actions.appendChild(sideBtn);
-      ui.insertBefore(searchBar, null);
-      ui.appendChild(welcomePanel);
-      bottomRight.style.display = 'none';
-    }
-  });
+    buildTopMenu(layers);
+    loadChecked(layers);
+    updateCounts();
+    setTimeout(() => map.invalidateSize(), 280);
+  };
+  window._topMenuResizeHandler = _resizeHandler;
+  window.addEventListener('resize', _resizeHandler);
 
   // =====================================================================
   // Wire up toolbar collapse (hides chips+actions, keeps floating tabs)

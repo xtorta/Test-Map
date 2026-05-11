@@ -290,14 +290,16 @@ function buildSidebar(layers) {
   sidebar.appendChild(scrollDown); // will be before sep/hint
 
   function updateScrollIndicators() {
-    const canUp   = catList.scrollTop > 4;
-    const canDown = catList.scrollTop < catList.scrollHeight - catList.clientHeight - 4;
+    const canUp   = catList.scrollTop > 8;
+    const canDown = catList.scrollHeight - catList.scrollTop - catList.clientHeight > 8;
     scrollUp.style.display   = canUp   ? 'flex' : 'none';
     scrollDown.style.display = canDown ? 'flex' : 'none';
   }
   catList.addEventListener('scroll', updateScrollIndicators);
   btnToggleView.addEventListener('click', () => setTimeout(updateScrollIndicators, 300));
-  setTimeout(updateScrollIndicators, 150);
+  // Use requestAnimationFrame + setTimeout to ensure layout is fully painted before measuring
+  requestAnimationFrame(() => setTimeout(updateScrollIndicators, 50));
+  window.addEventListener('resize', updateScrollIndicators);
 
   sidebar.appendChild(sep({id:'sb-sep-hint'}));
 

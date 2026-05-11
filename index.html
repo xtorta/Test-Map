@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page--flex">
+    <div class="text--area">
+      <div class="intro--paragraph">
+        <div>
+          Welcome to the Farever interactive map, built by the <a href="https://farever.wiki" class="wiki">Farever Wiki</a> team.
+        </div>
+        <div>
+          This map pulls data directly from the game. You can use the buttons to filter what is displayed. Note that some items have had their locations slightly obscured to avoid spoiling the fun of exploration! You will find them within the indicated area.
+        </div>
+        <div>
+          Please send any feedback about this map or the wiki to <span>@IceCaveBear</span> on Discord.
+        </div>
+      </div>
+      <div class="separator"></div>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="text--area">
+      <div class="separator"></div>
+    </div>
+    <span class="map--container">
+      <div id="map"></div>
+    </span>
+  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="map.js"></script>
+</body>
+</html>

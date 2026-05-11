@@ -1,0 +1,620 @@
+@font-face {
+  font-family: Noto;
+  src: url("noto.ttf");
+}
+html, body {
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  font-family: Noto;
+  background-color: rgb(233, 233, 233);
+  overflow: hidden;
+  /* Prevent iOS bounce scroll */
+  position: fixed;
+  width: 100%;
+}
+.page--flex {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  height: 100dvh;
+  background-color: rgb(233, 233, 233);
+  overflow: hidden;
+}
+.leaflet-container { background-image: url("fog.webp"); }
+span.map--container { flex: 1; width: 100%; min-height: 0; display: flex; flex-direction: column; }
+#map {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  transition: margin-right 0.25s ease;
+}
+/* In top-menu mode the map fills remaining space below #top-ui */
+.top-menu-mode #map { height: calc(100dvh - var(--top-ui-h, 0px)); flex: none; }
+
+/* Hide arrow.png scroll control globally */
+.leaflet-bar.leaflet-control.go--to--legend--button { display: none !important; }
+.leaflet-popup-content { font-family: Noto; font-size: 1.1em; }
+.leaflet-touch .leaflet-bar a { height: 1.6em; width: 1.6em; line-height: 1.6em; }
+
+/* ====================================================== */
+/* TOP MENU MODE — we build #top-ui ourselves, hide HTML  */
+/* ====================================================== */
+.top-menu-mode .text--area,
+.top-menu-mode .legend { display: none !important; }
+.top-menu-mode .leaflet-bottom.leaflet-right { display: none; }
+
+/* Sidebar-mode elements we still need CSS for */
+label { font-weight: bold; }
+.legend { padding: 0.4em; user-select: none; background-color: inherit; }
+.legend div { display: flex; flex-direction: row; flex-wrap: wrap; flex-shrink: 0; }
+.legend label {
+  border: 5px solid transparent; border-image: url("box.png") 5 stretch;
+  background-color: rgb(207,207,207); margin: 0.1em; font-size: 1em;
+  display: inline-flex; align-items: center; cursor: pointer; gap: 0.5rem;
+}
+.legend span.count { margin-right: 0.2em; }
+.legend label input { position: absolute; opacity: 0; pointer-events: none; }
+.text--area { height: fit-content; padding: 0.5em; }
+.separator.last { padding-bottom: 1em; background-color: inherit; }
+.separator {
+  display: block; width: 100%; height: 0; box-sizing: border-box;
+  border-style: solid; border-width: 11px 50px 0 50px;
+  border-image-source: url("separator.png");
+  border-image-slice: 11 50 0 50; border-image-repeat: stretch;
+}
+.intro--paragraph {
+  font-size: 1em; margin-bottom: 1em; font-weight: bold;
+  color: rgb(153,122,84); display: flex; flex-direction: column; gap: 1em;
+}
+.intro--paragraph a.wiki { color: rgb(31,31,199); text-decoration: none; }
+.legend label span.category--text, .legend label span.count { font-size: 1.8em; }
+@media (min-width: 480px) {
+  .intro--paragraph { font-size: 1.5em; }
+  .leaflet-popup-content { font-size: 1.2em; }
+}
+
+/* ====================================================== */
+/* #top-ui — the whole top area in top-menu mode          */
+/* ====================================================== */
+#top-ui {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background: rgb(207,207,207);
+  position: sticky;
+  top: 0;
+  z-index: 500;
+  overflow: visible; /* allow bottomRow children to float below even when height:0 */
+}
+
+/* ---- TOOLBAR ROW ---- */
+#top-toolbar {
+  display: flex;
+  align-items: stretch;
+  min-height: 3.2em;
+}
+
+/* Filter chips area */
+#top-chips {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 0.3em 0.4em;
+  gap: 0.2em;
+  overflow-y: auto;
+  max-height: 9em;
+}
+
+.top-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.28em 0.65em 0.28em 0.4em;
+  border: 5px solid transparent;
+  border-image: url("box.png") 5 stretch;
+  background: rgb(207,207,207);
+  cursor: pointer;
+  font-family: Noto, sans-serif;
+  font-size: 0.92em;
+  font-weight: bold;
+  white-space: nowrap;
+  user-select: none;
+  transition: background 0.1s;
+}
+.top-chip:hover { background: rgb(193,190,183); }
+.top-chip input { display: none; }
+
+.chip-check {
+  width: 1.25em; height: 1.25em;
+  background-image: url("check0.png");
+  background-size: contain; background-repeat: no-repeat; flex-shrink: 0;
+}
+.top-chip input:checked ~ .chip-check { background-image: url("check1.png"); }
+
+.chip-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 1.5px solid rgba(0,0,0,0.2); flex-shrink: 0;
+}
+.chip-name { color: inherit; }
+.chip-count { color: inherit; opacity: 0.7; margin-left: 0.1em; font-size: 0.88em; }
+
+/* ---- RIGHT ACTION PANEL — vertical stack, each button horizontal icon+text ---- */
+#top-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex-shrink: 0;
+  border-left: 2px solid rgba(0,0,0,0.15);
+  background: rgb(120,90,55);
+  min-width: 8.5em;
+}
+#top-actions button {
+  background: transparent;
+  color: white;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding: 0 0.75em;
+  cursor: pointer;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55em;
+  transition: background 0.15s;
+  flex: 1;
+  font-family: Noto, sans-serif;
+  text-align: left;
+  white-space: nowrap;
+}
+#top-actions button:last-child { border-bottom: none; }
+#top-actions button:hover  { background: rgba(255,255,255,0.12); }
+#top-actions button.active { background: rgba(0,0,0,0.25); }
+
+.act-icon { flex-shrink: 0; }
+
+.act-label {
+  font-size: 0.82em;
+  font-weight: bold;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  opacity: 0.95;
+}
+
+/* Reset button — soft red */
+#top-reset-btn,
+#btn-reset-all {
+  color: #e05050 !important;
+  border-color: #e05050 !important;
+}
+#top-reset-btn { color: #ffaaaa !important; border-color: transparent !important; }
+#top-reset-btn:hover { background: rgba(180,40,20,0.35) !important; }
+
+/* Icon image in chips */
+.chip-icon-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* ---- BOTTOM ROW — zero-height row, floating buttons hang down from it ---- */
+#top-bottom-row {
+  display: flex;
+  flex-direction: row;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+  position: relative;
+  z-index: 600;
+}
+#top-bottom-left { flex: 1; pointer-events: none; }
+
+/* Container for all floating bottom-right elements */
+#top-bottom-right {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  pointer-events: all;
+  position: relative; /* so search bar absolute is relative to this */
+}
+
+/* Each floating button — hangs down from filter bar */
+#top-bottom-right > button {
+  background: rgb(120,90,55);
+  color: white;
+  border: none;
+  border-radius: 0 0 6px 6px;
+  padding: 0.3em 0.85em 0.45em;
+  cursor: pointer;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45em;
+  font-family: Noto, sans-serif;
+  transition: background 0.15s;
+  white-space: nowrap;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+  margin-left: 4px;
+}
+#top-bottom-right > button:first-child { margin-left: 0; }
+#top-bottom-right > button:hover  { background: rgb(95,70,35); }
+#top-bottom-right > button.active { background: rgb(65,48,22); }
+#top-bottom-right .act-label { font-size: 0.82em; font-weight: bold; opacity: 0.95; }
+
+/* Search popup — expands LEFTWARD from the search button */
+#top-search-bar {
+  position: absolute;
+  top: 100%;    /* below the floating buttons */
+  right: 100%;  /* starts at left edge of #top-bottom-right — grows left */
+  left: auto;
+  width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0;
+  overflow: hidden;
+  transition: width 0.22s ease, padding 0.22s ease;
+  background: rgb(80,60,30);
+  border-radius: 0 0 0 8px;
+  box-shadow: -4px 6px 16px rgba(0,0,0,0.3);
+  z-index: 599;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#top-search-bar.open {
+  width: 280px;
+  padding: 0.45em 0.65em;
+  pointer-events: all;
+}
+#top-search-bar input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.38em 0.65em;
+  border: none;
+  border-radius: 4px;
+  font-family: Noto, sans-serif;
+  font-size: 0.9em;
+  background: rgb(232,228,218);
+  color: #1a1a1a;
+  outline: none;
+}
+#top-search-bar #top-search-clear {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 4px;
+  color: white;
+  padding: 0.3em 0.5em;
+  cursor: pointer;
+  font-size: 0.85em;
+  flex-shrink: 0;
+}
+
+/* ---- MOBILE: search bar goes back to normal flow ---- */
+@media (max-width: 767px) {
+  /* bottomRow stays visible on mobile (for collapse button) — only bottomRight is hidden via JS */
+  #top-search-bar {
+    position: static;
+    width: auto;
+    max-height: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: rgb(200,196,188);
+    pointer-events: none;
+    border-top: 0 solid rgba(0,0,0,0.12);
+    transition: max-height 0.2s ease, padding 0.2s ease;
+    padding: 0 0.6em;
+  }
+  #top-search-bar.open {
+    width: auto;
+    max-height: 3.5em;
+    padding: 0.4em 0.6em;
+    border-top-width: 1px;
+    pointer-events: all;
+  }
+  #top-search-bar input {
+    background: rgb(232,228,218);
+    color: #1a1a1a;
+  }
+  #top-search-bar #top-search-clear {
+    background: none;
+    border: 1px solid #a09880;
+    color: #555;
+  }
+}
+
+/* ---- BOTTOM ROW — zero-height row, collapse btn centred, floating right buttons ---- */
+#top-bottom-row {
+  display: flex;
+  flex-direction: row;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+  position: relative;
+  z-index: 600;
+}
+
+/* Left side: takes up equal space so collapse btn ends up centred */
+#top-bottom-left {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  pointer-events: none;
+  /* offset right by half the actions-column width so the btn is truly centred
+     across the chips area (which is flex:1 of toolbar) */
+}
+
+#top-toolbar-collapse-btn {
+  background: rgb(210,120,0);
+  color: white;
+  border: none;
+  border-radius: 0 0 8px 8px;
+  padding: 0.28em 1.1em 0.4em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+  transition: background 0.15s;
+  pointer-events: all;
+}
+#top-toolbar-collapse-btn:hover { background: rgb(175,95,0); }
+
+/* Mini icon-only floating buttons for mobile collapsed state */
+.mini-float-btn {
+  background: rgb(120,90,55);
+  color: white;
+  border: none;
+  border-radius: 0 0 6px 6px;
+  padding: 0.3em 0.65em 0.45em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+  transition: background 0.15s;
+  margin-left: 3px;
+}
+.mini-float-btn:first-child { margin-left: 0; }
+.mini-float-btn:hover { background: rgb(95,70,35); }
+.mini-float-btn.active { background: rgb(65,48,22); }
+
+/* ---- WELCOME PANEL — floats leftward from Info button (desktop) ---- */
+#top-welcome-panel {
+  position: absolute;
+  top: 100%;
+  right: 100%;  /* left edge of #top-bottom-right = grows leftward */
+  width: 0;
+  max-width: 420px;
+  overflow: hidden;
+  transition: width 0.22s ease, padding 0.22s ease;
+  background: rgb(80,60,30);
+  border-radius: 0 0 0 8px;
+  box-shadow: -4px 6px 16px rgba(0,0,0,0.3);
+  z-index: 598;
+  pointer-events: none;
+  padding: 0;
+}
+#top-welcome-panel.open {
+  width: 420px;
+  padding: 0.65em 0.9em;
+  pointer-events: all;
+}
+/* Mobile: welcome panel is in-flow, uses .open to expand */
+@media (max-width: 767px) {
+  #top-welcome-panel {
+    position: static;
+    width: auto;
+    max-width: none;
+    max-height: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: rgb(207,207,207);
+    pointer-events: none;
+    padding: 0;
+    transition: max-height 0.25s ease, padding 0.25s ease;
+    overflow: hidden;
+  }
+  #top-welcome-panel.open {
+    width: auto;
+    max-height: 20em;
+    pointer-events: all;
+    padding: 0;
+  }
+  #top-welcome-panel .top-welcome-text {
+    color: rgb(100,70,30);
+    padding: 0.5em 0.8em 0.6em;
+  }
+  #top-welcome-panel .top-welcome-text a { color: rgb(31,31,199); }
+}
+
+.top-welcome-text {
+  font-size: 0.8em;
+  font-weight: 600;
+  color: white;
+  line-height: 1.55;
+  white-space: normal;
+}
+.top-welcome-text a { color: rgb(180,200,255); text-decoration: none; }
+.top-welcome-text a:hover { text-decoration: underline; }
+
+/* Mobile welcome text colour */
+@media (max-width: 767px) {
+  .top-welcome-text { color: rgb(100,70,30); padding: 0.5em 0.8em 0.6em; }
+  .top-welcome-text a { color: rgb(31,31,199); }
+}
+
+/* ====================================================== */
+/* SIDEBAR MODE (default on desktop)                      */
+/* ====================================================== */
+body:not(.top-menu-mode) .text--area,
+body:not(.top-menu-mode) .legend { display: none; }
+body:not(.top-menu-mode) .leaflet-bottom.leaflet-right { display: none; }
+
+:root { --sb-bg: rgb(215,210,200); }
+
+.sidebar-separator {
+  display: block; width: 100%; height: 0; box-sizing: border-box; flex-shrink: 0;
+  border-style: solid; border-width: 11px 30px 0 30px;
+  border-image-source: url("separator.png");
+  border-image-slice: 11 50 0 50; border-image-repeat: stretch;
+  filter: grayscale(100%) brightness(0.72); opacity: 0.5; margin: 0;
+}
+
+#sidebar-cat-list::-webkit-scrollbar { width: 5px; }
+#sidebar-cat-list::-webkit-scrollbar-track { background: transparent; }
+#sidebar-cat-list::-webkit-scrollbar-thumb { background: #aaa; border-radius: 3px; }
+
+.check--image {
+  width: 1.4em; height: 1.4em;
+  background-image: url("check0.png");
+  background-size: contain; background-repeat: no-repeat; flex-shrink: 0;
+}
+input[type="checkbox"]:checked + .check--image { background-image: url("check1.png"); }
+
+#info-panel {
+  padding: 0.75em 0.95em; font-size: 0.78em; color: rgb(70,50,25);
+  line-height: 1.6; font-weight: 600; flex-shrink: 0; display: none;
+  background: var(--sb-bg);
+}
+#info-panel a { color: rgb(31,31,199); text-decoration: none; }
+#info-panel a:hover { text-decoration: underline; }
+
+#sidebar-footer {
+  display: flex; align-items: center;
+  padding: 0.5em 0.9em;
+  background: var(--sb-bg);
+  flex-shrink: 0;
+}
+#sidebar-footer .layout-btn {
+  flex: 1;
+  background: rgb(120,90,55); color: white; border: none;
+  border-radius: 5px; padding: 0.42em 1em;
+  font-family: Noto, sans-serif; font-size: 0.78em; font-weight: bold;
+  cursor: pointer; transition: background 0.15s;
+}
+#sidebar-footer .layout-btn:hover { background: rgb(95,70,35); }
+
+/* ====================================================== */
+/* HINT BUBBLE — fixed bottom-left                        */
+/* ====================================================== */
+#hint-bubble {
+  position: fixed;
+  bottom: 1em; left: 1em;
+  z-index: 1100;
+  font-family: Noto, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+#hint-panel {
+  background: rgb(60,45,25);
+  color: white;
+  border-radius: 8px 8px 0 8px;
+  padding: 0.6em 0.85em 0.6em 0.75em;
+  font-size: 0.82em;
+  font-weight: bold;
+  line-height: 1.4;
+  max-width: 240px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.35);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+#hint-panel.hidden { display: none; }
+#hint-panel .hint-icon { font-size: 1.1em; flex-shrink: 0; margin-top: 0.05em; }
+#hint-panel .hint-body { flex: 1; }
+#hint-minimise-btn {
+  background: none; border: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 1em; cursor: pointer; padding: 0;
+  line-height: 1; flex-shrink: 0;
+  transition: color 0.15s;
+}
+#hint-minimise-btn:hover { color: white; }
+#hint-icon-btn {
+  background: rgb(60,45,25); color: white; border: none;
+  border-radius: 50%; width: 2.2em; height: 2.2em;
+  font-size: 1.1em; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  display: none;
+  align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+#hint-icon-btn:hover { background: rgb(90,65,35); }
+#hint-icon-btn.visible { display: flex; }
+
+/* ====================================================== */
+/* MOBILE — phones (up to 767px)                          */
+/* ====================================================== */
+@media (max-width: 767px) {
+
+  /* Sidebar — full width overlay on mobile */
+  #sidebar {
+    width: 100% !important;
+    max-width: 320px !important;
+    box-shadow: -4px 0 30px rgba(0,0,0,0.4) !important;
+  }
+  #sidebar-toggle {
+    right: 100% !important;
+    /* when sidebar open, toggle sits at left edge of sidebar */
+  }
+
+  /* Top menu chips — larger for touch */
+  .top-chip {
+    font-size: 0.95em;
+    padding: 0.35em 0.7em 0.35em 0.45em;
+    min-height: 2.4em;
+  }
+  .chip-check { width: 1.4em; height: 1.4em; }
+  .chip-dot { width: 12px; height: 12px; }
+  .chip-icon-img { width: 22px; height: 22px; }
+
+  /* Top action buttons — bigger touch targets, overflow allowed */
+  #top-actions {
+    min-width: 9em;
+    overflow: visible;
+  }
+  #top-actions button {
+    padding: 0 0.9em;
+    min-height: 2.8em;
+  }
+  .act-label { font-size: 0.78em; }
+
+  /* Chips area — more height allowed on mobile */
+  #top-chips {
+    max-height: 12em;
+    padding: 0.3em 0.4em;
+  }
+
+  /* Welcome text bigger for readability */
+  .top-welcome-text { font-size: 0.88em; }
+
+  /* Leaflet controls bigger for touch */
+  .leaflet-touch .leaflet-bar a {
+    width: 36px !important;
+    height: 36px !important;
+    line-height: 36px !important;
+    font-size: 1.2em;
+  }
+
+  /* Hint bubble — slightly smaller on mobile */
+  #hint-bubble { bottom: 0.75em; left: 0.75em; }
+  #hint-panel { font-size: 0.78em; max-width: 200px; }
+
+  /* Popups bigger for touch */
+  .leaflet-popup-content { font-size: 1em !important; }
+
+  /* Safe area padding for notched phones */
+  #top-ui { padding-top: env(safe-area-inset-top, 0); }
+  #hint-bubble { bottom: calc(0.75em + env(safe-area-inset-bottom, 0)); }
+}
+
+/* Landscape mobile */
+@media (max-width: 767px) and (orientation: landscape) {
+  #top-chips { max-height: 5em; }
+  #top-welcome-panel { max-height: 8em; }
+  .top-welcome-text { font-size: 0.75em; }
+  .top-chip { font-size: 0.82em; min-height: 2em; }
+}

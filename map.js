@@ -1,5 +1,11 @@
 // ─── Map ──────────────────────────────────────────────────────────────────────
-const map = L.map('map', { crs: L.CRS.Simple, minZoom: -8, tap: true, tapTolerance: 15 });
+const map = L.map('map', {
+  crs: L.CRS.Simple,
+  minZoom: -8,
+  tap: true,
+  tapTolerance: 15,
+  zoomControl: !( /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth < 768 ),
+});
 const bounds = [[0,0],[5120,3584]];
 const s1=0.89, s2=0.89, b1=-1595, b2=1724, coordToMapScalar=0.89;
 L.imageOverlay('cropped.webp', bounds).addTo(map);

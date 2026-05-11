@@ -280,6 +280,28 @@ function buildSidebar(layers) {
   iconTools.addEventListener('mouseleave', () => { sbTip.style.display = 'none'; });
   btnToggleView.addEventListener('click', () => { sbTip.style.display = 'none'; });
   sidebar.appendChild(catList);
+
+  // ── Scroll indicators for compact cat list ────────────────────────
+  const scrollUp   = mk('div', {id:'sb-scroll-up'});
+  const scrollDown = mk('div', {id:'sb-scroll-down'});
+  scrollUp.innerHTML   = `<svg width="12" height="8" viewBox="0 0 12 8" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,7 6,1 11,7"/></svg>`;
+  scrollDown.innerHTML = `<svg width="12" height="8" viewBox="0 0 12 8" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 6,7 11,1"/></svg>`;
+  sidebar.insertBefore(scrollUp, catList);
+  sidebar.appendChild(scrollDown); // will be before sep/hint
+
+  function updateScrollIndicators() {
+    if (!sidebar.classList.contains('compact')) {
+      scrollUp.style.display = 'none'; scrollDown.style.display = 'none'; return;
+    }
+    const canUp   = catList.scrollTop > 4;
+    const canDown = catList.scrollTop < catList.scrollHeight - catList.clientHeight - 4;
+    scrollUp.style.display   = canUp   ? 'flex' : 'none';
+    scrollDown.style.display = canDown ? 'flex' : 'none';
+  }
+  catList.addEventListener('scroll', updateScrollIndicators);
+  btnToggleView.addEventListener('click', () => setTimeout(updateScrollIndicators, 300));
+  setTimeout(updateScrollIndicators, 150);
+
   sidebar.appendChild(sep({id:'sb-sep-hint'}));
 
   // ── Hint bar ──────────────────────────────────────────────────────
@@ -472,6 +494,16 @@ function wireSearch(input, clearBtn, container, layers) {
         removeResults();
         input.value = label;
         if (clearBtn) clearBtn.style.display = '';
+        // On mobile: close the sidebar after navigating to result
+        if (window.innerWidth < 768) {
+          const sb = document.getElementById('sidebar');
+          const tog = document.getElementById('sb-toggle');
+          if (sb && !sb.classList.contains('closed')) {
+            const w = sb.classList.contains('compact') ? 52 : 290;
+            sb.style.transform = `translateX(${w}px)`;
+            if (tog) { tog.style.right = '0'; tog.innerHTML = '◀'; }
+          }
+        }
       });
       resultsBox.appendChild(item);
     });

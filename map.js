@@ -605,6 +605,7 @@ function buildTopMenu(layers) {
   bottomRight.appendChild(searchWrap);
   bottomRight.appendChild(welcomeWrap);
   bottomRight.appendChild(sideBtn);
+  if (window.innerWidth >= 768) bottomRight.appendChild(searchBar); // desktop: inside bottomRight
   bottomRow.appendChild(bottomLeft);
   bottomRow.appendChild(bottomRight);
 
@@ -638,8 +639,7 @@ function buildTopMenu(layers) {
     };
     setTimeout(_wireMini, 0);
   } else {
-    // Desktop: popups inside their wraps
-    searchWrap.appendChild(searchBar);
+    // Desktop: welcome panel inside its wrap; searchBar already appended to bottomRight above
     welcomeWrap.appendChild(welcomePanel);
   }
 

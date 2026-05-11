@@ -136,14 +136,12 @@ label { font-weight: bold; }
   pointer-events:all; position:relative;
 }
 
-/* Each button+popup pair — relative context for its popup */
 .float-btn-wrap {
   position:relative; display:flex; flex-direction:column;
   align-items:stretch; margin-left:4px;
 }
 .float-btn-wrap:first-child { margin-left:0; }
 
-/* Floating tab buttons (Search, Info, Side Menu) */
 #top-bottom-right > button,
 .float-btn-wrap > button {
   background:rgb(120,90,55); color:white; border:none;
@@ -161,7 +159,6 @@ label { font-weight: bold; }
 #top-bottom-right .act-label,
 .float-btn-wrap .act-label { font-size:0.82em; font-weight:bold; opacity:0.95; }
 
-/* Mini icon-only buttons (mobile collapsed state) */
 .mini-float-btn {
   background:rgb(120,90,55); color:white; border:none;
   border-radius:0 0 6px 6px; padding:0.4em 0.9em 0.5em;
@@ -173,11 +170,12 @@ label { font-weight: bold; }
 .mini-float-btn:hover { background:rgb(95,70,35); }
 .mini-float-btn.active { background:rgb(65,48,22); }
 
-/* ---- SEARCH POPUP — attached to bottomRight, appears left of all tabs ---- */
+/* ---- SEARCH POPUP — floats left of all tabs (from bottomRight right edge) ---- */
 #top-search-bar {
-  position:absolute; top:0;
-  right:100%;   /* left of all bottomRight content */
-  left:auto; width:0; height:100%;
+  position:absolute;
+  top:0;        /* same level as the tabs */
+  right:100%;   /* extends leftward from bottomRight's left edge */
+  left:auto; width:0;
   display:flex; align-items:center; gap:0.4em;
   padding:0; overflow:hidden;
   transition:width 0.22s ease, padding 0.22s ease;
@@ -185,24 +183,25 @@ label { font-weight: bold; }
   border-radius:0 0 0 8px;
   box-shadow:-4px 4px 12px rgba(0,0,0,0.25);
   z-index:602; pointer-events:none; white-space:nowrap;
+  min-height:2.2em;
 }
-#top-search-bar.open { width:280px; padding:0.45em 0.65em; pointer-events:all; }
+#top-search-bar.open { width:260px; padding:0.45em 0.55em; pointer-events:all; }
 #top-search-bar input {
-  flex:1; min-width:0; padding:0.38em 0.65em;
+  flex:1; min-width:0; padding:0.38em 0.55em;
   border:1.5px solid #a09880; border-radius:4px;
-  font-family:Noto,sans-serif; font-size:0.9em;
+  font-family:Noto,sans-serif; font-size:0.88em;
   background:rgb(232,228,218); color:#1a1a1a; outline:none;
 }
 #top-search-bar #top-search-clear {
   background:none; border:1px solid #a09880; border-radius:4px;
-  color:#555; padding:0.3em 0.5em; cursor:pointer; font-size:0.85em; flex-shrink:0;
+  color:#555; padding:0.3em 0.4em; cursor:pointer; font-size:0.82em; flex-shrink:0;
 }
+.search-close-btn { display:none; } /* hidden — search closes by clicking search btn again */
 
-/* ---- INFO POPUP — drops DIRECTLY BELOW info button, right-aligned ---- */
+/* ---- INFO POPUP — drops BELOW info button ---- */
 #top-welcome-panel {
   position:absolute; top:100%;
-  right:0;   /* aligns right edge with info button's right edge */
-  left:auto; width:0; max-width:380px;
+  right:0; left:auto; width:0; max-width:380px;
   overflow:hidden;
   transition:width 0.22s ease, padding 0.22s ease;
   background:rgb(215,210,200);
@@ -221,37 +220,7 @@ label { font-weight: bold; }
 /* MOBILE (max-width: 767px)                                    */
 /* ============================================================ */
 @media (max-width:767px) {
-  .float-btn-wrap { position:static; display:contents; }
-
-  /* Search bar: in-flow, slides open below toolbar/bottomRow, full width, proper height */
-  #top-search-bar {
-    position:static; width:100%; max-height:0; overflow:hidden;
-    border-radius:0; box-shadow:none; background:rgb(215,210,200);
-    pointer-events:none; transition:max-height 0.2s ease;
-    padding:0; white-space:normal; right:auto; height:auto;
-  }
-  #top-search-bar.open {
-    width:100%; max-height:5em; pointer-events:all; padding:0.75em 0.8em 0.75em 3.5em;
-    /* 3.5em left padding clears the Leaflet zoom buttons */
-  }
-  #top-search-bar input {
-    flex:1; width:100%; background:rgb(232,228,218); color:#1a1a1a;
-    font-size:1.05em; padding:0.65em 0.8em; border-radius:6px;
-  }
-  #top-search-bar #top-search-clear { background:none; border:1px solid #a09880; color:#555; padding:0.5em 0.6em; }
-
-  /* Info panel: in-flow, slides open */
-  #top-welcome-panel {
-    position:static; width:100%; max-width:none; max-height:0; overflow:hidden;
-    border-radius:0; box-shadow:none; background:rgb(215,210,200);
-    pointer-events:none; padding:0; right:auto;
-    transition:max-height 0.25s ease;
-  }
-  #top-welcome-panel.open {
-    width:100%; max-height:20em; pointer-events:all; padding:0;
-  }
-  #top-welcome-panel .top-welcome-text { color:rgb(100,70,30); padding:0.5em 0.8em 0.6em; }
-  #top-welcome-panel .top-welcome-text a { color:rgb(31,31,199); }
+  .float-btn-wrap { position:relative; } /* keep relative on mobile too */
 
   /* Bigger chips for touch */
   .top-chip { font-size:0.95em; padding:0.35em 0.7em 0.35em 0.45em; min-height:2.4em; }
@@ -270,36 +239,13 @@ label { font-weight: bold; }
   #top-ui { padding-top:env(safe-area-inset-top,0); }
 }
 
-/* Mobile overrides for bottom row — give it real height so arrow is above search */
+/* Mobile overrides for bottom row */
 @media (max-width:767px) {
-  #top-bottom-row {
-    height: auto;
-    overflow: hidden;
-  }
-  #top-bottom-left {
-    padding-bottom: 0.1em; /* tiny gap so arrow tab doesn't clip */
-  }
-  #top-ui {
-    width: 100%;
-  }
+  #top-ui { width: 100%; }
 }
 
-/* Close button on mobile search bar */
-.search-close-btn {
-  background: none;
-  border: 1px solid #a09880;
-  border-radius: 4px;
-  color: #555;
-  padding: 0.4em 0.6em;
-  cursor: pointer;
-  font-size: 0.9em;
-  flex-shrink: 0;
-  display: none; /* hidden on desktop */
-}
-@media (max-width:767px) {
-  .search-close-btn { display: flex; align-items: center; justify-content: center; }
-  #top-search-clear { display: none !important; } /* use close btn instead on mobile */
-}
+/* Close button — hidden, search closes by clicking search btn again */
+.search-close-btn { display: none; }
   #top-chips { max-height:5em; }
   #top-welcome-panel.open { max-height:8em; }
   .top-welcome-text { font-size:0.75em; }

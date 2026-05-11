@@ -348,13 +348,21 @@ html, body {
   flex-shrink: 0;
 }
 
-/* Colour dot — same 28px width as PNG icon so text aligns uniformly */
+/* Colour dot — 22×22 square, centred inside its wrapper */
 .sb-cat-dot {
-  width: 28px; height: 22px;
+  width: 22px; height: 22px;
   border-radius: 4px;
-  flex-shrink: 0;
-  display: inline-block;
   border: 1.5px solid rgba(0,0,0,0.15);
+  display: block;
+}
+/* Fixed-width wrapper matches PNG icon width (28px) so text aligns */
+.sb-cat-dot-wrap {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .sb-cat-name {

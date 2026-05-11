@@ -13,18 +13,19 @@ map.getContainer().addEventListener('contextmenu', e => e.preventDefault());
 map.on('contextmenu', () => {});
 
 // --- State ---
-// Migrate old completedMarkers format (label__x__y) to new (label only)
-// Old entries contained __ separators; strip them on first load
+// Clear any old-format completedMarkers (label__x__y or label-only) 
+// since IDs are now label__index and old ones can't be reliably mapped
 (function migrateCompletedMarkers() {
   const raw = localStorage.getItem('completedMarkers');
   if (!raw) return;
   try {
     const old = JSON.parse(raw);
     if (!Array.isArray(old) || old.length === 0) return;
-    // If any entry contains __ it's the old format — extract just the label part
-    if (old.some(id => id.includes('__'))) {
-      const migrated = [...new Set(old.map(id => id.includes('__') ? id.split('__')[0] : id))];
-      localStorage.setItem('completedMarkers', JSON.stringify(migrated));
+    // Old format: had coordinates (multiple __ segments with numbers) or label-only
+    // New format: label__number (index). If any entry doesn't match label__digits, clear all.
+    const newFormat = /^.+__\d+$/;
+    if (!old.every(id => newFormat.test(id))) {
+      localStorage.removeItem('completedMarkers');
     }
   } catch(e) { localStorage.removeItem('completedMarkers'); }
 })();
@@ -42,7 +43,7 @@ const categoryRegistry = {};
 function saveCompleted() {
   localStorage.setItem('completedMarkers', JSON.stringify([...completedMarkers]));
 }
-function getMarkerId(item) { return `${item.label}`; }
+function getMarkerId(item, index) { return `${item.label}__${index}`; }
 function getMarkerDomEl(marker) {
   const el = marker.getElement();
   if (!el) return null;
@@ -136,13 +137,13 @@ function initMap(data) {
     'Haydn Seek':new circleArea({fillColor:"#00d2d9",radius:coordToMapScalar*70,opacity:0.5,fillOpacity:0.5}).props,
   };
 
-  data.forEach(item=>{
+  data.forEach((item, idx)=>{
     const cat=item.categories?.[0]||'Misc';
     if(!categoryRegistry[cat])categoryRegistry[cat]={total:0,markerIds:[]};
     categoryRegistry[cat].total++;
-    categoryRegistry[cat].markerIds.push(getMarkerId(item));
+    categoryRegistry[cat].markerIds.push(getMarkerId(item, idx));
   });
-  data.forEach(item=>{
+  data.forEach((item, idx)=>{
     const coords=[(s1*(4096-item.y)+b1),s2*(item.x+b2)];
     const category=item.categories?.[0]||'Misc';
     if(!layers[category])layers[category]=L.layerGroup();
@@ -151,7 +152,7 @@ function initMap(data) {
     else if(category in circleDict)  m=L.circle(coords,circleDict[category]);
     else if(category in stylingDict) m=L.circleMarker(coords,stylingDict[category]);
     else                             m=L.circleMarker(coords,new cMarker().props);
-    const mid=getMarkerId(item);
+    const mid=getMarkerId(item, idx);
     allMarkers.push({markerId:mid,marker:m,category,label:item.label});
     m.bindPopup(`<div style="text-align:center;">${item.label}</div>`);
     m.on('contextmenu',e=>{L.DomEvent.preventDefault(e);L.DomEvent.stopPropagation(e);m.closePopup();toggleComplete(mid,m);});
@@ -354,14 +355,13 @@ function buildSidebar(layers) {
   function updateCollapseBtnStyle() {
     const mobile = isMobile();
     if (mobile) {
-      // On mobile: fixed bottom-centre tab, always visible
+      // Mobile: centred arrow tab at bottom of sidebar area
       collapseBtn.style.cssText = `
-        position:fixed;bottom:1.2em;left:50%;transform:translateX(-50%);
+        position:fixed;bottom:0;left:50%;transform:translateX(-50%);
         z-index:1002;background:rgb(210,120,0);color:white;border:none;
-        border-radius:20px;padding:0.5em 1.4em;cursor:pointer;
-        font-size:0.9em;font-weight:bold;
-        box-shadow:0 2px 10px rgba(0,0,0,0.35);
-        font-family:Noto,sans-serif;letter-spacing:0.02em;`;
+        border-radius:8px 8px 0 0;padding:0.55em 1.8em 0.35em;cursor:pointer;
+        font-size:1em;box-shadow:0 -2px 8px rgba(0,0,0,0.25);
+        transition:transform 0.2s;`;
     } else {
       // Desktop: side tab at mid-right of sidebar
       collapseBtn.style.cssText = `
@@ -376,29 +376,27 @@ function buildSidebar(layers) {
     open = isOpen;
     const sw = SIDEBAR_W;
     sidebar.style.transform = isOpen ? '' : `translateX(${sw}px)`;
-    // On mobile, never push the map
     mapEl.style.marginRight = (isOpen && !isMobile()) ? sw + 'px' : '0';
     if (isMobile()) {
-      collapseBtn.textContent = isOpen ? '✕ Close Menu' : '☰ Menu';
+      collapseBtn.innerHTML = isOpen ? '▼' : '▲';
     } else {
       collapseBtn.style.right = isOpen ? sw + 'px' : '0';
-      collapseBtn.textContent = isOpen ? '▶' : '◀';
+      collapseBtn.innerHTML = isOpen ? '▶' : '◀';
     }
     setTimeout(() => map.invalidateSize(), 260);
   }
 
   updateCollapseBtnStyle();
-  collapseBtn.textContent = isMobile() ? '✕ Close Menu' : '▶';
+  collapseBtn.innerHTML = isMobile() ? '▼' : '▶';
   collapseBtn.addEventListener('click', () => setSidebarOpen(!open));
 
-  // On resize, fix margin and button style
   window.addEventListener('resize', () => {
     updateCollapseBtnStyle();
     if (open) {
       mapEl.style.marginRight = isMobile() ? '0' : SIDEBAR_W + 'px';
-      collapseBtn.textContent = isMobile() ? '✕ Close Menu' : '▶';
+      collapseBtn.innerHTML = isMobile() ? '▼' : '▶';
     } else {
-      collapseBtn.textContent = isMobile() ? '☰ Menu' : '◀';
+      collapseBtn.innerHTML = isMobile() ? '▲' : '◀';
     }
   });
 
@@ -556,11 +554,9 @@ function buildTopMenu(layers) {
 
   actions.appendChild(hideBtn);
   actions.appendChild(resetBtn);
-  // Search goes in action column on desktop too — popup floats below
-  actions.appendChild(searchBtn);
-  // sideBtn goes to bottomRight
+  // NOTE: searchBtn, welcomeBtn, sideBtn all go to bottomRight as floating tabs
 
-  // Bottom-right row: info + side menu (desktop); collapse arrow always shown
+  // Bottom-right row: search + info + side menu tabs
   const bottomRow = document.createElement('div');
   bottomRow.id = 'top-bottom-row';
 
@@ -596,21 +592,28 @@ function buildTopMenu(layers) {
   const bottomRight = document.createElement('div');
   bottomRight.id = 'top-bottom-right';
 
+  // Search wrap — search button + popup
+  const searchWrap = document.createElement('div');
+  searchWrap.className = 'float-btn-wrap';
+  searchWrap.appendChild(searchBtn);
+
   // Welcome wrap — info button + welcome panel popup
   const welcomeWrap = document.createElement('div');
   welcomeWrap.className = 'float-btn-wrap';
   welcomeWrap.appendChild(welcomeBtn);
 
+  bottomRight.appendChild(searchWrap);
   bottomRight.appendChild(welcomeWrap);
   bottomRight.appendChild(sideBtn);
   bottomRow.appendChild(bottomLeft);
   bottomRow.appendChild(bottomRight);
 
   if (window.innerWidth < 768) {
-    // Mobile: search+info+side all in actions column
-    actions.appendChild(welcomeBtn);  // re-add since we removed from wrap
+    // Mobile: all three go into actions column
+    actions.appendChild(searchBtn);
+    actions.appendChild(welcomeBtn);
     actions.appendChild(sideBtn);
-    // bottomRight gets icon-only mini buttons for collapsed state
+    // Icon-only mini buttons for collapsed state
     const mkIconOnly = (id, svg, title) => {
       const b = document.createElement('button');
       b.id = id + '-mini'; b.title = title; b.className = 'mini-float-btn';
@@ -635,15 +638,15 @@ function buildTopMenu(layers) {
     };
     setTimeout(_wireMini, 0);
   } else {
-    // Desktop: welcome panel inside its wrap
+    // Desktop: popups inside their wraps
+    searchWrap.appendChild(searchBar);
     welcomeWrap.appendChild(welcomePanel);
   }
 
-  // Action column wraps search bar for desktop (relative positioning)
+  // Action column wraps search bar on desktop (relative for popup positioning)
   const actionsWrap = document.createElement('div');
   actionsWrap.id = 'top-actions-wrap';
   actionsWrap.appendChild(actions);
-  if (window.innerWidth >= 768) actionsWrap.appendChild(searchBar);
 
   toolbar.appendChild(chipsWrap);
   toolbar.appendChild(actionsWrap);

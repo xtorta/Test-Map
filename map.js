@@ -639,17 +639,13 @@ function buildTopMenu(layers) {
     welcomeWrap.appendChild(welcomePanel);
   }
 
-  toolbar.appendChild(chipsWrap);
-  toolbar.appendChild(actions);
-
   // Action column wraps search bar for desktop (relative positioning)
   const actionsWrap = document.createElement('div');
   actionsWrap.id = 'top-actions-wrap';
   actionsWrap.appendChild(actions);
   if (window.innerWidth >= 768) actionsWrap.appendChild(searchBar);
 
-  // Replace actions in toolbar with actionsWrap
-  toolbar.removeChild(actions);
+  toolbar.appendChild(chipsWrap);
   toolbar.appendChild(actionsWrap);
 
   ui.appendChild(toolbar);

@@ -290,9 +290,6 @@ function buildSidebar(layers) {
   sidebar.appendChild(scrollDown); // will be before sep/hint
 
   function updateScrollIndicators() {
-    if (!sidebar.classList.contains('compact')) {
-      scrollUp.style.display = 'none'; scrollDown.style.display = 'none'; return;
-    }
     const canUp   = catList.scrollTop > 4;
     const canDown = catList.scrollTop < catList.scrollHeight - catList.clientHeight - 4;
     scrollUp.style.display   = canUp   ? 'flex' : 'none';
@@ -384,7 +381,14 @@ function buildSidebar(layers) {
     document.getElementById('sb-search'),
     document.getElementById('sb-search-clear'),
     document.getElementById('sb-search-row'),
-    layers
+    layers,
+    () => { // onResultClick: close sidebar on mobile
+      if (window.innerWidth < 768) {
+        sidebarOpen = false;
+        saveView();
+        applyLayout(true);
+      }
+    }
   );
 
   // ── Hide completed ────────────────────────────────────────────────
@@ -464,7 +468,7 @@ function buildFloatingSearch(layers, anchorEl) {
 }
 
 // ─── Shared search wiring ─────────────────────────────────────────────────────
-function wireSearch(input, clearBtn, container, layers) {
+function wireSearch(input, clearBtn, container, layers, onResultClick) {
   let searchActive = false, savedVis = {}, resultsBox = null;
 
   function removeResults() { resultsBox?.remove(); resultsBox = null; }
@@ -494,16 +498,7 @@ function wireSearch(input, clearBtn, container, layers) {
         removeResults();
         input.value = label;
         if (clearBtn) clearBtn.style.display = '';
-        // On mobile: close the sidebar after navigating to result
-        if (window.innerWidth < 768) {
-          const sb = document.getElementById('sidebar');
-          const tog = document.getElementById('sb-toggle');
-          if (sb && !sb.classList.contains('closed')) {
-            const w = sb.classList.contains('compact') ? 52 : 290;
-            sb.style.transform = `translateX(${w}px)`;
-            if (tog) { tog.style.right = '0'; tog.innerHTML = '◀'; }
-          }
-        }
+        if (onResultClick) onResultClick();
       });
       resultsBox.appendChild(item);
     });

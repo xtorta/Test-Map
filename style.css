@@ -34,8 +34,15 @@ html, body {
   z-index: 1000;
   transition: transform 0.25s ease, width 0.25s ease;
   box-shadow: -4px 0 20px rgba(0,0,0,0.2);
-  overflow: hidden;
+  overflow: visible; /* allow tooltips to show outside sidebar */
   width: 310px;
+}
+/* cat-list itself still scrolls */
+#sb-cat-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: visible; /* let tooltips escape horizontally */
+  background: rgb(215, 210, 200);
 }
 #sidebar.closed { transform: translateX(310px); }
 
@@ -47,6 +54,8 @@ html, body {
 #sidebar.compact .full-only { display: none !important; }
 #sidebar.compact #sb-hint   { display: none !important; }
 #sidebar.compact #sb-sep-hint { display: none !important; }
+/* Hide the separator that follows the about section in compact (about is hidden so sep is orphaned) */
+#sidebar.compact #sb-sep-about { display: none !important; }
 
 /* ── Sidebar header ── */
 #sb-header {
@@ -138,10 +147,12 @@ html, body {
   cursor: pointer;
   flex-shrink: 0;
   user-select: none;
+  background: #388e9f;
+  color: white;
 }
-#sb-about-row:hover { background: rgba(0,0,0,0.05); }
-#sb-about-row span:first-child { font-size: 0.82em; font-weight: 700; color: #3a2e1e; }
-#sb-about-chevron { font-size: 0.72em; color: #666; }
+#sb-about-row:hover { background: #2d7a8a; }
+#sb-about-row span:first-child { font-size: 0.82em; font-weight: 700; color: white; }
+#sb-about-chevron { font-size: 0.72em; color: rgba(255,255,255,0.8); }
 #sb-about-panel {
   padding: 0.65em 0.9em;
   font-size: 0.77em;
@@ -290,13 +301,7 @@ html, body {
   border: 1.5px solid rgba(0,0,0,0.2);
 }
 
-/* ── Category list ── */
-#sb-cat-list {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  background: rgb(215, 210, 200);
-}
+/* cat-list scrollbar */
 #sb-cat-list::-webkit-scrollbar { width: 4px; }
 #sb-cat-list::-webkit-scrollbar-thumb { background: #b0a898; border-radius: 2px; }
 

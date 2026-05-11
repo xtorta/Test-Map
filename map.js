@@ -233,6 +233,30 @@ function buildSidebar(layers) {
       <span class="sb-cat-count" data-cat="${name}">0/${total}</span>`;
     catList.appendChild(row);
   });
+
+  // JS tooltip for cat rows (CSS ::after can't escape overflow-y:auto clip)
+  const sbTip = mk('div', {id:'sb-tooltip'});
+  sbTip.style.cssText = `position:fixed;background:rgba(0,0,0,0.85);color:white;font-size:0.88em;font-weight:600;padding:0.35em 0.65em;border-radius:4px;pointer-events:none;z-index:2000;display:none;white-space:nowrap;`;
+  document.body.appendChild(sbTip);
+
+  catList.addEventListener('mouseover', e => {
+    const row = e.target.closest('.sb-cat-row');
+    if (!row || !sidebar.classList.contains('compact')) return;
+    const tip = row.getAttribute('data-tip');
+    if (!tip) return;
+    sbTip.textContent = tip;
+    sbTip.style.display = 'block';
+  });
+  catList.addEventListener('mousemove', e => {
+    const row = e.target.closest('.sb-cat-row');
+    if (!row || !sidebar.classList.contains('compact')) { sbTip.style.display='none'; return; }
+    const rect = row.getBoundingClientRect();
+    sbTip.style.top  = (rect.top + rect.height/2 - sbTip.offsetHeight/2) + 'px';
+    sbTip.style.left = (rect.left - sbTip.offsetWidth - 10) + 'px';
+  });
+  catList.addEventListener('mouseleave', () => { sbTip.style.display = 'none'; });
+  // Hide tooltip when sidebar switches mode
+  btnToggleView.addEventListener('click', () => { sbTip.style.display = 'none'; });
   sidebar.appendChild(catList);
   sidebar.appendChild(sep({id:'sb-sep-hint'}));
 
@@ -281,12 +305,8 @@ function buildSidebar(layers) {
     sidebarOpen = !sidebarOpen;
     saveView();
     applyLayout(true);
-    if (!sidebarOpen) {
-      // Only show floating search in compact mode (not plain closed on mobile)
-      if (sidebar.classList.contains('compact')) buildFloatingSearch(layers, toggle);
-    } else {
-      document.getElementById('sb-search-float')?.remove();
-    }
+    // Always remove floating search when toggling sidebar
+    document.getElementById('sb-search-float')?.remove();
   });
 
   // View toggle (compact ↔ full)

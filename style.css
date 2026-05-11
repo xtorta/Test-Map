@@ -223,7 +223,7 @@ label { font-weight: bold; }
 @media (max-width:767px) {
   .float-btn-wrap { position:static; display:contents; }
 
-  /* Search bar: in-flow, slides open below toolbar, full width, proper height */
+  /* Search bar: in-flow, slides open below toolbar/bottomRow, full width, proper height */
   #top-search-bar {
     position:static; width:100%; max-height:0; overflow:hidden;
     border-radius:0; box-shadow:none; background:rgb(215,210,200);
@@ -231,13 +231,14 @@ label { font-weight: bold; }
     padding:0; white-space:normal; right:auto; height:auto;
   }
   #top-search-bar.open {
-    width:100%; max-height:4em; pointer-events:all; padding:0.6em 0.8em;
+    width:100%; max-height:5em; pointer-events:all; padding:0.75em 0.8em 0.75em 3.5em;
+    /* 3.5em left padding clears the Leaflet zoom buttons */
   }
   #top-search-bar input {
-    width:100%; background:rgb(232,228,218); color:#1a1a1a;
-    font-size:1em; padding:0.5em 0.7em;
+    flex:1; width:100%; background:rgb(232,228,218); color:#1a1a1a;
+    font-size:1.05em; padding:0.65em 0.8em; border-radius:6px;
   }
-  #top-search-bar #top-search-clear { background:none; border:1px solid #a09880; color:#555; }
+  #top-search-bar #top-search-clear { background:none; border:1px solid #a09880; color:#555; padding:0.5em 0.6em; }
 
   /* Info panel: in-flow, slides open */
   #top-welcome-panel {

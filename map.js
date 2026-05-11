@@ -606,16 +606,18 @@ function buildTopMenu(layers) {
   bottomRight.appendChild(searchWrap);
   bottomRight.appendChild(welcomeWrap);
   bottomRight.appendChild(sideBtn);
-  if (window.innerWidth >= 768) bottomRight.appendChild(searchBar); // desktop: inside bottomRight
+  // Both mobile and desktop: searchBar and welcomePanel are floating popups inside bottomRight
+  bottomRight.appendChild(searchBar);
+  welcomeWrap.appendChild(welcomePanel);
   bottomRow.appendChild(bottomLeft);
   bottomRow.appendChild(bottomRight);
 
   if (window.innerWidth < 768) {
-    // Mobile: all three go into actions column
+    // Mobile: all three full buttons go into actions column
     actions.appendChild(searchBtn);
     actions.appendChild(welcomeBtn);
     actions.appendChild(sideBtn);
-    // Icon-only mini buttons for collapsed state
+    // Icon-only mini buttons for collapsed state (search + side only)
     const mkIconOnly = (id, svg, title) => {
       const b = document.createElement('button');
       b.id = id + '-mini'; b.title = title; b.className = 'mini-float-btn';
@@ -636,12 +638,8 @@ function buildTopMenu(layers) {
       });
     };
     setTimeout(_wireMini, 0);
-  } else {
-    // Desktop: welcome panel inside its wrap; searchBar already appended to bottomRight above
-    welcomeWrap.appendChild(welcomePanel);
   }
 
-  // Action column wraps search bar on desktop (relative for popup positioning)
   const actionsWrap = document.createElement('div');
   actionsWrap.id = 'top-actions-wrap';
   actionsWrap.appendChild(actions);
@@ -651,11 +649,7 @@ function buildTopMenu(layers) {
 
   ui.appendChild(toolbar);
   ui.appendChild(bottomRow);
-  // Mobile: searchBar and welcomePanel go AFTER bottomRow so they appear below the arrow
-  if (window.innerWidth < 768) {
-    ui.appendChild(searchBar);
-    ui.appendChild(welcomePanel);
-  }
+  // No in-flow search/welcome panels — everything is floating
 
   // Insert as first child of .page--flex
   const pageEl = document.querySelector('.page--flex');

@@ -15,6 +15,9 @@ html, body {
   inset: 0;
   transition: right 0.25s ease;
 }
+/* Hide Leaflet attribution */
+.leaflet-control-attribution { display: none !important; }
+
 .leaflet-container { background-image: url("fog.webp"); }
 .leaflet-popup-content { font-family: Noto, sans-serif; font-size: 1em; }
 .leaflet-touch .leaflet-bar a { width: 2em; height: 2em; line-height: 2em; }
@@ -328,10 +331,10 @@ html, body {
   flex-shrink: 0;
 }
 
-/* Colour square (non-icon cats) — same 28×28 footprint */
+/* Colour square (non-icon cats) — 22×22 (20% smaller than icons) */
 .sb-cat-dot {
-  width: 28px; height: 28px;
-  border-radius: 5px;
+  width: 22px; height: 22px;
+  border-radius: 4px;
   flex-shrink: 0;
   display: inline-block;
   border: 1.5px solid rgba(0,0,0,0.15);
@@ -417,50 +420,48 @@ html, body {
 }
 #sb-toggle:hover { background: rgb(180, 100, 0); }
 
-/* ── Floating search (sidebar closed) ── */
+/* ── Floating search panel (sidebar closed OR compact search btn) ── */
 #sb-search-float {
-  position: fixed;
-  bottom: 1.2em;
-  left: 1.2em;
-  z-index: 1100;
-  display: none;
-  align-items: flex-end;
-  gap: 0.4em;
-}
-#sb-search-float-btn {
-  background: rgb(120, 90, 55);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 2.8em; height: 2.8em;
-  cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.35);
-  transition: background 0.15s;
-  flex-shrink: 0;
-  position: relative;
+  z-index: 1200;
 }
-#sb-search-float-btn:hover { background: rgb(95, 70, 35); }
-#sb-search-float-btn.active { background: rgb(65, 48, 22); }
 #sb-float-input-wrap {
   position: relative;
-  display: none;
-}
-#sb-float-input {
+  display: flex;
+  align-items: center;
   background: rgb(232, 228, 218);
   border: 1.5px solid #a09880;
   border-radius: 6px;
-  padding: 0.5em 0.75em;
+  padding: 0.35em 0.5em;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+  gap: 0.3em;
+}
+#sb-float-input {
+  background: transparent;
+  border: none;
   font-family: Noto, sans-serif;
   font-size: 0.9em;
   color: #1a1a1a;
   outline: none;
-  width: 220px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+  width: 200px;
 }
-#sb-float-input:focus { border-color: rgb(120, 90, 55); }
+#sb-float-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #777;
+  padding: 0.15em;
+  display: flex;
+  align-items: center;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+#sb-float-close:hover { background: rgba(0,0,0,0.08); color: #333; }
+
+/* compact-only tool: hidden in full mode, shown in compact */
+.compact-only { display: none !important; }
+#sidebar.compact .compact-only { display: flex !important; }
 
 /* ── Mobile ── */
 @media (max-width: 767px) {

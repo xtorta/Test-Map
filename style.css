@@ -99,22 +99,25 @@ html, body {
 .sb-view-btn:hover { background: rgba(255,255,255,0.3); }
 .sb-view-btn.active { background: rgba(0,0,0,0.25); }
 
-/* Tooltip on hover */
+/* Tooltip — appears to the LEFT of the button */
 .sb-view-btn::after {
   content: attr(data-tip);
   position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0,0,0,0.8);
+  top: 50%;
+  right: calc(100% + 10px);
+  left: auto;
+  transform: translateY(-50%);
+  background: rgba(0,0,0,0.85);
   color: white;
-  font-size: 0.7em;
+  font-size: 0.88em;
+  font-weight: 600;
   white-space: nowrap;
-  padding: 0.25em 0.5em;
-  border-radius: 3px;
+  padding: 0.35em 0.65em;
+  border-radius: 4px;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.15s;
+  z-index: 2000;
 }
 .sb-view-btn:hover::after { opacity: 1; }
 
@@ -206,25 +209,52 @@ html, body {
 #sidebar.compact #sb-about-panel { display: none !important; }
 #sidebar.compact .sb-tool-btn { justify-content: center; padding: 0.6em 0; }
 
-/* Tooltip on tool buttons (compact mode) */
+/* Tooltip on tool buttons (compact mode) — use fixed position via CSS transform trick */
 .sb-tool-btn::after {
   content: attr(data-tip);
-  position: absolute;
-  top: 50%;
-  right: calc(100% + 8px);
-  transform: translateY(-50%);
-  background: rgba(0,0,0,0.8);
+  position: fixed;
+  top: 0; left: 0; /* overridden by JS-like trick below */
+  background: rgba(0,0,0,0.85);
   color: white;
-  font-size: 0.72em;
+  font-size: 0.88em;
+  font-weight: 600;
   white-space: nowrap;
-  padding: 0.3em 0.55em;
+  padding: 0.35em 0.65em;
   border-radius: 4px;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.15s;
+  z-index: 2000;
+  /* Position relative to the button — use translate to escape any overflow clip */
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 10px);
+  transform: translateY(-50%);
 }
 #sidebar:not(.compact) .sb-tool-btn::after { display: none; }
 #sidebar.compact .sb-tool-btn:hover::after { opacity: 1; }
+
+/* Category row tooltip (compact) */
+.sb-cat-row::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 10px);
+  transform: translateY(-50%);
+  background: rgba(0,0,0,0.85);
+  color: white;
+  font-size: 0.88em;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 0.35em 0.65em;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 2000;
+}
+#sidebar:not(.compact) .sb-cat-row::after { display: none; }
+#sidebar.compact .sb-cat-row:hover::after { opacity: 1; }
 
 /* ── Search row ── */
 #sb-search-row {
@@ -370,25 +400,7 @@ html, body {
 #sidebar.compact .sb-cat-name,
 #sidebar.compact .sb-cat-count { display: none; }
 
-/* Compact: tooltip shows cat name */
-.sb-cat-row::after {
-  content: attr(data-tip);
-  position: absolute;
-  top: 50%;
-  right: calc(100% + 8px);
-  transform: translateY(-50%);
-  background: rgba(0,0,0,0.8);
-  color: white;
-  font-size: 0.72em;
-  white-space: nowrap;
-  padding: 0.3em 0.55em;
-  border-radius: 4px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-#sidebar:not(.compact) .sb-cat-row::after { display: none; }
-#sidebar.compact .sb-cat-row:hover::after { opacity: 1; }
+/* cat tooltip handled in tool-btn section above */
 
 /* ── Hint bar ── */
 #sb-hint {
@@ -396,7 +408,7 @@ html, body {
   align-items: center;
   gap: 0.5em;
   padding: 0.55em 0.85em;
-  background: rgb(80, 58, 30);
+  background: #c86356;
   color: white;
   font-size: 0.78em;
   font-weight: bold;

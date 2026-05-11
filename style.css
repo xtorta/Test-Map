@@ -13,7 +13,7 @@ html, body {
 #map {
   position: fixed;
   inset: 0;
-  transition: right 0.25s ease;
+  /* No right transition — sidebar slides over the map, map stays put */
 }
 /* Hide Leaflet attribution */
 .leaflet-control-attribution { display: none !important; }
@@ -209,30 +209,8 @@ html, body {
 #sidebar.compact #sb-about-panel { display: none !important; }
 #sidebar.compact .sb-tool-btn { justify-content: center; padding: 0.6em 0; }
 
-/* Tooltip on tool buttons (compact mode) — use fixed position via CSS transform trick */
-.sb-tool-btn::after {
-  content: attr(data-tip);
-  position: fixed;
-  top: 0; left: 0; /* overridden by JS-like trick below */
-  background: rgba(0,0,0,0.85);
-  color: white;
-  font-size: 0.88em;
-  font-weight: 600;
-  white-space: nowrap;
-  padding: 0.35em 0.65em;
-  border-radius: 4px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s;
-  z-index: 2000;
-  /* Position relative to the button — use translate to escape any overflow clip */
-  position: absolute;
-  top: 50%;
-  right: calc(100% + 10px);
-  transform: translateY(-50%);
-}
+/* Tool btn tooltips handled via JS (like cat rows) */
 #sidebar:not(.compact) .sb-tool-btn::after { display: none; }
-#sidebar.compact .sb-tool-btn:hover::after { opacity: 1; }
 
 /* Category row tooltip (compact) */
 .sb-cat-row::after {

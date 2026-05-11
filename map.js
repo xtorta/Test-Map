@@ -129,11 +129,16 @@ function initMap(data) {
     const mid = getMarkerId(item, idx);
     allMarkers.push({ markerId:mid, marker:m, category:cat, label:item.label, coords });
     m.bindPopup(`<div style="text-align:center;font-family:Noto,sans-serif;">${item.label}</div>`);
-    m.on('contextmenu', e => { L.DomEvent.preventDefault(e); L.DomEvent.stopPropagation(e); m.closePopup(); toggleComplete(mid, m); });
-    // Mobile: tap to mark complete instead of right-click
-    if (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth < 768) {
-      m.on('click', e => { L.DomEvent.stopPropagation(e); toggleComplete(mid, m); });
-    }
+    m.on('contextmenu', e => {
+      L.DomEvent.preventDefault(e); L.DomEvent.stopPropagation(e);
+      m.closePopup(); toggleComplete(mid, m);
+    });
+    // Click handler: only fires on mobile (checked at event time, not setup time)
+    m.on('click', e => {
+      if (!isMobile()) return; // desktop: click opens popup, not complete
+      L.DomEvent.stopPropagation(e);
+      toggleComplete(mid, m);
+    });
     m.on('add', () => setTimeout(() => applyCompletedStyle(m, completedMarkers.has(mid)), 0));
     m.addTo(layers[cat]);
   });
@@ -309,10 +314,14 @@ function buildSidebar(layers) {
 
   // ── Hint bar ──────────────────────────────────────────────────────
   const hint = mk('div', {id:'sb-hint'});
-  const isTouchDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth < 768;
-  hint.innerHTML = isTouchDevice
-    ? `<span class="sb-hint-icon">👆</span><span class="sb-hint-text"><strong>Tap</strong> any marker to mark it complete</span>`
-    : `<span class="sb-hint-icon">🖱️</span><span class="sb-hint-text"><strong>Right-click</strong> any marker to mark it complete</span>`;
+  const isTouchDevice = () => isMobile();
+  const updateHint = () => {
+    hint.innerHTML = isTouchDevice()
+      ? `<span class="sb-hint-icon">👆</span><span class="sb-hint-text"><strong>Tap</strong> any marker to mark it complete</span>`
+      : `<span class="sb-hint-icon">🖱️</span><span class="sb-hint-text"><strong>Right-click</strong> any marker to mark it complete</span>`;
+  };
+  updateHint();
+  window.addEventListener('resize', updateHint);
   sidebar.appendChild(hint);
 
   document.body.appendChild(sidebar);

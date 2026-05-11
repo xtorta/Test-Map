@@ -255,7 +255,23 @@ function buildSidebar(layers) {
     sbTip.style.left = (rect.left - sbTip.offsetWidth - 10) + 'px';
   });
   catList.addEventListener('mouseleave', () => { sbTip.style.display = 'none'; });
-  // Hide tooltip when sidebar switches mode
+  // JS tooltip for tool buttons (same approach as cat rows)
+  iconTools.addEventListener('mouseover', e => {
+    const btn = e.target.closest('.sb-tool-btn');
+    if (!btn || !sidebar.classList.contains('compact')) return;
+    const tip = btn.getAttribute('data-tip');
+    if (!tip) return;
+    sbTip.textContent = tip;
+    sbTip.style.display = 'block';
+  });
+  iconTools.addEventListener('mousemove', e => {
+    const btn = e.target.closest('.sb-tool-btn');
+    if (!btn || !sidebar.classList.contains('compact')) { sbTip.style.display='none'; return; }
+    const rect = btn.getBoundingClientRect();
+    sbTip.style.top  = (rect.top + rect.height/2 - sbTip.offsetHeight/2) + 'px';
+    sbTip.style.left = (rect.left - sbTip.offsetWidth - 10) + 'px';
+  });
+  iconTools.addEventListener('mouseleave', () => { sbTip.style.display = 'none'; });
   btnToggleView.addEventListener('click', () => { sbTip.style.display = 'none'; });
   sidebar.appendChild(catList);
   sidebar.appendChild(sep({id:'sb-sep-hint'}));
@@ -279,20 +295,13 @@ function buildSidebar(layers) {
   }
 
   function applyLayout(animate) {
-    if (!animate) { sidebar.style.transition = 'none'; toggle.style.transition = 'none'; document.getElementById('map').style.transition = 'none'; }
+    if (!animate) { sidebar.style.transition = 'none'; toggle.style.transition = 'none'; }
     const w = curW();
     sidebar.style.transform = sidebarOpen ? '' : `translateX(${w}px)`;
     toggle.style.right      = sidebarOpen ? w + 'px' : '0';
     toggle.innerHTML        = sidebarOpen ? '▶' : '◀';
-    document.getElementById('map').style.right = (sidebarOpen && !isMobile()) ? w + 'px' : '0';
-    // Floating search: show when closed
-    const fs = document.getElementById('sb-search-float');
-    if (fs) fs.style.display = sidebarOpen ? 'none' : 'flex';
-    if (!animate) requestAnimationFrame(() => {
-      sidebar.style.transition = ''; toggle.style.transition = '';
-      document.getElementById('map').style.transition = '';
-    });
-    setTimeout(() => map.invalidateSize(), 270);
+    // Map stays full width — sidebar overlays it. No map resize needed.
+    if (!animate) requestAnimationFrame(() => { sidebar.style.transition=''; toggle.style.transition=''; });
   }
 
   function saveView() {

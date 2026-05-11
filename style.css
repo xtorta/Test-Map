@@ -117,6 +117,15 @@ label { font-weight: bold; }
 .chip-count { color: inherit; opacity: 0.7; margin-left: 0.1em; font-size: 0.88em; }
 .chip-icon-img { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
 
+/* Action column + search bar wrapper — relative so search bar drops from it */
+#top-actions-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
 /* ---- ACTION PANEL (right column) ---- */
 #top-actions {
   display: flex; flex-direction: column; align-items: stretch;
@@ -216,7 +225,7 @@ label { font-weight: bold; }
 .mini-float-btn:hover { background: rgb(95,70,35); }
 .mini-float-btn.active { background: rgb(65,48,22); }
 
-/* ---- SEARCH POPUP — drops under search button, expands leftward ---- */
+/* ---- SEARCH POPUP — drops below action column on desktop ---- */
 #top-search-bar {
   position: absolute;
   top: 100%;

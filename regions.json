@@ -1,0 +1,562 @@
+[
+  {
+    "id": 1778596216658.7551,
+    "name": "SKOVER ISLAND",
+    "tier": "region",
+    "lat": 964,
+    "lng": 927
+  },
+  {
+    "id": 1778596342688.7407,
+    "name": "BEL-ETIR",
+    "tier": "region",
+    "lat": 2302,
+    "lng": 650
+  },
+  {
+    "id": 1778596364949.8972,
+    "name": "CRIMSON CITADEL",
+    "tier": "region",
+    "lat": 2693,
+    "lng": 1894
+  },
+  {
+    "id": 1778596399330.2476,
+    "name": "VALLEY OF ETERNAL AUTUMN",
+    "tier": "region",
+    "lat": 1828,
+    "lng": 2574
+  },
+  {
+    "id": 1778596413224.202,
+    "name": "RAMBURG",
+    "tier": "region",
+    "lat": 3324,
+    "lng": 2848
+  },
+  {
+    "id": 1778596471080.5706,
+    "name": "Imago Shore",
+    "tier": "zone",
+    "lat": 120,
+    "lng": 986.5
+  },
+  {
+    "id": 1778596666111.3357,
+    "name": "Meridion",
+    "tier": "subregion",
+    "lat": 296.5,
+    "lng": 984
+  },
+  {
+    "id": 1778596688762.6892,
+    "name": "Imago Cliff",
+    "tier": "zone",
+    "lat": 259,
+    "lng": 1095.5
+  },
+  {
+    "id": 1778596703839.8328,
+    "name": "Imago Meadow",
+    "tier": "zone",
+    "lat": 301.5,
+    "lng": 787.5
+  },
+  {
+    "id": 1778596721935.8613,
+    "name": "Imago Hills",
+    "tier": "zone",
+    "lat": 39.5,
+    "lng": 719
+  },
+  {
+    "id": 1778596732784.1736,
+    "name": "Imago Bay",
+    "tier": "zone",
+    "lat": 254,
+    "lng": 583
+  },
+  {
+    "id": 1778596754066.4229,
+    "name": "Imago Creek",
+    "tier": "zone",
+    "lat": 457.5,
+    "lng": 633
+  },
+  {
+    "id": 1778596771547.6577,
+    "name": "Imago Strand",
+    "tier": "zone",
+    "lat": 476,
+    "lng": 921.5
+  },
+  {
+    "id": 1778596874583.6543,
+    "name": "Sapristi Point",
+    "tier": "zone",
+    "lat": 285.5,
+    "lng": 1262
+  },
+  {
+    "id": 1778596889733.9597,
+    "name": "Barbarian's Stray Sands",
+    "tier": "zone",
+    "lat": 490,
+    "lng": 1064
+  },
+  {
+    "id": 1778596910777.5518,
+    "name": "Lost City of Mayda",
+    "tier": "zone",
+    "lat": 276.5,
+    "lng": 1532
+  },
+  {
+    "id": 1778596973823.0894,
+    "name": "Primevalley",
+    "tier": "subregion",
+    "lat": 944,
+    "lng": 1422
+  },
+  {
+    "id": 1778596986253.6118,
+    "name": "Honeywoods",
+    "tier": "subregion",
+    "lat": 1032,
+    "lng": 686
+  },
+  {
+    "id": 1778597004264.0686,
+    "name": "Enripit",
+    "tier": "subregion",
+    "lat": 1602,
+    "lng": 1070
+  },
+  {
+    "id": 1778597035413.6982,
+    "name": "Azuram",
+    "tier": "subregion",
+    "lat": 1760,
+    "lng": 2272
+  },
+  {
+    "id": 1778597085103.7874,
+    "name": "krisomal",
+    "tier": "subregion",
+    "lat": 1162,
+    "lng": 2758
+  },
+  {
+    "id": 1778597105761.7822,
+    "name": "Nescent",
+    "tier": "subregion",
+    "lat": 2106,
+    "lng": 3062
+  },
+  {
+    "id": 1778597113830.2727,
+    "name": "Eksod",
+    "tier": "subregion",
+    "lat": 2688,
+    "lng": 2652
+  },
+  {
+    "id": 1778597146353.1567,
+    "name": "Silkworm Hump",
+    "tier": "zone",
+    "lat": 658.25,
+    "lng": 1042.5
+  },
+  {
+    "id": 1778597158608.3618,
+    "name": "Ubu's Lawn",
+    "tier": "zone",
+    "lat": 733,
+    "lng": 1405
+  },
+  {
+    "id": 1778597175281.862,
+    "name": "Crossroam",
+    "tier": "zone",
+    "lat": 781,
+    "lng": 1254
+  },
+  {
+    "id": 1778597194454.7983,
+    "name": "Triton Beach",
+    "tier": "zone",
+    "lat": 825,
+    "lng": 1662
+  },
+  {
+    "id": 1778597212661.9353,
+    "name": "Mirandol Island",
+    "tier": "zone",
+    "lat": 1016.5,
+    "lng": 1486.5
+  },
+  {
+    "id": 1778597236613.2783,
+    "name": "Navelin",
+    "tier": "zone",
+    "lat": 757.5,
+    "lng": 1186.5
+  },
+  {
+    "id": 1778597252471.2917,
+    "name": "Col Goatha",
+    "tier": "zone",
+    "lat": 1188.5,
+    "lng": 1325
+  },
+  {
+    "id": 1778597268171.5063,
+    "name": "Abrahab's Lookout",
+    "tier": "zone",
+    "lat": 1217.5,
+    "lng": 1745.5
+  },
+  {
+    "id": 1778597294315.1267,
+    "name": "Greenhorn Grove",
+    "tier": "zone",
+    "lat": 912,
+    "lng": 1022.5
+  },
+  {
+    "id": 1778597308975.4048,
+    "name": "Jaklon Den",
+    "tier": "zone",
+    "lat": 975,
+    "lng": 872
+  },
+  {
+    "id": 1778597321669.2205,
+    "name": "Greenhorn Forest",
+    "tier": "zone",
+    "lat": 1151,
+    "lng": 913.5
+  },
+  {
+    "id": 1778597342436.9475,
+    "name": "Minty Piton",
+    "tier": "zone",
+    "lat": 807,
+    "lng": 472
+  },
+  {
+    "id": 1778597349236.5222,
+    "name": "Rose Bay",
+    "tier": "zone",
+    "lat": 824.5,
+    "lng": 591.5
+  },
+  {
+    "id": 1778597355194.2778,
+    "name": "Isle of Flowers",
+    "tier": "zone",
+    "lat": 800,
+    "lng": 653
+  },
+  {
+    "id": 1778597370814.693,
+    "name": "Rootbee Cave",
+    "tier": "zone",
+    "lat": 1224,
+    "lng": 369
+  },
+  {
+    "id": 1778597383864.9546,
+    "name": "Hivetree's Canopy",
+    "tier": "zone",
+    "lat": 1311.5,
+    "lng": 513.5
+  },
+  {
+    "id": 1778597400009.0305,
+    "name": "Hivetree's Foliage",
+    "tier": "zone",
+    "lat": 1269,
+    "lng": 634.5
+  },
+  {
+    "id": 1778597409534.8713,
+    "name": "Hivetree's Roots",
+    "tier": "zone",
+    "lat": 1222.5,
+    "lng": 758.5
+  },
+  {
+    "id": 1778597430475.932,
+    "name": "Florin Hill",
+    "tier": "zone",
+    "lat": 1492,
+    "lng": 1611
+  },
+  {
+    "id": 1778597441546.5325,
+    "name": "Crimson Stronghold of Menelas",
+    "tier": "zone",
+    "lat": 1546.5,
+    "lng": 1173.5
+  },
+  {
+    "id": 1778597456126.3826,
+    "name": "Ruins of Harap",
+    "tier": "zone",
+    "lat": 1422,
+    "lng": 1066.5
+  },
+  {
+    "id": 1778597467689.7864,
+    "name": "Yesterland",
+    "tier": "zone",
+    "lat": 1620.5,
+    "lng": 968
+  },
+  {
+    "id": 1778597486904.315,
+    "name": "Talitha Falls",
+    "tier": "zone",
+    "lat": 1574,
+    "lng": 381
+  },
+  {
+    "id": 1778597501509.12,
+    "name": "Gorgon's Hollow",
+    "tier": "zone",
+    "lat": 1721,
+    "lng": 868
+  },
+  {
+    "id": 1778597509261.1724,
+    "name": "Enripit's Crest",
+    "tier": "zone",
+    "lat": 1744,
+    "lng": 913
+  },
+  {
+    "id": 1778597521630.0376,
+    "name": "Skuttle Rock",
+    "tier": "zone",
+    "lat": 1964,
+    "lng": 1321
+  },
+  {
+    "id": 1778597537604.0537,
+    "name": "West Majoram Bridge",
+    "tier": "zone",
+    "lat": 1814,
+    "lng": 1391
+  },
+  {
+    "id": 1778597566780.6023,
+    "name": "East Majoram Bridge",
+    "tier": "zone",
+    "lat": 1851,
+    "lng": 1762
+  },
+  {
+    "id": 1778597588767.6824,
+    "name": "Veld's Path",
+    "tier": "zone",
+    "lat": 1664,
+    "lng": 2050
+  },
+  {
+    "id": 1778597599436.7712,
+    "name": "Outspring Road",
+    "tier": "zone",
+    "lat": 1804,
+    "lng": 2098
+  },
+  {
+    "id": 1778597618115.868,
+    "name": "Aurock Mound",
+    "tier": "zone",
+    "lat": 1513,
+    "lng": 2355
+  },
+  {
+    "id": 1778597632498.1265,
+    "name": "Orange Highland",
+    "tier": "zone",
+    "lat": 1765,
+    "lng": 2568
+  },
+  {
+    "id": 1778597663354.285,
+    "name": "Fields of Dawn",
+    "tier": "zone",
+    "lat": 1932,
+    "lng": 2240
+  },
+  {
+    "id": 1778597671068.732,
+    "name": "Tyrna",
+    "tier": "zone",
+    "lat": 1901,
+    "lng": 2697
+  },
+  {
+    "id": 1778597686541.6592,
+    "name": "Mihr's Pasture",
+    "tier": "zone",
+    "lat": 2155,
+    "lng": 2704
+  },
+  {
+    "id": 1778597703231.9458,
+    "name": "Hanging Gardens of Azuram",
+    "tier": "zone",
+    "lat": 2053,
+    "lng": 2957
+  },
+  {
+    "id": 1778597725006.2266,
+    "name": "Hogsmane Prairie",
+    "tier": "zone",
+    "lat": 1494.5,
+    "lng": 2714.5
+  },
+  {
+    "id": 1778597740710.279,
+    "name": "Agias Theatre",
+    "tier": "zone",
+    "lat": 1406.5,
+    "lng": 2986.5
+  },
+  {
+    "id": 1778597755841.2356,
+    "name": "Landstar Hillrock",
+    "tier": "zone",
+    "lat": 1155.5,
+    "lng": 2418
+  },
+  {
+    "id": 1778597764887.8975,
+    "name": "Beacon of Landstar",
+    "tier": "zone",
+    "lat": 1167,
+    "lng": 2215
+  },
+  {
+    "id": 1778597788748.5234,
+    "name": "Inner Ruins of Tiocha",
+    "tier": "zone",
+    "lat": 878,
+    "lng": 2644
+  },
+  {
+    "id": 1778597803314.704,
+    "name": "Ancient Port of Tiocha",
+    "tier": "zone",
+    "lat": 828.25,
+    "lng": 2930.75
+  },
+  {
+    "id": 1778597811476.9111,
+    "name": "New Atlaan",
+    "tier": "zone",
+    "lat": 768,
+    "lng": 2979.5
+  },
+  {
+    "id": 1778597822997.7048,
+    "name": "Outer Ruins of Tiocha",
+    "tier": "zone",
+    "lat": 1121.5,
+    "lng": 2861.25
+  },
+  {
+    "id": 1778597846550.5945,
+    "name": "Crops Top",
+    "tier": "zone",
+    "lat": 1787,
+    "lng": 3259.5
+  },
+  {
+    "id": 1778597859702.8354,
+    "name": "Hivetrunk",
+    "tier": "zone",
+    "lat": 1773,
+    "lng": 3452.5
+  },
+  {
+    "id": 1778597868156.069,
+    "name": "Mepropolis",
+    "tier": "zone",
+    "lat": 1925,
+    "lng": 3338
+  },
+  {
+    "id": 1778597904533.789,
+    "name": "Mana Shelter",
+    "tier": "zone",
+    "lat": 2172,
+    "lng": 3241
+  },
+  {
+    "id": 1778597914400.0793,
+    "name": "Abode of the Ravenous",
+    "tier": "zone",
+    "lat": 2245,
+    "lng": 3195.5
+  },
+  {
+    "id": 1778597925037.9878,
+    "name": "Beet Route",
+    "tier": "zone",
+    "lat": 2452,
+    "lng": 3277.5
+  },
+  {
+    "id": 1778597937476.6775,
+    "name": "Sharewood",
+    "tier": "zone",
+    "lat": 2462,
+    "lng": 2454
+  },
+  {
+    "id": 1778597953381.0667,
+    "name": "Mirror of Princes",
+    "tier": "zone",
+    "lat": 2482,
+    "lng": 3008.5
+  },
+  {
+    "id": 1778597970178.178,
+    "name": "Munster's Crossing",
+    "tier": "zone",
+    "lat": 2634.5,
+    "lng": 2557.5
+  },
+  {
+    "id": 1778597988490.5454,
+    "name": "Mount Glasir",
+    "tier": "zone",
+    "lat": 2781.5,
+    "lng": 2716
+  },
+  {
+    "id": 1778598037742.098,
+    "name": "Slumber Cove",
+    "tier": "zone",
+    "lat": 2816,
+    "lng": 3329
+  },
+  {
+    "id": 1778598066027.89,
+    "name": "Ebral",
+    "tier": "subregion",
+    "lat": 3368,
+    "lng": 2829
+  },
+  {
+    "id": 1778598079486.641,
+    "name": "Slime Empire",
+    "tier": "subregion",
+    "lat": 3776,
+    "lng": 554
+  }
+]

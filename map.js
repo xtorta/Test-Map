@@ -129,14 +129,6 @@ function initMap(data) {
     const mid = getMarkerId(item, idx);
     allMarkers.push({ markerId:mid, marker:m, category:cat, label:item.label, coords });
     m.bindPopup(`<div style="text-align:center;font-family:Noto,sans-serif;">${item.label}</div>`);
-    m.bindTooltip(item.label, {
-      permanent: true,
-      direction: 'top',
-      offset: [0, -4],
-      className: 'map-label',
-      opacity: 1,
-    });
-    if (!showLabels) m.closeTooltip();
     m.on('contextmenu', e => {
       L.DomEvent.preventDefault(e); L.DomEvent.stopPropagation(e);
       m.closePopup(); toggleComplete(mid, m);
@@ -164,10 +156,7 @@ const SVG = {
   reset:  `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,4 1,1 4,1"/><path d="M1 1 A7 7 0 1 1 1 10"/></svg>`,
   compact:`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="1" width="12" height="12" rx="1.5"/><line x1="5" y1="1" x2="5" y2="13"/></svg>`,
   full:   `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="1" width="12" height="12" rx="1.5"/><line x1="1" y1="5" x2="13" y2="5"/></svg>`,
-  label:  `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="10" height="8" rx="1.5"/><line x1="13" y1="4" x2="13" y2="12"/><line x1="15" y1="4" x2="15" y2="12"/></svg>`,
 };
-
-let showLabels = localStorage.getItem('showLabels') === '1';
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 function buildSidebar(layers) {
@@ -234,12 +223,9 @@ function buildSidebar(layers) {
   searchToolBtn.classList.add('compact-only');
   const hideBtn   = mkToolBtn('sb-hide-btn',   SVG.eye,   'Hide Completed');
   const resetBtn  = mkToolBtn('sb-reset-btn',  SVG.reset, 'Reset Completed');
-  const labelBtn  = mkToolBtn('sb-label-btn',  SVG.label, 'Show Names');
-  if (showLabels) labelBtn.classList.add('active');
   iconTools.appendChild(searchToolBtn);
   iconTools.appendChild(hideBtn);
   iconTools.appendChild(resetBtn);
-  iconTools.appendChild(labelBtn);
   sidebar.appendChild(iconTools);
   sidebar.appendChild(sep());
 
@@ -435,18 +421,6 @@ function buildSidebar(layers) {
     allMarkers.forEach(({markerId, marker}) => applyCompletedStyle(marker, completedMarkers.has(markerId)));
   });
 
-  // ── Show/hide labels ──────────────────────────────────────────────
-  labelBtn.addEventListener('click', () => {
-    showLabels = !showLabels;
-    localStorage.setItem('showLabels', showLabels ? '1' : '0');
-    labelBtn.classList.toggle('active', showLabels);
-    const lbl = labelBtn.querySelector('.sb-tool-label');
-    if (lbl) lbl.textContent = showLabels ? 'Hide Names' : 'Show Names';
-    labelBtn.setAttribute('data-tip', showLabels ? 'Hide Names' : 'Show Names');
-    allMarkers.forEach(({ marker }) => {
-      showLabels ? marker.openTooltip() : marker.closeTooltip();
-    });
-  });
   resetBtn.addEventListener('click', () => {
     if (!completedMarkers.size) return;
     if (!confirm(`Reset all ${completedMarkers.size} completed marker(s)?`)) return;

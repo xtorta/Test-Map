@@ -134,6 +134,7 @@ let selectedCustColour = localStorage.getItem('custColour')|| '#e74c3c';
 let routeDrawing = false;
 let routePoints  = [];
 let routePreviewLayer = null;
+let routesVisible = localStorage.getItem('routesVisible') !== '0';
 
 const custMarkerLayer = L.layerGroup().addTo(map);
 const custRouteLayer  = L.layerGroup().addTo(map);
@@ -170,28 +171,35 @@ function buildCustPopup(cm, i) {
 }
 function renderRoutes() {
   custRouteLayer.clearLayers();
+  if (!routesVisible) return;
   customRoutes.forEach((route, ri) => {
     if (route.points.length < 2) return;
     const latlngs = route.points.map(p => [p[0],p[1]]);
-    // Smooth polyline
     const line = L.polyline(latlngs, { color:route.colour||'#e74c3c', weight:3.5, opacity:0.88, smoothFactor:2 });
     line.addTo(custRouteLayer);
-    // Arrow markers along the route
-    for (let i=0; i<latlngs.length-1; i++) {
-      const a=latlngs[i], b=latlngs[i+1];
-      const midLat=(a[0]+b[0])/2, midLng=(a[1]+b[1])/2;
-      const dx=b[1]-a[1], dy=b[0]-a[0];
-      const angle = Math.atan2(dx, dy) * 180/Math.PI;
-      const arrowIcon = L.divIcon({ html:`<div style="transform:rotate(${angle}deg);font-size:0.85em;color:${route.colour||'#e74c3c'};line-height:1;pointer-events:none;text-shadow:0 0 3px rgba(0,0,0,0.6);">➤</div>`, className:'', iconAnchor:[7,7] });
-      L.marker([midLat,midLng], {icon:arrowIcon,interactive:false}).addTo(custRouteLayer);
+    // Arrows along each segment
+    for (let i=0;i<latlngs.length-1;i++) {
+      const a=latlngs[i],b=latlngs[i+1];
+      const midLat=(a[0]+b[0])/2,midLng=(a[1]+b[1])/2;
+      const angle=Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI;
+      const arrowIcon=L.divIcon({html:`<div style="transform:rotate(${angle}deg);font-size:0.85em;color:${route.colour||'#e74c3c'};line-height:1;pointer-events:none;text-shadow:0 0 3px rgba(0,0,0,0.6);">➤</div>`,className:'',iconAnchor:[7,7]});
+      L.marker([midLat,midLng],{icon:arrowIcon,interactive:false}).addTo(custRouteLayer);
     }
-    // Clickable invisible overlay to delete route
-    const hitLine = L.polyline(latlngs, {color:'transparent',weight:12,opacity:0});
-    hitLine.on('click', () => {
-      if (confirm('Delete this route?')) { customRoutes.splice(ri,1); saveCustom(); renderRoutes(); }
-    });
+    // Clickable hit area — opens popup with note/delete
+    const hitLine=L.polyline(latlngs,{color:'transparent',weight:14,opacity:0});
+    hitLine.bindPopup(buildRoutePopup(route, ri), {maxWidth:200});
     hitLine.addTo(custRouteLayer);
   });
+}
+function buildRoutePopup(route, ri) {
+  const div=document.createElement('div'); div.style.cssText='font-family:Noto,sans-serif;min-width:140px;';
+  const label=document.createElement('div'); label.style.cssText='font-size:0.82em;font-weight:700;color:#3a2e1e;margin-bottom:0.4em;'; label.textContent=`Route (${route.points.length} waypoints)`;
+  const noteEl=document.createElement('textarea'); noteEl.className='cust-popup-note-area'; noteEl.rows=3; noteEl.value=route.note||''; noteEl.placeholder='Add a note…';
+  noteEl.addEventListener('change',()=>{route.note=noteEl.value;saveCustom();});
+  const delBtn=document.createElement('button'); delBtn.className='cust-popup-del'; delBtn.textContent='🗑 Delete Route';
+  delBtn.addEventListener('click',()=>{customRoutes.splice(ri,1);saveCustom();renderRoutes();map.closePopup();});
+  div.appendChild(label); div.appendChild(noteEl); div.appendChild(delBtn);
+  return div;
 }
 function startRoutePoint(lat, lng) {
   routePoints.push([lat, lng]);
@@ -265,11 +273,12 @@ function initMap(data) {
       customMarkers.push(cm);
       saveCustom();
       renderCustomMarkers();
-      // Open popup for note
-      const lastM = cm._leaflet || custMarkerLayer.getLayers()[custMarkerLayer.getLayers().length-1];
-      if (lastM) setTimeout(()=>lastM.openPopup(),100);
+      const placed = custMarkerLayer.getLayers().slice(-1)[0];
+      if (placed) setTimeout(()=>placed.openPopup(),100);
       pendingCustPlace = false;
-      updateCustModeStatus('');
+      // Deselect icon in UI
+      document.querySelectorAll('.cust-icon-btn.selected').forEach(b=>b.classList.remove('selected'));
+      updateCustModeStatus('Click an icon to select it');
     }
   });
 
@@ -310,7 +319,7 @@ function buildSidebar(layers) {
   viewBtns.appendChild(btnTV);
   hdr.appendChild(title); hdr.appendChild(viewBtns);
   sidebar.appendChild(hdr);
-  sidebar.appendChild(sep());
+  sidebar.appendChild(sep({id:'sb-sep-first'}));
 
   // ── About ────────────────────────────────────────────────────────
   const aboutRow=mk('div',{id:'sb-about-row'});
@@ -353,8 +362,8 @@ function buildSidebar(layers) {
 
   // ── Zone toggles ─────────────────────────────────────────────────
   const zoneTogs=mk('div',{id:'sb-zone-toggles'});
-  [{key:'region',svg:SVG.region,label:'Regions'},{key:'subregion',svg:SVG.sub,label:'Sub'},{key:'zone',svg:SVG.zone,label:'Zones'}].forEach(({key,svg,label})=>{
-    const btn=mk('button',{class:'zone-tog-btn'+(isRegionVisible(key)?' active':'')});
+  [{key:'region',svg:SVG.region,label:'Regions',id:'ztog-region'},{key:'subregion',svg:SVG.sub,label:'Sub',id:'ztog-subregion'},{key:'zone',svg:SVG.zone,label:'Zones',id:'ztog-zone'}].forEach(({key,svg,label,id})=>{
+    const btn=mk('button',{class:'zone-tog-btn'+(isRegionVisible(key)?' active':''),id});
     btn.innerHTML=`${svg}<span class="ztog-label">${label}</span>`;
     btn.addEventListener('click',()=>{
       if(key==='region'){showRegions=!showRegions;localStorage.setItem('showRegions',showRegions?'1':'0');}
@@ -410,14 +419,14 @@ function buildSidebar(layers) {
           let subActive=false;
           subRow.addEventListener('click',()=>{
             subActive=!subActive; subRow.classList.toggle('active',subActive);
-            // Highlight/unhighlight matching markers
-            allMarkers.forEach(({label,marker})=>{
+            // Only affect markers of the same category (mainCat)
+            allMarkers.forEach(({label,marker,category})=>{
+              if(category!==mainCat) return; // leave other categories untouched
               const el=getMarkerEl(marker); if(!el) return;
-              if(subActive) {
+              if(subActive){
                 const match=subLabels.some(sl=>label.toLowerCase().includes(sl.toLowerCase()));
                 el.style.outline=match?'2px solid #f39c12':'';
-                if(!match && !el.classList.contains('marker-done')) el.style.opacity='0.25';
-                else if(!el.classList.contains('marker-done')) el.style.opacity='';
+                el.style.opacity=match?'':el.classList.contains('marker-done')?'0.4':'0.2';
               } else {
                 el.style.outline=''; el.style.opacity='';
                 applyCompletedStyle(marker,completedMarkers.has(allMarkers.find(m=>m.marker===marker)?.markerId));
@@ -615,24 +624,40 @@ function buildCustomPanel(panel) {
   const iconGrid=mk('div',{class:'cust-icon-grid'});
   let selIconBtn=null;
   CUSTOM_ICONS.forEach(ic=>{
-    const b=mk('div',{class:'cust-icon-btn'+(ic===selectedCustIcon?' selected':'')}); b.textContent=ic;
+    const b=mk('div',{class:'cust-icon-btn'}); b.textContent=ic;
     b.addEventListener('click',()=>{
+      if(selIconBtn===b && pendingCustPlace){ // clicking selected icon cancels
+        pendingCustPlace=false; b.classList.remove('selected'); selIconBtn=null;
+        updateCustModeStatus('Click an icon to select it');
+        return;
+      }
       selectedCustIcon=ic; localStorage.setItem('custIcon',ic);
       selIconBtn?.classList.remove('selected'); b.classList.add('selected'); selIconBtn=b;
-      pendingCustPlace=true; updateCustModeStatus(`Click map to place ${ic}`);
+      pendingCustPlace=true; updateCustModeStatus(`Click map to place ${ic} — click icon again to cancel`);
     });
-    if(ic===selectedCustIcon) selIconBtn=b;
     iconGrid.appendChild(b);
   });
 
   // Route drawing
-  const routeTitle=mk('div',{class:'cust-section-title'}); routeTitle.textContent='Draw Route';
-  const routeInstructions=mk('div',{class:'cust-route-instructions'}); routeInstructions.textContent='Click the map to add waypoints. Click "Finish Route" to save.';
+  const routeTitle=mk('div',{class:'cust-section-title'}); routeTitle.textContent='Routes';
+  const routeInstructions=mk('div',{class:'cust-route-instructions'}); routeInstructions.textContent='Click "Draw Route" then click the map to add waypoints. Click a route on the map to edit/delete.';
   const modeRow=mk('div',{class:'cust-mode-row'});
   const btnRoute=mk('button',{class:'cust-btn cust-btn-route'}); btnRoute.innerHTML=`${SVG.route} Draw Route`;
-  const btnFinish=mk('button',{class:'cust-btn cust-btn-route',style:'display:none'}); btnFinish.textContent='✓ Finish Route';
+  const btnFinish=mk('button',{class:'cust-btn cust-btn-route',style:'display:none'}); btnFinish.textContent='✓ Finish';
   const btnCancel=mk('button',{class:'cust-btn cust-btn-cancel',style:'display:none'}); btnCancel.textContent='✕ Cancel';
   modeRow.appendChild(btnRoute); modeRow.appendChild(btnFinish); modeRow.appendChild(btnCancel);
+
+  const routeVisRow=mk('div',{class:'cust-mode-row',style:'margin-top:0.3em;'});
+  const btnToggleRoutes=mk('button',{class:`cust-btn cust-btn-route${routesVisible?' active':''}`});
+  btnToggleRoutes.textContent=routesVisible?'👁 Routes Visible':'👁 Routes Hidden';
+  btnToggleRoutes.style.flex='1';
+  btnToggleRoutes.addEventListener('click',()=>{
+    routesVisible=!routesVisible; localStorage.setItem('routesVisible',routesVisible?'1':'0');
+    btnToggleRoutes.classList.toggle('active',routesVisible);
+    btnToggleRoutes.textContent=routesVisible?'👁 Routes Visible':'👁 Routes Hidden';
+    renderRoutes();
+  });
+  routeVisRow.appendChild(btnToggleRoutes);
   btnRoute.addEventListener('click',()=>{
     routeDrawing=true; pendingCustPlace=false;
     btnRoute.style.display='none'; btnFinish.style.display=''; btnCancel.style.display='';
@@ -664,7 +689,8 @@ function buildCustomPanel(panel) {
   panel.appendChild(statusEl);
   panel.appendChild(iconTitle); panel.appendChild(iconGrid);
   panel.appendChild(sep());
-  panel.appendChild(routeTitle); panel.appendChild(routeInstructions); panel.appendChild(modeRow);
+  panel.appendChild(routeTitle); panel.appendChild(routeInstructions);
+  panel.appendChild(modeRow); panel.appendChild(routeVisRow);
   panel.appendChild(sep());
   panel.appendChild(colTitle); panel.appendChild(colRow);
 }
@@ -686,10 +712,19 @@ function wireSearch(input, clearBtn, container, layers, onResultClick) {
   function doSearch(q) {
     removeResults(); if(!q){clearSearch(layers,savedVis);searchActive=false;return;}
     if(!searchActive){document.querySelectorAll('#sb-cat-list input[type="checkbox"]').forEach(cb=>savedVis[cb.dataset.layer]=cb.checked);searchActive=true;}
-    Object.keys(layers).forEach(n=>map.addLayer(layers[n]));
+
     const regionMatches=regionLabels.filter(({name})=>name.toLowerCase().includes(q));
     const markerMatches=allMarkers.filter(({label})=>label.toLowerCase().includes(q));
-    allMarkers.forEach(({label,marker})=>{ const el=getMarkerEl(marker); if(!el) return; const hit=label.toLowerCase().includes(q); el.style.display=hit?'':'none'; el.style.outline=hit?'2px solid #f39c12':''; });
+
+    // Only filter marker visibility if there are marker results — region results don't affect markers
+    if(markerMatches.length>0){
+      Object.keys(layers).forEach(n=>map.addLayer(layers[n]));
+      allMarkers.forEach(({label,marker})=>{ const el=getMarkerEl(marker); if(!el) return; const hit=label.toLowerCase().includes(q); el.style.display=hit?'':'none'; el.style.outline=hit?'2px solid #f39c12':''; });
+    } else {
+      // Region-only results: restore all markers to saved visibility, don't hide anything
+      clearSearch(layers, savedVis);
+    }
+
     if(!markerMatches.length&&!regionMatches.length) return;
     const box=mk('div',{id:resultsId});
     regionMatches.slice(0,5).forEach(({name,tier,lat,lng})=>{

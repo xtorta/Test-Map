@@ -392,22 +392,6 @@ html, body {
 
 /* cat tooltip handled in tool-btn section above */
 
-/* ── Map marker name labels ── */
-.map-label {
-  background: rgba(30, 20, 10, 0.78) !important;
-  border: none !important;
-  border-radius: 3px !important;
-  color: white !important;
-  font-family: Noto, sans-serif !important;
-  font-size: 0.72em !important;
-  font-weight: 600 !important;
-  padding: 0.18em 0.45em !important;
-  white-space: nowrap !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.4) !important;
-  pointer-events: none !important;
-}
-.map-label::before { display: none !important; }
-
 /* ── Scroll indicators — only visible when off-screen content exists ── */
 #sb-scroll-up, #sb-scroll-down {
   display: none;

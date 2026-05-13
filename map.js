@@ -238,11 +238,10 @@ function openCustPopup(marker) {
     if (!sb || !tog) return;
     const w = sb.classList.contains('compact') ? 52 : (isMobile() ? 290 : 320);
     sb.style.transform = `translateX(${w}px)`;
-    tog.style.right = '0'; tog.innerHTML = '◀';
+    tog.innerHTML = '◀';
     const restore = () => {
       if (restored) return; restored = true;
       sb.style.transform = '';
-      tog.style.right = w + 'px';
       tog.innerHTML = '▶';
     };
     // Small delay so openPopup() doesn't immediately trigger popupclose from previous popup
@@ -259,10 +258,9 @@ map.on('popupopen', () => {
   if (!sb || !tog || sb.style.transform) return; // already hidden
   const w = sb.classList.contains('compact') ? 52 : 290;
   sb.style.transform = `translateX(${w}px)`;
-  tog.style.right = '0'; tog.innerHTML = '◀';
+  tog.innerHTML = '◀';
   map.once('popupclose', () => {
     sb.style.transform = '';
-    tog.style.right = w + 'px';
     tog.innerHTML = '▶';
   });
 });
@@ -594,63 +592,72 @@ function buildSidebar(layers) {
 
     if (group.hasSub) {
       ['Plants','Ores'].forEach(mainCat => {
-        const subs=mainCat==='Plants'?PLANT_SUBS:ORE_SUBS;
-        const colour=COLOURS[mainCat]||'#ffa958';
-        const subDiv=mk('div',{class:'filter-subgroup'});
-        const subCollapsed=localStorage.getItem(`fsg_${mainCat}`)==='1';
-        if(subCollapsed) subDiv.classList.add('collapsed');
+        const subs = mainCat==='Plants' ? PLANT_SUBS : ORE_SUBS;
+        const colour = COLOURS[mainCat]||'#ffa958';
+        const subDiv = mk('div',{class:'filter-subgroup'});
+        if(localStorage.getItem(`fsg_${mainCat}`)==='1') subDiv.classList.add('collapsed');
 
-        // ── Subgroup header: checkbox + icon + title + chevron ───────
-        const shdr=mk('div',{class:'filter-subgroup-header'});
-        const chkImg=mk('span',{class:'sb-check-img',style:'flex-shrink:0;cursor:pointer;'});
-        const savedCheckedMain=(JSON.parse(localStorage.getItem('checkedBoxes'))||[]).includes(mainCat);
-        chkImg.style.backgroundImage=savedCheckedMain?'url("check1.png")':'url("check0.png")';
-        let mainChecked=savedCheckedMain;
-        chkImg.addEventListener('click',e=>{
+        const shdr = mk('div',{class:'filter-subgroup-header'});
+
+        // Checkbox: show/hide the entire Plants or Ores layer
+        const chkImg = mk('span',{class:'sb-check-img',style:'flex-shrink:0;cursor:pointer;'});
+        const savedOn = (JSON.parse(localStorage.getItem('checkedBoxes'))||[]).includes(mainCat);
+        chkImg.style.backgroundImage = savedOn ? 'url("check1.png")' : 'url("check0.png")';
+        let layerOn = savedOn;
+        const saveLayerState = () => {
+          const saved = JSON.parse(localStorage.getItem('checkedBoxes'))||[];
+          if(layerOn && !saved.includes(mainCat)) saved.push(mainCat);
+          else if(!layerOn){ const i=saved.indexOf(mainCat); if(i>-1) saved.splice(i,1); }
+          localStorage.setItem('checkedBoxes', JSON.stringify(saved));
+        };
+        chkImg.addEventListener('click', e => {
           e.stopPropagation();
-          mainChecked=!mainChecked;
-          chkImg.style.backgroundImage=mainChecked?'url("check1.png")':'url("check0.png")';
-          if(!hiddenGroups.has(mainCat)&&layers[mainCat]){mainChecked?map.addLayer(layers[mainCat]):map.removeLayer(layers[mainCat]);}
-          // update saved state
-          const saved=JSON.parse(localStorage.getItem('checkedBoxes'))||[];
-          if(mainChecked&&!saved.includes(mainCat)) saved.push(mainCat);
-          else if(!mainChecked){ const i=saved.indexOf(mainCat); if(i>-1) saved.splice(i,1); }
-          localStorage.setItem('checkedBoxes',JSON.stringify(saved));
+          layerOn = !layerOn;
+          chkImg.style.backgroundImage = layerOn ? 'url("check1.png")' : 'url("check0.png")';
+          if(!hiddenGroups.has(mainCat) && layers[mainCat]) {
+            layerOn ? map.addLayer(layers[mainCat]) : map.removeLayer(layers[mainCat]);
+          }
+          saveLayerState();
         });
-        const shdrTitle=mk('span',{class:'fsh-title',style:`color:${colour};flex:1;cursor:pointer;`}); shdrTitle.textContent=mainCat;
-        shdrTitle.title=`Select/deselect all ${mainCat}`;
-        // title click handler added AFTER activeSubs/applySubFilter are declared below
-        const shdrChev=mk('span',{class:'fsh-chevron'}); shdrChev.textContent='▼';
+
+        // Title: clicking toggles ALL subcategory rows on/off (filter within layer)
+        const shdrTitle = mk('span',{class:'fsh-title',style:`color:${colour};flex:1;cursor:pointer;`});
+        shdrTitle.textContent = mainCat;
+        shdrTitle.title = `Show/hide all ${mainCat} types`;
+
+        const shdrChev = mk('span',{class:'fsh-chevron'}); shdrChev.textContent='▼';
         shdr.appendChild(chkImg); shdr.appendChild(shdrTitle); shdr.appendChild(shdrChev);
-        shdr.addEventListener('click',e=>{
-          if(e.target===chkImg||e.target===shdrTitle) return;
+        shdr.addEventListener('click', e => {
+          if(e.target===chkImg || e.target===shdrTitle) return;
           subDiv.classList.toggle('collapsed');
-          localStorage.setItem(`fsg_${mainCat}`,subDiv.classList.contains('collapsed')?'1':'0');
+          localStorage.setItem(`fsg_${mainCat}`, subDiv.classList.contains('collapsed')?'1':'0');
         });
         subDiv.appendChild(shdr);
 
-        const subRows=mk('div',{class:'filter-subgroup-rows'});
+        const subRows = mk('div',{class:'filter-subgroup-rows'});
         const activeSubs = new Set();
 
         function applySubFilter() {
-          allMarkers.forEach(({marker,category,subKey})=>{
-            if(category!==mainCat) return;
-            const el=getMarkerEl(marker); if(!el) return;
-            if(activeSubs.size===0){
-              el.style.display=''; el.style.opacity='';
-              applyCompletedStyle(marker,completedMarkers.has(allMarkers.find(m=>m.marker===marker)?.markerId));
+          allMarkers.forEach(({marker,category,subKey}) => {
+            if(category !== mainCat) return;
+            const el = getMarkerEl(marker); if(!el) return;
+            if(activeSubs.size === 0) {
+              // none selected = show all
+              el.style.display = ''; el.style.opacity = '';
+              applyCompletedStyle(marker, completedMarkers.has(allMarkers.find(m=>m.marker===marker)?.markerId));
             } else {
-              el.style.display=activeSubs.has(subKey)?'':'none';
-              if(activeSubs.has(subKey)) el.style.opacity='';
+              el.style.display = activeSubs.has(subKey) ? '' : 'none';
+              if(activeSubs.has(subKey)) el.style.opacity = '';
             }
           });
         }
 
-        // Now activeSubs and applySubFilter exist — wire the title click
+        // Title click: select/deselect all sub rows
         shdrTitle.addEventListener('click', e => {
           e.stopPropagation();
           const allKeys = Object.keys(subs);
           const anyActive = allKeys.some(k => activeSubs.has(k));
+          // Toggle: if any on → turn all off; if none on → turn all on
           allKeys.forEach(k => anyActive ? activeSubs.delete(k) : activeSubs.add(k));
           subRows.querySelectorAll('.sublabel-row').forEach((row, i) => {
             const active = activeSubs.has(allKeys[i]);
@@ -660,24 +667,25 @@ function buildSidebar(layers) {
           applySubFilter();
         });
 
-        Object.entries(subs).forEach(([subName,{labels,icon}])=>{
-          const subRow=mk('div',{class:'sublabel-row'}); subRow.dataset.sublabel=subName;
-          const rowChk=mk('span',{class:'sb-check-img',style:'flex-shrink:0;background-image:url("check0.png");'});
-          const iconEl=mk('img'); iconEl.src=icon; iconEl.className='sublabel-icon'; iconEl.alt=subName;
-          const nameEl=mk('span',{class:'sublabel-name'}); nameEl.textContent=subName;
+        Object.entries(subs).forEach(([subName,{labels,icon}]) => {
+          const subRow = mk('div',{class:'sublabel-row'}); subRow.dataset.sublabel=subName;
+          const rowChk = mk('span',{class:'sb-check-img',style:'flex-shrink:0;background-image:url("check0.png");'});
+          const iconEl = mk('img'); iconEl.src=icon; iconEl.className='sublabel-icon'; iconEl.alt=subName;
+          const nameEl = mk('span',{class:'sublabel-name'}); nameEl.textContent=subName;
           subRow.appendChild(rowChk); subRow.appendChild(iconEl); subRow.appendChild(nameEl);
-          subRow.addEventListener('click',()=>{
-            if(activeSubs.has(subName)){
+          subRow.addEventListener('click', () => {
+            if(activeSubs.has(subName)) {
               activeSubs.delete(subName); subRow.classList.remove('active');
-              rowChk.style.backgroundImage='url("check0.png")';
+              rowChk.style.backgroundImage = 'url("check0.png")';
             } else {
               activeSubs.add(subName); subRow.classList.add('active');
-              rowChk.style.backgroundImage='url("check1.png")';
+              rowChk.style.backgroundImage = 'url("check1.png")';
             }
             applySubFilter();
           });
           subRows.appendChild(subRow);
         });
+
         subDiv.appendChild(subRows);
         groupRows.appendChild(subDiv);
       });
@@ -746,7 +754,8 @@ function buildSidebar(layers) {
 
   // ── Toggle arrow ─────────────────────────────────────────────────
   const toggle=mk('button',{id:'sb-toggle'});
-  document.body.appendChild(toggle);
+  toggle.innerHTML='▶';
+  sidebar.appendChild(toggle); // inside sidebar so position:absolute works relative to it
 
   // ── Floating search (sidebar closed) ────────────────────────────
   const floatWrap=mk('div',{id:'sb-search-float'});
@@ -796,13 +805,12 @@ function buildSidebar(layers) {
   function curW(){ return isCompact() ? 52 : (isMobile() ? 290 : 320); }
   function saveView(){localStorage.setItem('sbView',!sidebarOpen?'closed':isCompact()?'compact':'full');}
   function applyLayout(animate){
-    if(!animate){sidebar.style.transition='none';toggle.style.transition='none';}
-    const w=curW();
-    sidebar.style.transform=sidebarOpen?'':(`translateX(${w}px)`);
-    toggle.style.right=sidebarOpen?w+'px':'0';
-    toggle.innerHTML=sidebarOpen?'▶':'◀';
-    floatWrap.style.display=sidebarOpen?'none':'flex';
-    if(!animate)requestAnimationFrame(()=>{sidebar.style.transition='';toggle.style.transition='';});
+    if(!animate){sidebar.style.transition='none';}
+    const w = curW();
+    sidebar.style.transform = sidebarOpen ? '' : `translateX(${w}px)`;
+    toggle.innerHTML = sidebarOpen ? '▶' : '◀';
+    floatWrap.style.display = sidebarOpen ? 'none' : 'flex';
+    if(!animate) requestAnimationFrame(()=>{sidebar.style.transition='';});
   }
   toggle.addEventListener('click',()=>{sidebarOpen=!sidebarOpen;saveView();applyLayout(true);});
   btnTV.addEventListener('click',()=>{sidebar.classList.toggle('compact');updateViewBtn();saveView();applyLayout(true);});
@@ -1110,7 +1118,7 @@ function showMobileRouteBar() {
   // Hide sidebar
   const sb=document.getElementById('sidebar');
   const tog=document.getElementById('sb-toggle');
-  if(sb&&tog){ const w=sb.classList.contains('compact')?52:290; sb.style.transform=`translateX(${w}px)`; tog.style.right='0'; tog.innerHTML='◀'; }
+  if(sb&&tog){ const w=sb.classList.contains('compact')?52:290; sb.style.transform=`translateX(${w}px)`; tog.innerHTML='◀'; }
 
   const bar=mk('div',{id:'mobile-route-bar'});
   bar.style.cssText=`position:fixed;bottom:0;left:0;right:0;z-index:1200;display:flex;gap:0.5em;padding:0.75em 1em;background:linear-gradient(135deg,#785a37 50%,#8e6a41 50%);box-shadow:0 -3px 12px rgba(0,0,0,0.3);`;
@@ -1131,7 +1139,7 @@ function hideMobileRouteBar(reopenSidebar) {
   if (reopenSidebar && isMobile()) {
     const sb=document.getElementById('sidebar');
     const tog=document.getElementById('sb-toggle');
-    if(sb&&tog){ sb.style.transform=''; const w=sb.classList.contains('compact')?52:290; tog.style.right=w+'px'; tog.innerHTML='▶'; }
+    if(sb&&tog){ sb.style.transform=''; tog.innerHTML='▶'; }
   }
 }
 

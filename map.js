@@ -64,15 +64,15 @@ const FILTER_GROUPS = [
   { key:'enemies',     title:'Enemies',           icon:'⚔️', cats:['Mobs','Minibosses','Sparkling mobs'] },
 ];
 const ORE_SUBS   = {
-  'Copper':    { labels:['Copper Ore Large','Copper Ore Small'], icon:'./icons/gatherables/copper.png' },
-  'Tin':       { labels:['Tin Ore Large','Tin Ore Small'],       icon:'./icons/gatherables/tin.png' },
-  'Tungstene': { labels:['Tungstene'],                           icon:'./icons/gatherables/tungstene.png' },
+  'Copper':    { labels:['Copper Ore Large','Copper Ore Small'], icon:'./icons/gatherables/copper.png?v=2' },
+  'Tin':       { labels:['Tin Ore Large','Tin Ore Small'],       icon:'./icons/gatherables/tin.png?v=2' },
+  'Tungstene': { labels:['Tungstene'],                           icon:'./icons/gatherables/tungstene.png?v=2' },
 };
 const PLANT_SUBS = {
-  'Madrigold':    { labels:['Madrigold Large','Madrigold Small'],          icon:'./icons/gatherables/madrigold.png' },
-  'Lavendula':    { labels:['Lavendula Large','Lavendula Small'],          icon:'./icons/gatherables/lavendula.png' },
-  'Ancient Thyme':{ labels:['Ancient Thyme Large','Ancient Thyme Small'],  icon:'./icons/gatherables/ancientthyme.png' },
-  'Zealotus':     { labels:['Zealotus','Zealotus Large','Zealotus Small'], icon:'./icons/gatherables/zealous.png' },
+  'Madrigold':    { labels:['Madrigold Large','Madrigold Small'],          icon:'./icons/gatherables/madrigold.png?v=2' },
+  'Lavendula':    { labels:['Lavendula Large','Lavendula Small'],          icon:'./icons/gatherables/lavendula.png?v=2' },
+  'Ancient Thyme':{ labels:['Ancient Thyme Large','Ancient Thyme Small'],  icon:'./icons/gatherables/ancientthyme.png?v=2' },
+  'Zealotus':     { labels:['Zealotus','Zealotus Large','Zealotus Small'], icon:'./icons/gatherables/zealous.png?v=2' },
 };
 const GATHERABLE_SUBS = { Ores: ORE_SUBS, Plants: PLANT_SUBS };
 

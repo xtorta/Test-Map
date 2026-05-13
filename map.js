@@ -73,7 +73,7 @@ const ORE_SUBS   = {
 };
 const PLANT_SUBS = {
   'Madrigold':    { labels:['Madrigold Large','Madrigold Small'],          icon:'./icons/gatherables/madrigold.png?v=3' },
-  'Lavendula':    { labels:['Lavendula Large','Lavendula Small'],          icon:'./icons/gatherables/lavendula.png?v=3' },
+  'Lavendula':    { labels:['Lavendula Large','Lavendula Small','R 2Plant 2 Small','R 2Plant 3 Small','R 2Plant Rare Large','R 2Plant Rare Small'], icon:'./icons/gatherables/lavendula.png?v=3' },
   'Ancient Thyme':{ labels:['Ancient Thyme Large','Ancient Thyme Small'],  icon:'./icons/gatherables/ancientthyme.png?v=3' },
   'Zealotus':     { labels:['Zealotus','Zealotus Large','Zealotus Small'], icon:'./icons/gatherables/zealous.png?v=3' },
 };
@@ -846,7 +846,7 @@ function buildCustomPanel(panel) {
   const statusEl=mk('div',{class:'cust-mode-status',id:'cust-mode-status'}); statusEl.textContent='Select an icon to place on the map';
 
   // Icon grid
-  const iconTitle=mk('div',{class:'cust-section-title'}); iconTitle.textContent='Icon';
+  const iconTitle=mk('div',{class:'cust-section-title'}); iconTitle.textContent='';
   const iconGrid=mk('div',{class:'cust-icon-grid'});
   let selIconBtn=null;
   CUSTOM_ICONS.forEach(ic=>{
@@ -961,7 +961,7 @@ function buildCustomPanel(panel) {
   window._routeRenderHook = () => { refreshExportSelect(); };
 
   panel.appendChild(statusEl);
-  panel.appendChild(iconTitle); panel.appendChild(iconGrid);
+  panel.appendChild(iconGrid);
   panel.appendChild(sep());
   panel.appendChild(routeTitle); panel.appendChild(routeInstructions);
   panel.appendChild(modeRow); panel.appendChild(routeVisRow);

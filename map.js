@@ -49,6 +49,9 @@ const COLOURS = {
   'Mobs':'#d13a3a','Sparkling mobs':'#eb19c8','Dungeons':'#430dd8',
   'Checkpoints':'#4db3db','Minibosses':'#eb681c','Critters':'#de58ff',
   'Recipes':'#9b7700','Secret orbs':'#a23030',
+  // Gatherable subtypes
+  'Copper':'#c67c3a','Tin':'#7a9bb5','Tungstene':'#9b7daa',
+  'Madrigold':'#e8a030','Lavendula':'#9b59b6','Ancient Thyme':'#5d8a5e','Zealotus':'#c0392b',
 };
 const ICONS = {
   'Obelisks':'./icons/mapMarker5.png','Chests':'./icons/mapMarker2.png',
@@ -367,24 +370,40 @@ function initMap(data) {
     'Secret orbs':new circleArea({fillColor:'#a23030',radius:coordToMapScalar*40,opacity:0.5,fillOpacity:0.5}).props,
     'Haydn Seek':new circleArea({fillColor:'#388e9f',radius:coordToMapScalar*70,opacity:0.5,fillOpacity:0.5}).props,
   };
-  data.forEach((item,idx)=>{ const cat=item.categories?.[0]||'Misc'; if(!categoryRegistry[cat]) categoryRegistry[cat]={total:0,markerIds:[],markers:[]}; categoryRegistry[cat].total++; categoryRegistry[cat].markerIds.push(getMarkerId(item,idx)); });
+  // Pre-build registry for non-gatherable categories only
+  // Gatherable subtypes are counted when building subTypeMap
+  const gatherableLabels = new Set();
+  ['Ores','Plants'].forEach(mc => {
+    Object.values(GATHERABLE_SUBS[mc]).forEach(({labels}) => labels.forEach(l => gatherableLabels.add(l.toLowerCase())));
+  });
+  data.forEach((item,idx)=>{
+    const cat=item.categories?.[0]||'Misc';
+    if (gatherableLabels.has(item.label.toLowerCase())) return; // handled by subTypeMap
+    if(!categoryRegistry[cat]) categoryRegistry[cat]={total:0,markerIds:[],markers:[]};
+    categoryRegistry[cat].total++;
+    categoryRegistry[cat].markerIds.push(getMarkerId(item,idx));
+  });
 
-  // Build subtype icon lookup: label → {iconUrl, subKey, mainCat}
+  // Build subtype icon + layer lookup: label → {iconUrl, subKey, layerKey}
   const subTypeMap = {};
   ['Ores','Plants'].forEach(mainCat => {
     const subs = GATHERABLE_SUBS[mainCat];
     Object.entries(subs).forEach(([subKey,{labels,icon}]) => {
-      labels.forEach(lbl => { subTypeMap[lbl.toLowerCase()] = {iconUrl:icon, subKey, mainCat}; });
+      const layerKey = subKey; // e.g. 'Copper', 'Tin', 'Madrigold'
+      if (!layers[layerKey]) layers[layerKey] = L.layerGroup();
+      if (!categoryRegistry[layerKey]) categoryRegistry[layerKey] = {total:0, markerIds:[], markers:[], mainCat};
+      labels.forEach(lbl => { subTypeMap[lbl.toLowerCase()] = {iconUrl:icon, subKey, layerKey, mainCat}; });
     });
   });
 
   data.forEach((item,idx)=>{
     const coords=[(s1*(4096-item.y)+b1),s2*(item.x+b2)];
     const cat=item.categories?.[0]||'Misc';
-    if (!layers[cat]) layers[cat]=L.layerGroup();
-    let m;
-    // Check for per-subtype icon
     const subInfo = subTypeMap[item.label.toLowerCase()];
+    // Subtypes go into their own layer, not layers['Ores']/layers['Plants']
+    const effectiveCat = subInfo ? subInfo.layerKey : cat;
+    if (!layers[effectiveCat]) layers[effectiveCat]=L.layerGroup();
+    let m;
     if (subInfo && subInfo.iconUrl) {
       const sz=28;
       const icon = L.icon({iconUrl:subInfo.iconUrl, iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2]});
@@ -399,12 +418,12 @@ function initMap(data) {
       m = L.circleMarker(coords,new cMarker().props);
     }
     const mid=getMarkerId(item,idx);
-    allMarkers.push({markerId:mid,marker:m,category:cat,label:item.label,coords,subKey:subInfo?.subKey});
+    allMarkers.push({markerId:mid,marker:m,category:effectiveCat,label:item.label,coords,subKey:subInfo?.subKey,mainCat:subInfo?.mainCat});
     m.bindPopup(`<div style="text-align:center;font-family:Noto,sans-serif;">${item.label}</div>`);
     m.on('contextmenu',e=>{ L.DomEvent.preventDefault(e); L.DomEvent.stopPropagation(e); m.closePopup(); toggleComplete(mid,m,cat); });
     m.on('click',e=>{ if (!isMobile()||routeDrawing) return; toggleComplete(mid,m,cat); });
     m.on('add',()=>setTimeout(()=>applyCompletedStyle(m,completedMarkers.has(mid)),0));
-    m.addTo(layers[cat]);
+    m.addTo(layers[effectiveCat]);
   });
 
   // Map mouse/touch events for route drawing and marker placement
@@ -597,7 +616,7 @@ function buildSidebar(layers) {
         const subDiv = mk('div',{class:'filter-subgroup'});
         if(localStorage.getItem(`fsg_${mainCat}`)==='1') subDiv.classList.add('collapsed');
 
-        // Plain title header — just a label + collapse chevron, no checkbox
+        // Plain collapsible header - just title + chevron
         const shdr = mk('div',{class:'filter-subgroup-header'});
         const shdrTitle = mk('span',{class:'fsh-title',style:`color:${colour};flex:1;`});
         shdrTitle.textContent = mainCat;
@@ -609,43 +628,12 @@ function buildSidebar(layers) {
         });
         subDiv.appendChild(shdr);
 
+        // Each subtype is a normal category row
         const subRows = mk('div',{class:'filter-subgroup-rows'});
-        const activeSubs = new Set();
-
-        function applySubFilter() {
-          allMarkers.forEach(({marker,category,subKey}) => {
-            if(category !== mainCat) return;
-            const el = getMarkerEl(marker); if(!el) return;
-            if(activeSubs.size === 0) {
-              el.style.display = ''; el.style.opacity = '';
-              applyCompletedStyle(marker, completedMarkers.has(allMarkers.find(m=>m.marker===marker)?.markerId));
-            } else {
-              el.style.display = activeSubs.has(subKey) ? '' : 'none';
-            }
-          });
-        }
-
         Object.entries(subs).forEach(([subName,{icon}]) => {
-          const subRow = mk('label',{class:'sublabel-row'}); subRow.dataset.sublabel=subName;
-          const inp = mk('input'); inp.type='checkbox'; inp.style.display='none'; inp.dataset.sub=subName;
-          const rowChk = mk('span',{class:'sb-check-img',style:'flex-shrink:0;background-image:url("check0.png");'});
-          const iconEl = mk('img'); iconEl.src=icon; iconEl.className='sublabel-icon'; iconEl.alt=subName;
-          const nameEl = mk('span',{class:'sublabel-name'}); nameEl.textContent=subName;
-          subRow.appendChild(inp); subRow.appendChild(rowChk); subRow.appendChild(iconEl); subRow.appendChild(nameEl);
-          subRow.addEventListener('click', e => {
-            e.preventDefault();
-            if(activeSubs.has(subName)) {
-              activeSubs.delete(subName); subRow.classList.remove('active');
-              rowChk.style.backgroundImage = 'url("check0.png")';
-            } else {
-              activeSubs.add(subName); subRow.classList.add('active');
-              rowChk.style.backgroundImage = 'url("check1.png")';
-            }
-            applySubFilter();
-          });
-          subRows.appendChild(subRow);
+          const row = buildCatRow(subName, layers, icon);
+          subRows.appendChild(row);
         });
-
         subDiv.appendChild(subRows);
         groupRows.appendChild(subDiv);
       });
@@ -676,7 +664,9 @@ function buildSidebar(layers) {
   FILTER_GROUPS.forEach(group=>{
     if (group.key==='zones') return;
     if (prevGroup && prevGroup!==group.key) { compactList.appendChild(mk('span',{class:'compact-cat-sep'})); }
-    const cats=group.hasSub?['Plants','Ores']:group.cats;
+    const cats = group.hasSub
+      ? [...Object.keys(PLANT_SUBS), ...Object.keys(ORE_SUBS)]
+      : group.cats;
     cats.forEach(cat=>{
       if (!layers[cat]) return;
       const colour=COLOURS[cat]||'#ffa958';
@@ -774,7 +764,12 @@ function buildSidebar(layers) {
     if (!animate) requestAnimationFrame(() => { sidebar.style.transition = ''; toggle.style.transition = ''; });
   }
   toggle.addEventListener('click',()=>{sidebarOpen=!sidebarOpen;saveView();applyLayout(true);});
-  btnTV.addEventListener('click',()=>{sidebar.classList.toggle('compact');updateViewBtn();saveView();applyLayout(true);});
+  btnTV.addEventListener('click',()=>{
+    sidebar.classList.toggle('compact'); updateViewBtn(); saveView();
+    applyLayout(true);
+    // Re-run after transition so offsetWidth reflects new compact width
+    sidebar.addEventListener('transitionend', () => applyLayout(false), {once:true});
+  });
   applyLayout(false);
   window.addEventListener('resize',()=>applyLayout(false));
 
@@ -806,7 +801,16 @@ function buildSidebar(layers) {
 
 // ─── Group show/hide ──────────────────────────────────────────────────────────
 function toggleGroupVisibility(group, layers, eyeBtn) {
-  const allCats = group.hasSub ? ['Plants','Ores'] : group.cats;
+  let allCats;
+  if (group.hasSub) {
+    // Get all subtype layer keys for Plants + Ores
+    allCats = [
+      ...Object.keys(PLANT_SUBS),
+      ...Object.keys(ORE_SUBS),
+    ];
+  } else {
+    allCats = group.cats;
+  }
   const nowHiding = !eyeBtn.classList.contains('hidden-state');
   eyeBtn.classList.toggle('hidden-state', nowHiding);
   eyeBtn.innerHTML = nowHiding ? SVG.eyeOff : SVG.eye;
@@ -817,7 +821,6 @@ function toggleGroupVisibility(group, layers, eyeBtn) {
       document.querySelectorAll(`input[data-layer="${cat}"]`).forEach(cb=>{ cb.checked=false; cb.closest('.compact-cat-row')?.classList.remove('checked'); });
     } else {
       hiddenGroups.delete(cat);
-      // Check all and add all layers
       document.querySelectorAll(`input[data-layer="${cat}"]`).forEach(cb=>{ cb.checked=true; cb.closest('.compact-cat-row')?.classList.add('checked'); });
       if (layers[cat]) map.addLayer(layers[cat]);
     }
@@ -988,12 +991,16 @@ function buildCustomPanel(panel) {
 }
 
 // ─── Build category row ───────────────────────────────────────────────────────
-function buildCatRow(name, layers) {
-  const colour=COLOURS[name]||'#ffa958', iconUrl=ICONS[name], total=categoryRegistry[name]?.total||0;
-  const row=mk('label',{class:'sb-cat-row'}); row.setAttribute('data-tip',name);
-  const indicator=iconUrl?`<img src="${iconUrl}" class="sb-cat-icon" alt="">`:
-    `<span class="sb-cat-dot-wrap"><span class="sb-cat-dot" style="background:${colour}"></span></span>`;
-  row.innerHTML=`<input type="checkbox" data-layer="${name}" class="category" style="display:none"><span class="sb-check-img"></span>${indicator}<span class="sb-cat-name" style="color:${colour}">${name}</span><span class="sb-cat-count" data-cat="${name}">0/${total}</span>`;
+function buildCatRow(name, layers, iconOverride) {
+  const colour = COLOURS[name]||'#ffa958';
+  const iconUrl = iconOverride || ICONS[name];
+  const total = categoryRegistry[name]?.total||0;
+  const row = mk('label',{class:'sb-cat-row'}); row.setAttribute('data-tip',name);
+  const indicator = iconUrl
+    ? `<img src="${iconUrl}" class="sb-cat-icon" alt="">`
+    : `<span class="sb-cat-dot-wrap"><span class="sb-cat-dot" style="background:${colour}"></span></span>`;
+  const isCollectable = COMPLETABLE.has(name);
+  row.innerHTML=`<input type="checkbox" data-layer="${name}" class="category" style="display:none"><span class="sb-check-img"></span>${indicator}<span class="sb-cat-name" style="color:${colour}">${name}</span><span class="sb-cat-count" data-cat="${name}">${isCollectable?`0/${total}`:total}</span>`;
   return row;
 }
 

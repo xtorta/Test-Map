@@ -617,30 +617,9 @@ function buildSidebar(layers) {
           else if(!mainChecked){ const i=saved.indexOf(mainCat); if(i>-1) saved.splice(i,1); }
           localStorage.setItem('checkedBoxes',JSON.stringify(saved));
         });
-        const shdrTitle=mk('span',{class:'fsh-title',style:`color:${colour};flex:1;`}); shdrTitle.textContent=mainCat;
-        shdrTitle.style.cursor = 'pointer';
-        shdrTitle.title = `Select/deselect all ${mainCat}`;
-        shdrTitle.addEventListener('click', e => {
-          e.stopPropagation();
-          // If any are active, deselect all; otherwise select all
-          const allKeys = Object.keys(subs);
-          const anyActive = allKeys.some(k => activeSubs.has(k));
-          if (anyActive) {
-            // Deselect all
-            allKeys.forEach(k => activeSubs.delete(k));
-          } else {
-            // Select all
-            allKeys.forEach(k => activeSubs.add(k));
-          }
-          // Update each row's visual state
-          subDiv.querySelectorAll('.sublabel-row').forEach((row, i) => {
-            const subName = allKeys[i];
-            const active = activeSubs.has(subName);
-            row.classList.toggle('active', active);
-            row.querySelector('.sb-check-img').style.backgroundImage = active ? 'url("check1.png")' : 'url("check0.png")';
-          });
-          applySubFilter();
-        });
+        const shdrTitle=mk('span',{class:'fsh-title',style:`color:${colour};flex:1;cursor:pointer;`}); shdrTitle.textContent=mainCat;
+        shdrTitle.title=`Select/deselect all ${mainCat}`;
+        // title click handler added AFTER activeSubs/applySubFilter are declared below
         const shdrChev=mk('span',{class:'fsh-chevron'}); shdrChev.textContent='▼';
         shdr.appendChild(chkImg); shdr.appendChild(shdrTitle); shdr.appendChild(shdrChev);
         shdr.addEventListener('click',e=>{
@@ -666,6 +645,20 @@ function buildSidebar(layers) {
             }
           });
         }
+
+        // Now activeSubs and applySubFilter exist — wire the title click
+        shdrTitle.addEventListener('click', e => {
+          e.stopPropagation();
+          const allKeys = Object.keys(subs);
+          const anyActive = allKeys.some(k => activeSubs.has(k));
+          allKeys.forEach(k => anyActive ? activeSubs.delete(k) : activeSubs.add(k));
+          subRows.querySelectorAll('.sublabel-row').forEach((row, i) => {
+            const active = activeSubs.has(allKeys[i]);
+            row.classList.toggle('active', active);
+            row.querySelector('.sb-check-img').style.backgroundImage = active ? 'url("check1.png")' : 'url("check0.png")';
+          });
+          applySubFilter();
+        });
 
         Object.entries(subs).forEach(([subName,{labels,icon}])=>{
           const subRow=mk('div',{class:'sublabel-row'}); subRow.dataset.sublabel=subName;
@@ -801,9 +794,9 @@ function buildSidebar(layers) {
   // ── Layout & state ───────────────────────────────────────────────
   let sidebarOpen=savedView!=='closed';
   function curW(){
-    // +2 for the sidebar's border-left so toggle sits flush
-    const base = isCompact() ? 52 : (isMobile() ? 290 : 320);
-    return base + 2;
+    // +2 for sidebar border-left so toggle sits flush
+    if (isCompact()) return 52 + 2;
+    return (isMobile() ? 290 : 320) + 2;
   }
   function saveView(){localStorage.setItem('sbView',!sidebarOpen?'closed':isCompact()?'compact':'full');}
   function applyLayout(animate){

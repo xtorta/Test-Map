@@ -124,7 +124,20 @@ async function loadRegions() {
 }
 
 // ─── Custom markers & routes ──────────────────────────────────────────────────
-const CUSTOM_ICONS = ['⚔️','🗡️','🛡️','🏹','🔮','💎','📦','🗝️','🏆','💀','🔥','❄️','⚡','🌊','☠️','🧪','📜','🪙','🎯','💣','🗺️','🔔','⭐','🌟','🏰','⛏️','🐉','👁️','🌿','🎁'];
+const CUSTOM_ICONS = [
+  // Weapons & Combat
+  '⚔️','🗡️','🏹','🪃','🔱','🛡️','🪖','💣','🧨',
+  // Magic & Items
+  '🔮','✨','💫','🌀','🪄','📜','🗝️','🔑','⚗️','🧿',
+  // Treasure & Loot
+  '💎','💍','🏆','👑','🪙','💰','📦','🎁','🧧',
+  // Creatures & Characters
+  '💀','☠️','👹','🐉','🦅','🦁','🐺','🕷️','👻',
+  // Environment & Navigation
+  '🏔️','⛰️','🌋','🏛️','⛩️','🏕️','🚩','📍','🗺️',
+  // Status & Utility
+  '❗','❓','⚠️','🔥','❄️','⚡','🌊','☁️','🌿','🍄',
+];
 const CUSTOM_COLOURS = ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63','#ff5722','#607d8b','#795548','#ffffff'];
 
 let customMarkers = JSON.parse(localStorage.getItem('customMarkers')||'[]');
@@ -171,7 +184,7 @@ function buildCustPopup(cm, i) {
 }
 function renderRoutes() {
   custRouteLayer.clearLayers();
-  if (!routesVisible) return;
+  if (!routesVisible) { window._routeRenderHook?.(); return; }
   customRoutes.forEach((route, ri) => {
     if (route.points.length < 2) return;
     const latlngs = route.points.map(p => [p[0],p[1]]);
@@ -190,6 +203,7 @@ function renderRoutes() {
     hitLine.bindPopup(buildRoutePopup(route, ri), {maxWidth:200});
     hitLine.addTo(custRouteLayer);
   });
+  window._routeRenderHook?.();
 }
 function buildRoutePopup(route, ri) {
   const div=document.createElement('div'); div.style.cssText='font-family:Noto,sans-serif;min-width:140px;';
@@ -412,26 +426,32 @@ function buildSidebar(layers) {
         const subRows=mk('div',{class:'filter-subgroup-rows'});
         // Main category checkbox row
         subRows.appendChild(buildCatRow(mainCat, layers));
-        // Sub-label highlight rows
+        // Sub-label highlight rows — stacking: multiple selections show union
+        const activeSubs = new Set(); // tracks which sublabels are active for this mainCat
+        function applySubFilter() {
+          allMarkers.forEach(({label,marker,category})=>{
+            if(category!==mainCat) return;
+            const el=getMarkerEl(marker); if(!el) return;
+            if(activeSubs.size===0){
+              // nothing selected — restore normal visibility
+              el.style.outline=''; el.style.opacity='';
+              applyCompletedStyle(marker,completedMarkers.has(allMarkers.find(m=>m.marker===marker)?.markerId));
+            } else {
+              // show markers matching ANY active sub, dim others
+              const match=Object.entries(subs).some(([sn,lbls])=>activeSubs.has(sn)&&lbls.some(sl=>label.toLowerCase().includes(sl.toLowerCase())));
+              el.style.outline=match?'2px solid #f39c12':'';
+              el.style.opacity=match?'':el.classList.contains('marker-done')?'0.4':'0.15';
+            }
+          });
+        }
         Object.entries(subs).forEach(([subName,subLabels])=>{
           const subRow=mk('div',{class:'sublabel-row'}); subRow.dataset.sublabel=subName;
           subRow.innerHTML=`<span class="sublabel-dot" style="background:${colour}"></span><span class="sublabel-name" style="color:${colour}">${subName}</span>`;
-          let subActive=false;
           subRow.addEventListener('click',()=>{
-            subActive=!subActive; subRow.classList.toggle('active',subActive);
-            // Only affect markers of the same category (mainCat)
-            allMarkers.forEach(({label,marker,category})=>{
-              if(category!==mainCat) return; // leave other categories untouched
-              const el=getMarkerEl(marker); if(!el) return;
-              if(subActive){
-                const match=subLabels.some(sl=>label.toLowerCase().includes(sl.toLowerCase()));
-                el.style.outline=match?'2px solid #f39c12':'';
-                el.style.opacity=match?'':el.classList.contains('marker-done')?'0.4':'0.2';
-              } else {
-                el.style.outline=''; el.style.opacity='';
-                applyCompletedStyle(marker,completedMarkers.has(allMarkers.find(m=>m.marker===marker)?.markerId));
-              }
-            });
+            if(activeSubs.has(subName)) activeSubs.delete(subName);
+            else activeSubs.add(subName);
+            subRow.classList.toggle('active', activeSubs.has(subName));
+            applySubFilter();
           });
           subRows.appendChild(subRow);
         });
@@ -600,20 +620,48 @@ function toggleGroupVisibility(group, layers, eyeBtn) {
   eyeBtn.innerHTML = nowHiding ? SVG.eyeOff : SVG.eye;
   allCats.forEach(cat => {
     if (nowHiding) {
-      hiddenGroups.add(cat); if (layers[cat]) map.removeLayer(layers[cat]);
-      // Uncheck checkboxes
-      document.querySelectorAll(`input[data-layer="${cat}"]`).forEach(cb=>{cb.checked=false;});
+      hiddenGroups.add(cat);
+      if (layers[cat]) map.removeLayer(layers[cat]);
+      document.querySelectorAll(`input[data-layer="${cat}"]`).forEach(cb=>{ cb.checked=false; cb.closest('.compact-cat-row')?.classList.remove('checked'); });
     } else {
       hiddenGroups.delete(cat);
-      // Re-add if checkbox was checked
-      document.querySelectorAll(`input[data-layer="${cat}"]`).forEach(cb=>{
-        if(cb.checked && layers[cat]) map.addLayer(layers[cat]);
-      });
+      // Check all and add all layers
+      document.querySelectorAll(`input[data-layer="${cat}"]`).forEach(cb=>{ cb.checked=true; cb.closest('.compact-cat-row')?.classList.add('checked'); });
+      if (layers[cat]) map.addLayer(layers[cat]);
     }
   });
+  updateLocalStorage();
 }
 
-// ─── Custom panel ─────────────────────────────────────────────────────────────
+// ─── Route share codes ────────────────────────────────────────────────────────
+function encodeRouteCode(route) {
+  // Compact: colour (3 hex digits) + point count + lat/lng pairs rounded to 1dp
+  const c = route.colour||'#e74c3c';
+  const hex6 = c.replace('#','');
+  // Convert to 3-char hex
+  const r3 = Math.round(parseInt(hex6.slice(0,2),16)/17).toString(16);
+  const g3 = Math.round(parseInt(hex6.slice(2,4),16)/17).toString(16);
+  const b3 = Math.round(parseInt(hex6.slice(4,6),16)/17).toString(16);
+  const colCode = r3+g3+b3;
+  const pts = route.points.map(p=>`${Math.round(p[0]*10)},${Math.round(p[1]*10)}`).join(';');
+  const note = (route.note||'').replace(/[^a-zA-Z0-9 ]/g,'').slice(0,30);
+  const raw = `${colCode}|${pts}|${note}`;
+  return btoa(raw).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+}
+function decodeRouteCode(code) {
+  try {
+    const padded = code.replace(/-/g,'+').replace(/_/g,'/');
+    const raw = atob(padded + '=='.slice(0,(4-padded.length%4)%4));
+    const [colCode, ptsStr, note=''] = raw.split('|');
+    // Expand 3-char hex to 6
+    const r=parseInt(colCode[0],16)*17, g=parseInt(colCode[1],16)*17, b=parseInt(colCode[2],16)*17;
+    const colour = '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+    const points = ptsStr.split(';').map(s=>{ const [a,b2]=s.split(','); return [parseFloat(a)/10,parseFloat(b2)/10]; });
+    if (points.length<2) return null;
+    return {colour, points, note};
+  } catch { return null; }
+}
+
 function buildCustomPanel(panel) {
   panel.innerHTML='';
 
@@ -686,6 +734,51 @@ function buildCustomPanel(panel) {
     colRow.appendChild(s);
   });
 
+  // Route share
+  const shareTitle=mk('div',{class:'cust-section-title'}); shareTitle.textContent='Share Routes';
+  const shareWrap=mk('div',{style:'display:flex;flex-direction:column;gap:0.4em;'});
+
+  // Export: pick a route to share
+  const exportLabel=mk('div',{style:'font-size:0.74em;color:#5a4a2a;'}); exportLabel.textContent='Copy code for a route:';
+  const exportSelect=mk('select',{style:'width:100%;padding:0.35em 0.5em;border:1.5px solid #a09880;border-radius:4px;font-family:Noto,sans-serif;font-size:0.82em;background:rgb(232,228,218);color:#1a1a1a;outline:none;'});
+  const exportCodeBox=mk('input'); Object.assign(exportCodeBox,{type:'text',readOnly:true,placeholder:'Select a route above',style:'width:100%;padding:0.32em 0.5em;border:1.5px solid #a09880;border-radius:4px;font-family:Noto,sans-serif;font-size:0.74em;background:rgb(225,220,210);color:#1a1a1a;outline:none;cursor:pointer;'});
+  exportCodeBox.title='Click to copy';
+  exportCodeBox.addEventListener('click',()=>{ if(exportCodeBox.value&&exportCodeBox.value!=='No routes yet'){ navigator.clipboard?.writeText(exportCodeBox.value).then(()=>{exportCodeBox.style.background='rgb(200,230,200)';setTimeout(()=>exportCodeBox.style.background='',1000);}); } });
+
+  function refreshExportSelect() {
+    exportSelect.innerHTML='';
+    if (!customRoutes.length) { const o=mk('option'); o.textContent='No routes'; exportSelect.appendChild(o); exportCodeBox.value='No routes yet'; return; }
+    customRoutes.forEach((rt,i)=>{
+      const o=mk('option'); o.value=i; o.textContent=`Route ${i+1}${rt.note?' — '+rt.note.slice(0,20):''}  (${rt.points.length} pts)`;
+      exportSelect.appendChild(o);
+    });
+    exportSelect.dispatchEvent(new Event('change'));
+  }
+  exportSelect.addEventListener('change',()=>{ const rt=customRoutes[+exportSelect.value]; if(rt) exportCodeBox.value=encodeRouteCode(rt); });
+
+  // Import
+  const importLabel=mk('div',{style:'font-size:0.74em;color:#5a4a2a;margin-top:0.2em;'}); importLabel.textContent='Import a shared code:';
+  const importRow=mk('div',{style:'display:flex;gap:0.3em;'});
+  const importInput=mk('input'); Object.assign(importInput,{type:'text',placeholder:'Paste code here…',style:'flex:1;padding:0.32em 0.5em;border:1.5px solid #a09880;border-radius:4px;font-family:Noto,sans-serif;font-size:0.8em;background:rgb(232,228,218);color:#1a1a1a;outline:none;'});
+  const importBtn=mk('button',{style:'padding:0.32em 0.7em;border-radius:4px;border:none;background:rgb(120,90,55);color:white;font-family:Noto,sans-serif;font-size:0.78em;font-weight:700;cursor:pointer;white-space:nowrap;'}); importBtn.textContent='Import';
+  const importStatus=mk('div',{style:'font-size:0.72em;min-height:1em;color:#5a4a2a;'});
+  importBtn.addEventListener('click',()=>{
+    const rt=decodeRouteCode(importInput.value.trim());
+    if (!rt) { importStatus.textContent='❌ Invalid code'; importStatus.style.color='#c0392b'; return; }
+    customRoutes.push(rt); saveCustom(); renderRoutes(); refreshExportSelect();
+    importInput.value=''; importStatus.textContent='✓ Route imported!'; importStatus.style.color='#27ae60';
+    setTimeout(()=>importStatus.textContent='',3000);
+  });
+  importRow.appendChild(importInput); importRow.appendChild(importBtn);
+
+  shareWrap.appendChild(exportLabel); shareWrap.appendChild(exportSelect);
+  shareWrap.appendChild(exportCodeBox); shareWrap.appendChild(importLabel);
+  shareWrap.appendChild(importRow); shareWrap.appendChild(importStatus);
+
+  // Refresh export list when routes change
+  const origRenderRoutes = window._routeRenderHook;
+  window._routeRenderHook = () => { refreshExportSelect(); };
+
   panel.appendChild(statusEl);
   panel.appendChild(iconTitle); panel.appendChild(iconGrid);
   panel.appendChild(sep());
@@ -693,6 +786,10 @@ function buildCustomPanel(panel) {
   panel.appendChild(modeRow); panel.appendChild(routeVisRow);
   panel.appendChild(sep());
   panel.appendChild(colTitle); panel.appendChild(colRow);
+  panel.appendChild(sep());
+  panel.appendChild(shareTitle); panel.appendChild(shareWrap);
+
+  refreshExportSelect();
 }
 
 // ─── Build category row ───────────────────────────────────────────────────────

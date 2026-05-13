@@ -451,11 +451,13 @@ function getDungeonLabel(rawLabel, coords) {
 function dungeonWikiLink(label) {
   const key = DUNGEON_WIKI[label]; if (!key) return '';
   const w = 'https://farever.wiki/Dungeons_loots:_Armors_%26_Weapons';
-  const armorUrl = `${w}#${encodeURIComponent(key)}`;
+  // MediaWiki anchors keep apostrophes literal — only encode spaces as underscores
+  const wikiAnchor = key.replace(/ /g, '_');
+  const armorUrl = `${w}#${wikiAnchor}`;
   const s = 'display:inline-flex;align-items:center;gap:0.25em;padding:0.3em 0.65em;border-radius:4px;text-decoration:none;font-size:0.8em;font-weight:700;color:white;';
   return '<div style="display:flex;gap:0.4em;justify-content:center;margin-top:0.5em;flex-wrap:wrap;">'
-    + '<a href="'+w+'" target="_blank" rel="noopener" style="'+s+'background:rgb(120,90,55);">Weapons</a>'
-    + '<a href="'+armorUrl+'" target="_blank" rel="noopener" style="'+s+'background:rgb(65,55,110);">Armor</a>'
+    + '<a href="'+w+'" target="_blank" rel="noopener" style="'+s+'background:rgb(120,90,55);">&#9876;&#65039; Weapons</a>'
+    + '<a href="'+armorUrl+'" target="_blank" rel="noopener" style="'+s+'background:rgb(65,55,110);">&#128737;&#65039; Armor</a>'
     + '</div>';
 }
 
@@ -571,6 +573,7 @@ function initMap(data) {
     if (!routeDrawing || !routeDrawActive || e.button !== 0) return;
     map.dragging.enable();
     finishRoute();
+    window._onRouteFinished?.();
     updateCustModeStatus('Route saved! Hold & drag to draw another');
   });
 
@@ -622,7 +625,10 @@ function initMap(data) {
   renderCustomMarkers();
   renderRoutes();
   // Fit full map now that sidebar is rendered, unless a permalink set the view
-  if (!window._permalinkApplied) setTimeout(() => map.fitBounds(bounds, {animate:false}), 80);
+  if (!window._permalinkApplied) {
+    // invalidateSize so Leaflet recalculates container dimensions, then fit
+    setTimeout(() => { map.invalidateSize(); map.fitBounds(bounds, {animate:false}); }, 100);
+  }
 }
 
 let pendingCustPlace = false;
@@ -1000,28 +1006,53 @@ function buildRoutesPanel(panel) {
   const drawTitle = mk('div',{class:'cust-section-title'}); drawTitle.textContent = 'Draw Route';
   const drawInstr = mk('div',{class:'cust-route-instructions'}); drawInstr.textContent = 'Hold and drag on the map to draw. Click a route on the map to edit/delete.';
 
+  // Route name input
+  const nameRow = mk('div',{style:'display:flex;gap:0.35em;align-items:center;margin-bottom:0.2em;'});
+  const nameLabel = mk('span',{style:'font-size:0.78em;font-weight:700;color:#3a2e1e;white-space:nowrap;'}); nameLabel.textContent='Route name:';
+  const nameInput = mk('input'); Object.assign(nameInput, {type:'text', placeholder:'e.g. Ore run, Chest route…', style:'flex:1;padding:0.32em 0.5em;border:1.5px solid #a09880;border-radius:4px;font-family:Noto,sans-serif;font-size:0.8em;background:rgb(232,228,218);color:#1a1a1a;outline:none;'});
+  nameRow.appendChild(nameLabel); nameRow.appendChild(nameInput);
+
   const modeRow = mk('div',{class:'cust-mode-row'});
   const btnRoute = mk('button',{class:'cust-btn cust-btn-route'}); btnRoute.innerHTML = `${SVG.route} Draw Route`;
+  // Mobile only: finish/cancel buttons
   const btnFinish = mk('button',{class:'cust-btn cust-btn-route',style:'display:none'}); btnFinish.textContent = '✓ Finish';
   const btnCancel = mk('button',{class:'cust-btn cust-btn-cancel',style:'display:none'}); btnCancel.textContent = '✕ Cancel';
   modeRow.appendChild(btnRoute); modeRow.appendChild(btnFinish); modeRow.appendChild(btnCancel);
 
+  function saveRouteWithName() {
+    const name = nameInput.value.trim();
+    // Set note on last saved route if name given
+    if (name && customRoutes.length) {
+      customRoutes[customRoutes.length-1].note = name;
+      saveCustom();
+    }
+    nameInput.value = '';
+  }
+
   btnRoute.addEventListener('click', () => {
     routeDrawing = true; pendingCustPlace = false;
-    btnRoute.style.display = 'none'; btnFinish.style.display = ''; btnCancel.style.display = '';
-    if (isMobile()) showMobileRouteBar();
+    if (isMobile()) {
+      btnRoute.style.display = 'none'; btnFinish.style.display = ''; btnCancel.style.display = '';
+      showMobileRouteBar();
+    }
+    // Desktop: draw on mousedown+drag+mouseup — auto-saves, no finish button needed
   });
   btnFinish.addEventListener('click', () => {
     finishRoute(); routeDrawing = false;
     btnRoute.style.display = ''; btnFinish.style.display = 'none'; btnCancel.style.display = 'none';
-    hideMobileRouteBar(true); refreshRouteList();
+    hideMobileRouteBar(true); saveRouteWithName(); refreshRouteList();
   });
   btnCancel.addEventListener('click', () => {
+    // Cancel: discard current draw without saving
     routeDrawing = false; routePoints = []; routeDrawActive = false;
     if (routePreviewLayer) { map.removeLayer(routePreviewLayer); routePreviewLayer = null; }
     btnRoute.style.display = ''; btnFinish.style.display = 'none'; btnCancel.style.display = 'none';
     hideMobileRouteBar(true);
   });
+
+  // Desktop: after mouseup auto-saves, apply name immediately
+  const origFinish = finishRoute;
+  window._onRouteFinished = () => { saveRouteWithName(); refreshRouteList(); };
 
   const visRow = mk('div',{class:'cust-mode-row',style:'margin-top:0.3em;'});
   const btnVis = mk('button',{class:`cust-btn cust-btn-route${routesVisible?' active':''}`});
@@ -1093,6 +1124,7 @@ function buildRoutesPanel(panel) {
   importRow.appendChild(importInput); importRow.appendChild(importBtn);
 
   panel.appendChild(drawTitle); panel.appendChild(drawInstr);
+  panel.appendChild(nameRow);
   panel.appendChild(modeRow); panel.appendChild(visRow);
   panel.appendChild(sep());
   panel.appendChild(colTitle); panel.appendChild(colRow);

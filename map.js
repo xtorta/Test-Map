@@ -6,7 +6,7 @@ const map = L.map('map', {
 const bounds = [[0,0],[5120,3584]];
 const s1=0.89, s2=0.89, b1=-1595, b2=1724, coordToMapScalar=0.89;
 L.imageOverlay('cropped.webp', bounds).addTo(map);
-map.fitBounds(bounds);
+// fitBounds called after sidebar renders (see initMap)
 map.getContainer().addEventListener('contextmenu', e => e.preventDefault());
 map.on('contextmenu', () => {});
 const isMobile = () => window.innerWidth < 768;
@@ -450,9 +450,15 @@ function getDungeonLabel(rawLabel, coords) {
 }
 function dungeonWikiLink(label) {
   const key = DUNGEON_WIKI[label]; if (!key) return '';
-  const url = `https://farever.wiki/Dungeons_loots:_Armors_%26_Weapons#${encodeURIComponent(key)}`;
-  return `<br><a href="${url}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:0.3em;margin-top:0.5em;padding:0.3em 0.75em;background:rgb(120,90,55);color:white;border-radius:4px;text-decoration:none;font-size:0.82em;font-weight:700;">🗡️ View Dungeon Loot</a>`;
+  const w = 'https://farever.wiki/Dungeons_loots:_Armors_%26_Weapons';
+  const armorUrl = `${w}#${encodeURIComponent(key)}`;
+  const s = 'display:inline-flex;align-items:center;gap:0.25em;padding:0.3em 0.65em;border-radius:4px;text-decoration:none;font-size:0.8em;font-weight:700;color:white;';
+  return '<div style="display:flex;gap:0.4em;justify-content:center;margin-top:0.5em;flex-wrap:wrap;">'
+    + '<a href="'+w+'" target="_blank" rel="noopener" style="'+s+'background:rgb(120,90,55);">Weapons</a>'
+    + '<a href="'+armorUrl+'" target="_blank" rel="noopener" style="'+s+'background:rgb(65,55,110);">Armor</a>'
+    + '</div>';
 }
+
 
 async function loadData() {
   try { const r=await fetch('assets.json'); if(!r.ok) throw new Error(r.status); initMap(await r.json()); }
@@ -615,6 +621,8 @@ function initMap(data) {
   loadRegions();
   renderCustomMarkers();
   renderRoutes();
+  // Fit full map now that sidebar is rendered, unless a permalink set the view
+  if (!window._permalinkApplied) setTimeout(() => map.fitBounds(bounds, {animate:false}), 80);
 }
 
 let pendingCustPlace = false;

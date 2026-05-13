@@ -321,13 +321,13 @@ html, body {
   flex-direction: column;
 }
 #sb-search-float-btn {
-  background: rgb(120,90,55); color: white; border: none; border-radius: 50%;
+  background: rgb(210,120,0); color: white; border: none; border-radius: 50%;
   width: 2.8em; height: 2.8em; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 3px 10px rgba(0,0,0,0.35); transition: background 0.15s; flex-shrink: 0;
 }
-#sb-search-float-btn:hover { background: rgb(95,70,35); }
-#sb-search-float-btn.active { background: rgb(65,48,22); }
+#sb-search-float-btn:hover { background: rgb(180,100,0); }
+#sb-search-float-btn.active { background: rgb(150,80,0); }
 #sb-float-results {
   position: absolute; top: calc(100% + 4px); right: 0; left: auto; width: 260px;
   border-radius: 6px; border: 1.5px solid #a09880; background: rgb(232,228,218);

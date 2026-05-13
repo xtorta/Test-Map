@@ -64,15 +64,15 @@ const FILTER_GROUPS = [
   { key:'enemies',     title:'Enemies',           icon:'⚔️', cats:['Mobs','Minibosses','Sparkling mobs'] },
 ];
 const ORE_SUBS   = {
-  'Copper':    { labels:['Copper Ore Large','Copper Ore Small'], icon:'./icons/gatherables/copper.png' },
-  'Tin':       { labels:['Tin Ore Large','Tin Ore Small'],       icon:'./icons/gatherables/tin.png' },
-  'Tungstene': { labels:['Tungstene'],                           icon:'./icons/gatherables/tungstene.png' },
+  'Copper':    { labels:['Copper Ore Large','Copper Ore Small'], icon:'./icons/copper.png' },
+  'Tin':       { labels:['Tin Ore Large','Tin Ore Small'],       icon:'./icons/tin.png' },
+  'Tungstene': { labels:['Tungstene'],                           icon:'./icons/tungstene.png' },
 };
 const PLANT_SUBS = {
-  'Madrigold':   { labels:['Madrigold Large','Madrigold Small'],                icon:'./icons/gatherables/madrigold.png' },
-  'Lavendula':   { labels:['Lavendula Large','Lavendula Small'],                icon:'./icons/gatherables/lavendula.png' },
-  'Ancient Thyme':{ labels:['Ancient Thyme Large','Ancient Thyme Small'],       icon:'./icons/gatherables/ancientthyme.png' },
-  'Zealotus':    { labels:['Zealotus','Zealotus Large','Zealotus Small'],       icon:'./icons/gatherables/zealous.png' },
+  'Madrigold':    { labels:['Madrigold Large','Madrigold Small'],          icon:'./icons/madrigold.png' },
+  'Lavendula':    { labels:['Lavendula Large','Lavendula Small'],          icon:'./icons/lavendula.png' },
+  'Ancient Thyme':{ labels:['Ancient Thyme Large','Ancient Thyme Small'],  icon:'./icons/ancientthyme.png' },
+  'Zealotus':     { labels:['Zealotus','Zealotus Large','Zealotus Small'], icon:'./icons/zealous.png' },
 };
 const GATHERABLE_SUBS = { Ores: ORE_SUBS, Plants: PLANT_SUBS };
 
@@ -232,17 +232,20 @@ function buildCustPopup(cm, i) {
 
 function openCustPopup(marker) {
   if (isMobile()) {
-    // Temporarily hide sidebar so popup is visible
-    const sb=document.getElementById('sidebar');
-    const tog=document.getElementById('sb-toggle');
-    if(sb&&tog&&!sb.style.transform) {
-      const w=sb.classList.contains('compact')?52:290;
-      sb.style.transform=`translateX(${w}px)`;
-      tog.style.right='0'; tog.innerHTML='◀';
-      // Restore sidebar when popup closes
-      map.once('popupclose', ()=>{
-        sb.style.transform=''; tog.style.right=w+'px'; tog.innerHTML='▶';
-      });
+    const sb  = document.getElementById('sidebar');
+    const tog = document.getElementById('sb-toggle');
+    if (sb && tog) {
+      const w = sb.classList.contains('compact') ? 52 : 290;
+      // Always hide sidebar when popup opens on mobile
+      sb.style.transform = `translateX(${w}px)`;
+      tog.style.right = '0'; tog.innerHTML = '◀';
+      // Restore on any popup close
+      const restore = () => {
+        sb.style.transform = '';
+        tog.style.right = w + 'px';
+        tog.innerHTML = '▶';
+      };
+      map.once('popupclose', restore);
     }
   }
   marker.openPopup();
@@ -260,26 +263,32 @@ function renderRoutes() {
     const line = L.polyline(smooth, { color:colour, weight:3.5, opacity:0.88, smoothFactor:1 });
     line.addTo(custRouteLayer);
 
-    // Place directional arrows every ~20% of smooth path
+    // Place directional arrows along path
     const total = smooth.length;
-    const interval = Math.max(8, Math.floor(total * 0.2));
+    const interval = Math.max(8, Math.floor(total * 0.18));
     for (let i = Math.floor(interval/2); i < total - 2; i += interval) {
       const a = smooth[i];
-      const b = smooth[Math.min(i+4, total-1)];
-      // atan2(dy_lng, dy_lat) gives bearing in map coords
-      const dLat = b[0]-a[0], dLng = b[1]-a[1];
-      // CSS rotation: 0deg = up, positive = clockwise
-      // atan2(dLng, dLat) gives angle from north
-      const angle = Math.atan2(dLng, dLat) * 180 / Math.PI;
-      const arrowSvg = `<svg width="14" height="18" viewBox="0 0 14 18" fill="none" stroke="${colour}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="7" y1="17" x2="7" y2="1"/>
-        <polyline points="2,7 7,1 12,7"/>
-      </svg>`;
+      const b = smooth[Math.min(i + 5, total - 1)];
+      // In CRS.Simple: lat=Y(up), lng=X(right)
+      // Direction vector: dX = b.lng-a.lng, dY = b.lat-a.lat (but screen Y is inverted)
+      // CSS rotate(0deg) = pointing up (north). We want arrow pointing toward b.
+      // angle = atan2(dX, dY) gives clockwise rotation from north
+      const dX = b[1] - a[1]; // lng diff = horizontal
+      const dY = b[0] - a[0]; // lat diff = vertical (in map coords, positive = up)
+      const angle = Math.atan2(dX, dY) * 180 / Math.PI;
       const arrowIcon = L.divIcon({
-        html:`<div style="transform:rotate(${angle}deg);transform-origin:center;opacity:0.9;filter:drop-shadow(0 0 2px rgba(0,0,0,0.6));">${arrowSvg}</div>`,
-        className:'', iconAnchor:[7,9], iconSize:[14,18]
+        html: `<div style="transform:rotate(${angle}deg);transform-origin:50% 50%;filter:drop-shadow(0 0 2px rgba(0,0,0,0.8));">
+          <svg width="16" height="20" viewBox="0 0 16 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="8" y1="19" x2="8" y2="1" stroke="${colour}" stroke-width="2.5" stroke-linecap="round"/>
+            <polyline points="2,9 8,1 14,9" stroke="${colour}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <polyline points="4,14 8,7 12,14" stroke="${colour}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.65"/>
+          </svg>
+        </div>`,
+        className: '',
+        iconAnchor: [8, 10],
+        iconSize: [16, 20]
       });
-      L.marker([a[0],a[1]], {icon:arrowIcon, interactive:false}).addTo(custRouteLayer);
+      L.marker([a[0], a[1]], { icon: arrowIcon, interactive: false }).addTo(custRouteLayer);
     }
 
     // Clickable hit line for popup
@@ -434,35 +443,19 @@ function initMap(data) {
     updateCustModeStatus('Route saved! Draw another or tap Finish');
   }, {passive:false});
 
-  // Map click — marker placement only (not during route drawing)
   map.on('click', e => {
-    if (routeDrawing) return; // handled by mousedown/up
+    if (routeDrawing) return;
     if (pendingCustPlace) {
       const cm = {lat:e.latlng.lat, lng:e.latlng.lng, icon:selectedCustIcon, colour:selectedCustColour, note:''};
       customMarkers.push(cm);
       saveCustom();
       renderCustomMarkers();
-      // Deselect icon
       document.querySelectorAll('.cust-icon-btn.selected').forEach(b=>b.classList.remove('selected'));
       pendingCustPlace = false;
       updateCustModeStatus('Click an icon to select it');
-      // On mobile: reopen sidebar and open note popup
-      if (isMobile()) {
-        const sb = document.getElementById('sidebar');
-        const tog = document.getElementById('sb-toggle');
-        if (sb && tog) {
-          // Restore sidebar
-          setTimeout(() => {
-            if (window._sidebarStateAfterPlace) {
-              window._sidebarStateAfterPlace();
-              window._sidebarStateAfterPlace = null;
-            }
-          }, 100);
-        }
-      }
-      // Open popup for note
+      // openCustPopup handles mobile sidebar hide/restore automatically
       const placed = custMarkerLayer.getLayers().slice(-1)[0];
-      if (placed) setTimeout(() => openCustPopup(placed), isMobile() ? 400 : 100);
+      if (placed) setTimeout(() => openCustPopup(placed), 50);
     }
   });
 
@@ -855,19 +848,6 @@ function buildCustomPanel(panel) {
       selectedCustIcon=ic; localStorage.setItem('custIcon',ic);
       selIconBtn?.classList.remove('selected'); b.classList.add('selected'); selIconBtn=b;
       pendingCustPlace=true; updateCustModeStatus(`Click map to place ${ic} — click icon again to cancel`);
-      // Mobile: hide sidebar to free up map for placement
-      if (isMobile()) {
-        const sb=document.getElementById('sidebar');
-        const tog=document.getElementById('sb-toggle');
-        if (sb && tog) {
-          const w=sb.classList.contains('compact')?52:290;
-          window._sidebarStateAfterPlace = () => {
-            sb.style.transform=''; tog.style.right=w+'px'; tog.innerHTML='▶';
-          };
-          sb.style.transform=`translateX(${w}px)`;
-          tog.style.right='0'; tog.innerHTML='◀';
-        }
-      }
     });
     iconGrid.appendChild(b);
   });

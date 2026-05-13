@@ -315,7 +315,10 @@ html, body {
 }
 #sb-toggle:hover { background: rgb(180,100,0); }
 #sb-search-float {
-  position: fixed; bottom: 1.2em; left: 1.2em; z-index: 1100; display: none; align-items: center;
+  position: fixed; bottom: 1.2em; left: 1.2em; z-index: 1100;
+  display: none; /* shown by JS only when sidebar is closed */
+  align-items: center;
+  flex-direction: column;
 }
 #sb-search-float-btn {
   background: rgb(120,90,55); color: white; border: none; border-radius: 50%;
@@ -325,7 +328,6 @@ html, body {
 }
 #sb-search-float-btn:hover { background: rgb(95,70,35); }
 #sb-search-float-btn.active { background: rgb(65,48,22); }
-#sb-search-float { position: relative; }
 #sb-float-results {
   position: absolute; top: calc(100% + 4px); right: 0; left: auto; width: 260px;
   border-radius: 6px; border: 1.5px solid #a09880; background: rgb(232,228,218);

@@ -113,8 +113,13 @@ function getLabelCSS(tier, zoom) {
     return `font-family:Arial,sans-serif;font-size:${fs}px;font-weight:500;color:rgba(255,255,255,0.88);letter-spacing:0.03em;text-shadow:0 0 ${sh(4)}px rgba(0,0,0,0.95),${sh(1)}px ${sh(1)}px 0 rgba(0,0,0,0.8);pointer-events:none;white-space:nowrap;`;
   }
 }
-function makeRegionIcon(name, tier) {
-  return L.divIcon({ html:`<div style="${getLabelCSS(tier,map.getZoom())}">${name}</div>`, className:'', iconAnchor:[0,0], iconSize:null });
+function makeRegionIcon(name, tier, interactive) {
+  const cursor = interactive ? 'cursor:pointer;' : 'pointer-events:none;';
+  const base = getLabelCSS(tier, map.getZoom()).replace('pointer-events:none;','').replace('cursor:default;','');
+  return L.divIcon({
+    html: `<div style="${base}${cursor}">${name}</div>`,
+    className: '', iconAnchor:[0,0], iconSize:null
+  });
 }
 function isRegionVisible(tier) { return tier==='region'?showRegions:tier==='subregion'?showSubregions:showZones; }
 function refreshRegionVisibility() {
@@ -123,13 +128,71 @@ function refreshRegionVisibility() {
     else regionLayer.removeLayer(marker);
   });
 }
-map.on('zoomend', () => regionLabels.forEach(({marker,name,tier}) => { if (regionLayer.hasLayer(marker)) marker.setIcon(makeRegionIcon(name,tier)); }));
+map.on('zoomend', () => regionLabels.forEach(({marker,name,tier}) => {
+  if (regionLayer.hasLayer(marker)) {
+    const interactive = (tier === 'region' || tier === 'subregion' || tier === 'zone');
+    marker.setIcon(makeRegionIcon(name, tier, interactive));
+  }
+}));
 async function loadRegions() {
   try {
     const r = await fetch('regions.json'); if (!r.ok) return;
     const data = await r.json();
+
+    // Group zones by their nearest region for bounding box calculation
+    const regionEntries = data.filter(d => d.tier === 'region');
+    const zoneEntries   = data.filter(d => d.tier === 'zone');
+
+    // Assign each zone to nearest region
+    function nearestRegion(lat, lng) {
+      let best = null, bestDist = Infinity;
+      regionEntries.forEach(re => {
+        const d = Math.hypot(re.lat - lat, re.lng - lng);
+        if (d < bestDist) { bestDist = d; best = re.name; }
+      });
+      return best;
+    }
+    const regionZones = {}; // regionName → [{lat,lng}]
+    zoneEntries.forEach(z => {
+      const rn = nearestRegion(z.lat, z.lng);
+      if (rn) { if (!regionZones[rn]) regionZones[rn] = []; regionZones[rn].push(z); }
+    });
+
     data.forEach(({name,tier,lat,lng}) => {
-      const m = L.marker([lat,lng], { icon:makeRegionIcon(name,tier), interactive:false, keyboard:false, zIndexOffset:tier==='region'?1000:tier==='subregion'?700:500 });
+      const interactive = (tier === 'region' || tier === 'subregion' || tier === 'zone');
+      const icon = makeRegionIcon(name, tier, interactive);
+      const m = L.marker([lat,lng], {
+        icon,
+        interactive,
+        keyboard: false,
+        zIndexOffset: tier==='region'?1000:tier==='subregion'?700:500
+      });
+
+      if (interactive) {
+        m.on('click', () => {
+          if (tier === 'region') {
+            // Fit bounding box of all its zones
+            const zones = regionZones[name] || [];
+            if (zones.length > 1) {
+              const lats = [lat, ...zones.map(z=>z.lat)];
+              const lngs = [lng, ...zones.map(z=>z.lng)];
+              const pad  = 80;
+              map.flyToBounds([[Math.min(...lats)-pad, Math.min(...lngs)-pad],[Math.max(...lats)+pad, Math.max(...lngs)+pad]], {animate:true, duration:0.8, padding:[40,40]});
+            } else {
+              map.flyTo([lat, lng], -2, {animate:true, duration:0.8});
+            }
+          } else if (tier === 'subregion') {
+            map.flyTo([lat, lng], -1, {animate:true, duration:0.6});
+          } else {
+            map.flyTo([lat, lng], 0, {animate:true, duration:0.5});
+          }
+        });
+        m.getElement && m.on('add', () => {
+          const el = m.getElement();
+          if (el) el.style.cursor = 'pointer';
+        });
+      }
+
       regionLabels.push({name,tier,lat,lng,marker:m});
       if (isRegionVisible(tier)) m.addTo(regionLayer);
     });
@@ -324,7 +387,36 @@ function finishRoute() {
   if (routePreviewLayer) { map.removeLayer(routePreviewLayer); routePreviewLayer=null; }
 }
 
-// ─── Load & init ──────────────────────────────────────────────────────────────
+// ─── Permalink: read URL hash on load ────────────────────────────────────────
+(function readPermalink() {
+  const hash = window.location.hash.replace('#','');
+  const m = hash.match(/^@(-?\d+\.?\d*),(-?\d+\.?\d*),([-\d.]+)$/);
+  if (m) {
+    const lat = parseFloat(m[1]), lng = parseFloat(m[2]), zoom = parseFloat(m[3]);
+    map.setView([lat, lng], zoom);
+    window._permalinkApplied = true;
+  }
+})();
+
+function copyPermalink() {
+  const c = map.getCenter();
+  const z = map.getZoom();
+  const hash = `#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)}`;
+  const url  = window.location.origin + window.location.pathname + hash;
+  window.history.replaceState(null, '', hash);
+  navigator.clipboard?.writeText(url).then(() => {
+    showToast('📋 Link copied!');
+  }).catch(() => {
+    prompt('Copy this link:', url);
+  });
+}
+function showToast(msg) {
+  let t = document.getElementById('map-toast');
+  if (!t) { t = document.createElement('div'); t.id='map-toast'; t.style.cssText='position:fixed;bottom:5em;left:50%;transform:translateX(-50%);background:rgba(30,20,10,0.88);color:white;padding:0.5em 1.2em;border-radius:20px;font-size:0.88em;font-weight:700;z-index:2000;pointer-events:none;transition:opacity 0.4s;'; document.body.appendChild(t); }
+  t.textContent = msg; t.style.opacity='1';
+  clearTimeout(t._to);
+  t._to = setTimeout(() => t.style.opacity='0', 2000);
+}
 async function loadData() {
   try { const r=await fetch('assets.json'); if(!r.ok) throw new Error(r.status); initMap(await r.json()); }
   catch(e) { console.error('Failed:', e); }
@@ -551,7 +643,9 @@ function buildSidebar(layers) {
   const searchToolBtn=mkToolBtn('sb-search-tool',SVG.search,'Search'); searchToolBtn.classList.add('compact-only');
   const hideBtn=mkToolBtn('sb-hide-btn',SVG.eye,'Hide Completed');
   const resetBtn=mkToolBtn('sb-reset-btn',SVG.reset,'Reset Completed');
-  iconTools.appendChild(searchToolBtn); iconTools.appendChild(hideBtn); iconTools.appendChild(resetBtn);
+  const shareBtn=mkToolBtn('sb-share-btn',`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="12" cy="13" r="2"/><line x1="6" y1="9" x2="10" y2="12"/><line x1="10" y1="4" x2="6" y2="7"/></svg>`,'Copy Map Link');
+  shareBtn.addEventListener('click', copyPermalink);
+  iconTools.appendChild(searchToolBtn); iconTools.appendChild(hideBtn); iconTools.appendChild(resetBtn); iconTools.appendChild(shareBtn);
   sidebar.appendChild(iconTools);
   sidebar.appendChild(sep());
 

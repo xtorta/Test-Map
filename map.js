@@ -64,15 +64,15 @@ const FILTER_GROUPS = [
   { key:'enemies',     title:'Enemies',           icon:'⚔️', cats:['Mobs','Minibosses','Sparkling mobs'] },
 ];
 const ORE_SUBS   = {
-  'Copper':    { labels:['Copper Ore Large','Copper Ore Small'], icon:'./icons/copper.png' },
-  'Tin':       { labels:['Tin Ore Large','Tin Ore Small'],       icon:'./icons/tin.png' },
-  'Tungstene': { labels:['Tungstene'],                           icon:'./icons/tungstene.png' },
+  'Copper':    { labels:['Copper Ore Large','Copper Ore Small'], icon:'./icons/gatherables/copper.png' },
+  'Tin':       { labels:['Tin Ore Large','Tin Ore Small'],       icon:'./icons/gatherables/tin.png' },
+  'Tungstene': { labels:['Tungstene'],                           icon:'./icons/gatherables/tungstene.png' },
 };
 const PLANT_SUBS = {
-  'Madrigold':    { labels:['Madrigold Large','Madrigold Small'],          icon:'./icons/madrigold.png' },
-  'Lavendula':    { labels:['Lavendula Large','Lavendula Small'],          icon:'./icons/lavendula.png' },
-  'Ancient Thyme':{ labels:['Ancient Thyme Large','Ancient Thyme Small'],  icon:'./icons/ancientthyme.png' },
-  'Zealotus':     { labels:['Zealotus','Zealotus Large','Zealotus Small'], icon:'./icons/zealous.png' },
+  'Madrigold':    { labels:['Madrigold Large','Madrigold Small'],          icon:'./icons/gatherables/madrigold.png' },
+  'Lavendula':    { labels:['Lavendula Large','Lavendula Small'],          icon:'./icons/gatherables/lavendula.png' },
+  'Ancient Thyme':{ labels:['Ancient Thyme Large','Ancient Thyme Small'],  icon:'./icons/gatherables/ancientthyme.png' },
+  'Zealotus':     { labels:['Zealotus','Zealotus Large','Zealotus Small'], icon:'./icons/gatherables/zealous.png' },
 };
 const GATHERABLE_SUBS = { Ores: ORE_SUBS, Plants: PLANT_SUBS };
 
@@ -618,10 +618,33 @@ function buildSidebar(layers) {
           localStorage.setItem('checkedBoxes',JSON.stringify(saved));
         });
         const shdrTitle=mk('span',{class:'fsh-title',style:`color:${colour};flex:1;`}); shdrTitle.textContent=mainCat;
+        shdrTitle.style.cursor = 'pointer';
+        shdrTitle.title = `Select/deselect all ${mainCat}`;
+        shdrTitle.addEventListener('click', e => {
+          e.stopPropagation();
+          // If any are active, deselect all; otherwise select all
+          const allKeys = Object.keys(subs);
+          const anyActive = allKeys.some(k => activeSubs.has(k));
+          if (anyActive) {
+            // Deselect all
+            allKeys.forEach(k => activeSubs.delete(k));
+          } else {
+            // Select all
+            allKeys.forEach(k => activeSubs.add(k));
+          }
+          // Update each row's visual state
+          subDiv.querySelectorAll('.sublabel-row').forEach((row, i) => {
+            const subName = allKeys[i];
+            const active = activeSubs.has(subName);
+            row.classList.toggle('active', active);
+            row.querySelector('.sb-check-img').style.backgroundImage = active ? 'url("check1.png")' : 'url("check0.png")';
+          });
+          applySubFilter();
+        });
         const shdrChev=mk('span',{class:'fsh-chevron'}); shdrChev.textContent='▼';
         shdr.appendChild(chkImg); shdr.appendChild(shdrTitle); shdr.appendChild(shdrChev);
         shdr.addEventListener('click',e=>{
-          if(e.target===chkImg) return;
+          if(e.target===chkImg||e.target===shdrTitle) return;
           subDiv.classList.toggle('collapsed');
           localStorage.setItem(`fsg_${mainCat}`,subDiv.classList.contains('collapsed')?'1':'0');
         });
@@ -777,7 +800,11 @@ function buildSidebar(layers) {
 
   // ── Layout & state ───────────────────────────────────────────────
   let sidebarOpen=savedView!=='closed';
-  function curW(){return isCompact()?(isMobile()?52:52):(isMobile()?290:320);}
+  function curW(){
+    // +2 for the sidebar's border-left so toggle sits flush
+    const base = isCompact() ? 52 : (isMobile() ? 290 : 320);
+    return base + 2;
+  }
   function saveView(){localStorage.setItem('sbView',!sidebarOpen?'closed':isCompact()?'compact':'full');}
   function applyLayout(animate){
     if(!animate){sidebar.style.transition='none';toggle.style.transition='none';}

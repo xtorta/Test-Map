@@ -305,6 +305,7 @@ html, body {
 /* Toggle arrow */
 #sb-toggle {
   position: fixed; top: 50%; transform: translateY(-50%); z-index: 1001;
+  right: var(--sb-full); /* initial position — overridden by JS */
   background: rgb(210,120,0); color: white; border: none;
   border-radius: 6px 0 0 6px; padding: 0.9em 0.42em;
   cursor: pointer; font-size: 0.85em; line-height: 1;

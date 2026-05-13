@@ -144,10 +144,46 @@ let customMarkers = JSON.parse(localStorage.getItem('customMarkers')||'[]');
 let customRoutes  = JSON.parse(localStorage.getItem('customRoutes') ||'[]');
 let selectedCustIcon   = localStorage.getItem('custIcon')  || '⚔️';
 let selectedCustColour = localStorage.getItem('custColour')|| '#e74c3c';
+// ─── Route drawing state ──────────────────────────────────────────────────────
 let routeDrawing = false;
+let routeDrawActive = false; // mouse is held down drawing
 let routePoints  = [];
 let routePreviewLayer = null;
 let routesVisible = localStorage.getItem('routesVisible') !== '0';
+
+// Convert raw drawn points to smoothed Catmull-Rom curve
+function smoothPoints(pts, tension=0.4, steps=8) {
+  if (pts.length < 2) return pts;
+  if (pts.length === 2) return pts;
+  const out = [pts[0]];
+  for (let i=0; i<pts.length-1; i++) {
+    const p0 = pts[Math.max(0,i-1)];
+    const p1 = pts[i];
+    const p2 = pts[i+1];
+    const p3 = pts[Math.min(pts.length-1,i+2)];
+    for (let t=1; t<=steps; t++) {
+      const s = t/steps;
+      const s2=s*s, s3=s2*s;
+      const lat = 0.5*((2*p1[0])+(-p0[0]+p2[0])*s+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*s2+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*s3);
+      const lng = 0.5*((2*p1[1])+(-p0[1]+p2[1])*s+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*s2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*s3);
+      out.push([lat,lng]);
+    }
+  }
+  return out;
+}
+
+// Subsample raw points to avoid too many stored points
+function subsample(pts, minDist=15) {
+  if (!pts.length) return pts;
+  const out = [pts[0]];
+  for (let i=1;i<pts.length;i++) {
+    const last=out[out.length-1];
+    const dx=pts[i][1]-last[1], dy=pts[i][0]-last[0];
+    if (Math.sqrt(dx*dx+dy*dy)>=minDist) out.push(pts[i]);
+  }
+  if (out[out.length-1]!==pts[pts.length-1]) out.push(pts[pts.length-1]);
+  return out;
+}
 
 const custMarkerLayer = L.layerGroup().addTo(map);
 const custRouteLayer  = L.layerGroup().addTo(map);
@@ -187,19 +223,29 @@ function renderRoutes() {
   if (!routesVisible) { window._routeRenderHook?.(); return; }
   customRoutes.forEach((route, ri) => {
     if (route.points.length < 2) return;
-    const latlngs = route.points.map(p => [p[0],p[1]]);
-    const line = L.polyline(latlngs, { color:route.colour||'#e74c3c', weight:3.5, opacity:0.88, smoothFactor:2 });
+    const raw = route.points.map(p=>[p[0],p[1]]);
+    const smooth = smoothPoints(raw);
+    const colour = route.colour||'#e74c3c';
+
+    // Draw smooth line
+    const line = L.polyline(smooth, { color:colour, weight:3.5, opacity:0.88, smoothFactor:1 });
     line.addTo(custRouteLayer);
-    // Arrows along each segment
-    for (let i=0;i<latlngs.length-1;i++) {
-      const a=latlngs[i],b=latlngs[i+1];
-      const midLat=(a[0]+b[0])/2,midLng=(a[1]+b[1])/2;
-      const angle=Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI;
-      const arrowIcon=L.divIcon({html:`<div style="transform:rotate(${angle}deg);font-size:0.85em;color:${route.colour||'#e74c3c'};line-height:1;pointer-events:none;text-shadow:0 0 3px rgba(0,0,0,0.6);">➤</div>`,className:'',iconAnchor:[7,7]});
-      L.marker([midLat,midLng],{icon:arrowIcon,interactive:false}).addTo(custRouteLayer);
+
+    // Place directional arrows every ~15% of total length
+    const total = smooth.length;
+    const interval = Math.max(5, Math.floor(total * 0.15));
+    for (let i=interval; i<total-1; i+=interval) {
+      const a=smooth[i], b=smooth[Math.min(i+3,total-1)];
+      const angle = Math.atan2(b[1]-a[1], b[0]-a[0]) * 180/Math.PI;
+      const arrowIcon = L.divIcon({
+        html:`<div style="transform:rotate(${angle}deg);color:${colour};font-size:0.9em;line-height:1;pointer-events:none;text-shadow:0 0 3px rgba(0,0,0,0.7);">➤</div>`,
+        className:'', iconAnchor:[8,8]
+      });
+      L.marker([a[0],a[1]], {icon:arrowIcon, interactive:false}).addTo(custRouteLayer);
     }
-    // Clickable hit area — opens popup with note/delete
-    const hitLine=L.polyline(latlngs,{color:'transparent',weight:14,opacity:0});
+
+    // Clickable hit line for popup
+    const hitLine = L.polyline(smooth, {color:'transparent', weight:14, opacity:0});
     hitLine.bindPopup(buildRoutePopup(route, ri), {maxWidth:200});
     hitLine.addTo(custRouteLayer);
   });
@@ -215,16 +261,17 @@ function buildRoutePopup(route, ri) {
   div.appendChild(label); div.appendChild(noteEl); div.appendChild(delBtn);
   return div;
 }
-function startRoutePoint(lat, lng) {
-  routePoints.push([lat, lng]);
+function updateRoutePreview() {
   if (routePreviewLayer) map.removeLayer(routePreviewLayer);
   if (routePoints.length >= 2) {
-    routePreviewLayer = L.polyline(routePoints, {color:selectedCustColour,weight:3,dashArray:'6 4',opacity:0.75,smoothFactor:2}).addTo(map);
+    const smooth = smoothPoints(routePoints);
+    routePreviewLayer = L.polyline(smooth, {color:selectedCustColour, weight:3, dashArray:'5 4', opacity:0.8, smoothFactor:1}).addTo(map);
   }
 }
 function finishRoute() {
-  if (routePoints.length >= 2) { customRoutes.push({points:[...routePoints],colour:selectedCustColour}); saveCustom(); renderRoutes(); }
-  routePoints = [];
+  const sub = subsample(routePoints, 12);
+  if (sub.length >= 2) { customRoutes.push({points:sub, colour:selectedCustColour, note:''}); saveCustom(); renderRoutes(); }
+  routePoints = []; routeDrawActive = false;
   if (routePreviewLayer) { map.removeLayer(routePreviewLayer); routePreviewLayer=null; }
 }
 
@@ -278,21 +325,85 @@ function initMap(data) {
     m.addTo(layers[cat]);
   });
 
-  // Map click handler
+  // Map mouse/touch events for route drawing and marker placement
+  const mapEl = map.getContainer();
+
+  // Desktop: mousedown starts drawing, mousemove adds points, mouseup finishes
+  mapEl.addEventListener('mousedown', e => {
+    if (!routeDrawing || e.button !== 0) return;
+    map.dragging.disable();
+    routeDrawActive = true;
+    routePoints = [];
+    const latlng = map.mouseEventToLatLng(e);
+    routePoints.push([latlng.lat, latlng.lng]);
+  });
+  mapEl.addEventListener('mousemove', e => {
+    if (!routeDrawing || !routeDrawActive) return;
+    const latlng = map.mouseEventToLatLng(e);
+    routePoints.push([latlng.lat, latlng.lng]);
+    updateRoutePreview();
+  });
+  mapEl.addEventListener('mouseup', e => {
+    if (!routeDrawing || !routeDrawActive || e.button !== 0) return;
+    map.dragging.enable();
+    finishRoute();
+    updateCustModeStatus('Route saved! Hold & drag to draw another');
+  });
+
+  // Mobile touch drawing
+  mapEl.addEventListener('touchstart', e => {
+    if (!routeDrawing) return;
+    e.preventDefault();
+    routeDrawActive = true; routePoints = [];
+    const t = e.touches[0];
+    const latlng = map.containerPointToLatLng(L.point(t.clientX - mapEl.getBoundingClientRect().left, t.clientY - mapEl.getBoundingClientRect().top));
+    routePoints.push([latlng.lat, latlng.lng]);
+  }, {passive:false});
+  mapEl.addEventListener('touchmove', e => {
+    if (!routeDrawing || !routeDrawActive) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const rect = mapEl.getBoundingClientRect();
+    const latlng = map.containerPointToLatLng(L.point(t.clientX-rect.left, t.clientY-rect.top));
+    routePoints.push([latlng.lat, latlng.lng]);
+    updateRoutePreview();
+  }, {passive:false});
+  mapEl.addEventListener('touchend', e => {
+    if (!routeDrawing || !routeDrawActive) return;
+    e.preventDefault();
+    finishRoute();
+    updateCustModeStatus('Route saved! Draw another or tap Finish');
+  }, {passive:false});
+
+  // Map click — marker placement only (not during route drawing)
   map.on('click', e => {
-    if (routeDrawing) { startRoutePoint(e.latlng.lat, e.latlng.lng); return; }
-    // Place custom marker if icon selected
+    if (routeDrawing) return; // handled by mousedown/up
     if (pendingCustPlace) {
       const cm = {lat:e.latlng.lat, lng:e.latlng.lng, icon:selectedCustIcon, colour:selectedCustColour, note:''};
       customMarkers.push(cm);
       saveCustom();
       renderCustomMarkers();
-      const placed = custMarkerLayer.getLayers().slice(-1)[0];
-      if (placed) setTimeout(()=>placed.openPopup(),100);
-      pendingCustPlace = false;
-      // Deselect icon in UI
+      // Deselect icon
       document.querySelectorAll('.cust-icon-btn.selected').forEach(b=>b.classList.remove('selected'));
+      pendingCustPlace = false;
       updateCustModeStatus('Click an icon to select it');
+      // On mobile: reopen sidebar and open note popup
+      if (isMobile()) {
+        const sb = document.getElementById('sidebar');
+        const tog = document.getElementById('sb-toggle');
+        if (sb && tog) {
+          // Restore sidebar
+          setTimeout(() => {
+            if (window._sidebarStateAfterPlace) {
+              window._sidebarStateAfterPlace();
+              window._sidebarStateAfterPlace = null;
+            }
+          }, 100);
+        }
+      }
+      // Open popup for note
+      const placed = custMarkerLayer.getLayers().slice(-1)[0];
+      if (placed) setTimeout(() => placed.openPopup(), isMobile() ? 400 : 100);
     }
   });
 
@@ -376,8 +487,9 @@ function buildSidebar(layers) {
 
   // ── Zone toggles ─────────────────────────────────────────────────
   const zoneTogs=mk('div',{id:'sb-zone-toggles'});
-  [{key:'region',svg:SVG.region,label:'Regions',id:'ztog-region'},{key:'subregion',svg:SVG.sub,label:'Sub',id:'ztog-subregion'},{key:'zone',svg:SVG.zone,label:'Zones',id:'ztog-zone'}].forEach(({key,svg,label,id})=>{
+  [{key:'region',svg:SVG.region,label:'Regions',id:'ztog-region',tip:'Toggle Regions'},{key:'subregion',svg:SVG.sub,label:'Sub',id:'ztog-subregion',tip:'Toggle Sub-regions'},{key:'zone',svg:SVG.zone,label:'Zones',id:'ztog-zone',tip:'Toggle Zones'}].forEach(({key,svg,label,id,tip})=>{
     const btn=mk('button',{class:'zone-tog-btn'+(isRegionVisible(key)?' active':''),id});
+    btn.setAttribute('data-tip',tip);
     btn.innerHTML=`${svg}<span class="ztog-label">${label}</span>`;
     btn.addEventListener('click',()=>{
       if(key==='region'){showRegions=!showRegions;localStorage.setItem('showRegions',showRegions?'1':'0');}
@@ -682,6 +794,19 @@ function buildCustomPanel(panel) {
       selectedCustIcon=ic; localStorage.setItem('custIcon',ic);
       selIconBtn?.classList.remove('selected'); b.classList.add('selected'); selIconBtn=b;
       pendingCustPlace=true; updateCustModeStatus(`Click map to place ${ic} — click icon again to cancel`);
+      // Mobile: hide sidebar to free up map for placement
+      if (isMobile()) {
+        const sb=document.getElementById('sidebar');
+        const tog=document.getElementById('sb-toggle');
+        if (sb && tog) {
+          const w=sb.classList.contains('compact')?52:290;
+          window._sidebarStateAfterPlace = () => {
+            sb.style.transform=''; tog.style.right=w+'px'; tog.innerHTML='▶';
+          };
+          sb.style.transform=`translateX(${w}px)`;
+          tog.style.right='0'; tog.innerHTML='◀';
+        }
+      }
     });
     iconGrid.appendChild(b);
   });
@@ -709,18 +834,21 @@ function buildCustomPanel(panel) {
   btnRoute.addEventListener('click',()=>{
     routeDrawing=true; pendingCustPlace=false;
     btnRoute.style.display='none'; btnFinish.style.display=''; btnCancel.style.display='';
-    updateCustModeStatus('Click map to add route waypoints');
+    updateCustModeStatus('Hold and drag on the map to draw a route');
+    if(isMobile()) showMobileRouteBar(btnFinish, btnCancel, btnRoute);
   });
   btnFinish.addEventListener('click',()=>{
     finishRoute(); routeDrawing=false;
     btnRoute.style.display=''; btnFinish.style.display='none'; btnCancel.style.display='none';
     updateCustModeStatus('Route saved');
+    hideMobileRouteBar(true);
   });
   btnCancel.addEventListener('click',()=>{
-    routeDrawing=false; routePoints=[];
+    routeDrawing=false; routePoints=[]; routeDrawActive=false;
     if(routePreviewLayer){map.removeLayer(routePreviewLayer);routePreviewLayer=null;}
     btnRoute.style.display=''; btnFinish.style.display='none'; btnCancel.style.display='none';
     updateCustModeStatus('');
+    hideMobileRouteBar(true);
   });
 
   // Colour picker
@@ -877,5 +1005,36 @@ function clearSearch(layers, savedVis) {
 function mk(tag,attrs={}){const e=document.createElement(tag);Object.entries(attrs).forEach(([k,v])=>k==='class'?(e.className=v):e.setAttribute(k,v));return e;}
 function sep(attrs={}){const s=mk('span',attrs);s.classList.add('sb-sep');return s;}
 function mkToolBtn(id,svg,tip){const b=mk('button',{id,class:'sb-tool-btn'});b.setAttribute('data-tip',tip);b.innerHTML=`${svg}<span class="sb-tool-label">${tip}</span>`;return b;}
+
+// ─── Mobile route bottom bar ──────────────────────────────────────────────────
+function showMobileRouteBar() {
+  document.getElementById('mobile-route-bar')?.remove();
+  // Hide sidebar
+  const sb=document.getElementById('sidebar');
+  const tog=document.getElementById('sb-toggle');
+  if(sb&&tog){ const w=sb.classList.contains('compact')?52:290; sb.style.transform=`translateX(${w}px)`; tog.style.right='0'; tog.innerHTML='◀'; }
+
+  const bar=mk('div',{id:'mobile-route-bar'});
+  bar.style.cssText=`position:fixed;bottom:0;left:0;right:0;z-index:1200;display:flex;gap:0.5em;padding:0.75em 1em;background:linear-gradient(135deg,#785a37 50%,#8e6a41 50%);box-shadow:0 -3px 12px rgba(0,0,0,0.3);`;
+  const label=mk('span'); label.style.cssText='color:white;font-size:0.82em;font-weight:700;flex:1;display:flex;align-items:center;'; label.textContent='Hold & drag to draw route';
+  const finBtn=mk('button'); finBtn.style.cssText='padding:0.5em 1em;border-radius:6px;border:none;background:linear-gradient(135deg,#4c9da8 50%,#74babe 50%);color:white;font-weight:700;font-size:0.82em;cursor:pointer;';
+  finBtn.textContent='✓ Finish';
+  const canBtn=mk('button'); canBtn.style.cssText='padding:0.5em 0.8em;border-radius:6px;border:none;background:linear-gradient(135deg,#b0665d 50%,#ce715c 50%);color:white;font-weight:700;font-size:0.82em;cursor:pointer;';
+  canBtn.textContent='✕ Cancel';
+  finBtn.addEventListener('click',()=>{ finishRoute(); routeDrawing=false; hideMobileRouteBar(true); document.getElementById('sb-panel-custom')?.classList.add('active'); document.querySelector('[data-tab="custom"]')?.classList.add('active'); });
+  canBtn.addEventListener('click',()=>{ routeDrawing=false; routePoints=[]; routeDrawActive=false; if(routePreviewLayer){map.removeLayer(routePreviewLayer);routePreviewLayer=null;} hideMobileRouteBar(true); });
+  bar.appendChild(label); bar.appendChild(finBtn); bar.appendChild(canBtn);
+  document.body.appendChild(bar);
+  // Sync with sidebar finish/cancel buttons
+  document.querySelector('#sb-panel-custom .cust-btn-route')?.dispatchEvent; // noop
+}
+function hideMobileRouteBar(reopenSidebar) {
+  document.getElementById('mobile-route-bar')?.remove();
+  if (reopenSidebar && isMobile()) {
+    const sb=document.getElementById('sidebar');
+    const tog=document.getElementById('sb-toggle');
+    if(sb&&tog){ sb.style.transform=''; const w=sb.classList.contains('compact')?52:290; tog.style.right=w+'px'; tog.innerHTML='▶'; }
+  }
+}
 
 loadData();

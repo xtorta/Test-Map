@@ -135,7 +135,8 @@ html, body {
 /* Tab panels */
 .sb-panel { display: none; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
 .sb-panel.active { display: flex; }
-#sb-panel-filter { overflow: hidden; min-height: 0; }
+#sb-panel-filter { display: none; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
+#sb-panel-filter.active { display: flex; }
 
 /* Cat list scrollable */
 #sb-cat-list { flex: 1; overflow-y: auto; overflow-x: visible; background: rgb(215,210,200); min-height: 0; }
@@ -322,6 +323,13 @@ html, body {
   display: none; /* shown by JS only when sidebar is closed */
   align-items: center;
   flex-direction: column;
+}
+@media (max-width: 767px) {
+  #sb-search-float {
+    bottom: auto;
+    top: 0.8em;
+    left: 0.8em;
+  }
 }
 #sb-search-float-btn {
   background: rgb(210,120,0); color: white; border: none; border-radius: 50%;

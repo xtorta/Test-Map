@@ -267,7 +267,7 @@ const custRouteLayer  = L.layerGroup().addTo(map);
 
 function saveCustom() {
   localStorage.setItem('customMarkers', JSON.stringify(customMarkers.map(({lat,lng,icon,colour,note})=>({lat,lng,icon,colour,note}))));
-  localStorage.setItem('customRoutes',  JSON.stringify(customRoutes.map(({points,colour})=>({points,colour}))));
+  localStorage.setItem('customRoutes',  JSON.stringify(customRoutes.map(({points,colour,note,opacity})=>({points,colour,note:note||'',opacity:opacity??0.88}))));
 }
 function makeCustMarkerIcon(icon, colour) {
   return L.divIcon({ html:`<div style="font-size:1.6em;color:${colour};text-shadow:1px 1px 4px rgba(0,0,0,0.7),0 0 8px rgba(0,0,0,0.5);line-height:1;cursor:pointer;">${icon}</div>`, className:'', iconAnchor:[12,22], iconSize:null });
@@ -324,9 +324,9 @@ function renderRoutes() {
     const raw = route.points.map(p=>[p[0],p[1]]);
     const smooth = smoothPoints(raw);
     const colour = route.colour||'#e74c3c';
-
+    const opacity = route.opacity ?? 0.88;
     // Draw smooth line
-    const line = L.polyline(smooth, { color:colour, weight:3.5, opacity:0.88, smoothFactor:1 });
+    const line = L.polyline(smooth, { color:colour, weight:3.5, opacity:opacity, smoothFactor:1 });
     line.addTo(custRouteLayer);
 
     // Place directional arrows along path
@@ -437,27 +437,15 @@ const DUNGEON_WIKI = {
   'Crimson Barracks':         'Crimson_Barracks',
   "Chakram's Chapel":         "Chakram's_Chapel",
 };
-function getDungeonLabel(rawLabel, coords) {
-  if (DUNGEON_NAME_FIX[rawLabel]) return DUNGEON_NAME_FIX[rawLabel];
-  if (rawLabel === 'Dungeon entrance') {
-    const [lat, lng] = coords;
-    // Near Aurock Mound → Ruins of Gorgon's Hollow (x≈970, y≈624 → lat≈1989, lng≈2587)
-    if (lat > 1750 && lat < 2100 && lng > 2400 && lng < 2750) return "Ruins of Gorgon's Hollow";
-    // Near New Atlaan → Abyss of New Atlaan (x≈1490, y≈1551 → lat≈1105, lng≈3051)
-    if (lat < 1300 && lng > 2900) return 'Abyss of New Atlaan';
-  }
-  return rawLabel;
-}
+const WIKI_LOOT_PAGE = 'https://farever.wiki/Dungeons_loots:_Armors_%26_Weapons';
 function dungeonWikiLink(label) {
   const key = DUNGEON_WIKI[label]; if (!key) return '';
-  const w = 'https://farever.wiki/Dungeons_loots:_Armors_%26_Weapons';
-  // MediaWiki anchors keep apostrophes literal — only encode spaces as underscores
-  const wikiAnchor = key.replace(/ /g, '_');
-  const armorUrl = `${w}#${wikiAnchor}`;
+  const weaponUrl = WIKI_LOOT_PAGE;
+  const armorUrl  = WIKI_LOOT_PAGE + '#Armors';
   const s = 'display:inline-flex;align-items:center;gap:0.25em;padding:0.3em 0.65em;border-radius:4px;text-decoration:none;font-size:0.8em;font-weight:700;color:white;';
   return '<div style="display:flex;gap:0.4em;justify-content:center;margin-top:0.5em;flex-wrap:wrap;">'
-    + '<a href="'+w+'" target="_blank" rel="noopener" style="'+s+'background:rgb(120,90,55);">&#9876;&#65039; Weapons</a>'
-    + '<a href="'+armorUrl+'" target="_blank" rel="noopener" style="'+s+'background:rgb(65,55,110);">&#128737;&#65039; Armor</a>'
+    + '<a href="' + weaponUrl + '" target="_blank" rel="noopener" style="' + s + 'background:rgb(120,90,55);">Weapons</a>'
+    + '<a href="' + armorUrl  + '" target="_blank" rel="noopener" style="' + s + 'background:rgb(65,55,110);">Armor</a>'
     + '</div>';
 }
 
@@ -1088,21 +1076,39 @@ function buildRoutesPanel(panel) {
       routeList.appendChild(empty); return;
     }
     customRoutes.forEach((rt, i) => {
-      const row = mk('div',{style:'background:rgb(225,220,210);border-radius:5px;padding:0.45em 0.6em;border:1px solid #c0b898;'});
-      const topRow = mk('div',{style:'display:flex;align-items:center;gap:0.4em;'});
+      const row = mk('div',{style:'background:rgb(225,220,210);border-radius:5px;padding:0.45em 0.6em;border:1px solid #c0b898;margin-bottom:0.3em;'});
+
+      // Top row: colour dot + editable name + sort + fly + delete
+      const topRow = mk('div',{style:'display:flex;align-items:center;gap:0.3em;'});
       const dot = mk('div',{style:`width:10px;height:10px;border-radius:50%;background:${rt.colour||'#e74c3c'};flex-shrink:0;`});
-      const label = mk('span',{style:'flex:1;font-size:0.8em;font-weight:600;color:#3a2e1e;'}); label.textContent = rt.note || `Route ${i+1}`;
-      const flyBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#388e9f;font-size:0.8em;padding:0.1em 0.3em;'}); flyBtn.title = 'Go to route'; flyBtn.textContent = '🎯';
-      flyBtn.addEventListener('click', () => { if (rt.points.length) map.flyTo(rt.points[0], 0, {animate:true,duration:0.7}); });
-      const delBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#c0392b;font-size:0.8em;padding:0.1em 0.3em;'}); delBtn.title = 'Delete'; delBtn.innerHTML = SVG.trash;
+      const nameInp = mk('input'); Object.assign(nameInp,{type:'text',value:rt.note||`Route ${i+1}`,style:'flex:1;padding:0.2em 0.4em;border:1px solid #a09880;border-radius:3px;font-size:0.79em;background:transparent;color:#3a2e1e;outline:none;font-weight:600;cursor:text;min-width:0;'});
+      nameInp.addEventListener('change', () => { rt.note = nameInp.value.trim()||`Route ${i+1}`; saveCustom(); });
+      const upBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#555;font-size:0.8em;padding:0.1em;line-height:1;'}); upBtn.textContent='↑'; upBtn.title='Move up';
+      upBtn.addEventListener('click', () => { if(i>0){[customRoutes[i-1],customRoutes[i]]=[customRoutes[i],customRoutes[i-1]]; saveCustom(); renderRoutes(); refreshRouteList();} });
+      const dnBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#555;font-size:0.8em;padding:0.1em;line-height:1;'}); dnBtn.textContent='↓'; dnBtn.title='Move down';
+      dnBtn.addEventListener('click', () => { if(i<customRoutes.length-1){[customRoutes[i],customRoutes[i+1]]=[customRoutes[i+1],customRoutes[i]]; saveCustom(); renderRoutes(); refreshRouteList();} });
+      const flyBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#388e9f;font-size:0.8em;padding:0.1em 0.2em;'}); flyBtn.title='Go to route'; flyBtn.textContent='🎯';
+      flyBtn.addEventListener('click', () => { if(rt.points.length) map.flyTo(rt.points[0],0,{animate:true,duration:0.7}); });
+      const delBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#c0392b;font-size:0.8em;padding:0.1em 0.2em;'}); delBtn.title='Delete'; delBtn.innerHTML=SVG.trash;
       delBtn.addEventListener('click', () => { customRoutes.splice(i,1); saveCustom(); renderRoutes(); refreshRouteList(); });
-      topRow.appendChild(dot); topRow.appendChild(label); topRow.appendChild(flyBtn); topRow.appendChild(delBtn);
+      topRow.appendChild(dot); topRow.appendChild(nameInp); topRow.appendChild(upBtn); topRow.appendChild(dnBtn); topRow.appendChild(flyBtn); topRow.appendChild(delBtn);
+
+      // Opacity slider row
+      const opRow = mk('div',{style:'display:flex;align-items:center;gap:0.4em;margin-top:0.3em;'});
+      const opLabel = mk('span',{style:'font-size:0.7em;color:#666;white-space:nowrap;'}); opLabel.textContent='Opacity:';
+      const opSlider = mk('input'); Object.assign(opSlider,{type:'range',min:'0.1',max:'1',step:'0.05',value:String(rt.opacity??0.88),style:'flex:1;cursor:pointer;'});
+      const opVal = mk('span',{style:'font-size:0.7em;color:#555;width:2.5em;text-align:right;'}); opVal.textContent=Math.round((rt.opacity??0.88)*100)+'%';
+      opSlider.addEventListener('input', () => { rt.opacity=parseFloat(opSlider.value); opVal.textContent=Math.round(rt.opacity*100)+'%'; saveCustom(); renderRoutes(); });
+      opRow.appendChild(opLabel); opRow.appendChild(opSlider); opRow.appendChild(opVal);
+
+      // Share code row
       const code = encodeRouteCode(rt);
       const codeRow = mk('div',{style:'display:flex;align-items:center;gap:0.3em;margin-top:0.3em;'});
       const codeBox = mk('input'); Object.assign(codeBox,{type:'text',readOnly:true,value:code,title:'Click to copy',style:'flex:1;padding:0.2em 0.4em;border:1px solid #a09880;border-radius:3px;font-size:0.68em;background:rgb(215,210,200);color:#3a2e1e;outline:none;cursor:pointer;'});
       codeBox.addEventListener('click', () => { navigator.clipboard?.writeText(code).then(() => { codeBox.style.background='rgb(200,230,200)'; setTimeout(()=>codeBox.style.background='',1000); }); });
       codeRow.appendChild(codeBox);
-      row.appendChild(topRow); row.appendChild(codeRow);
+
+      row.appendChild(topRow); row.appendChild(opRow); row.appendChild(codeRow);
       routeList.appendChild(row);
     });
   }
@@ -1176,9 +1182,6 @@ function buildCustomPanel(panel) {
 
   panel.appendChild(statusEl);
   panel.appendChild(iconGrid);
-  panel.appendChild(sep());
-  panel.appendChild(colTitle);
-  panel.appendChild(colRow);
 }
 
 // ─── Build category row ───────────────────────────────────────────────────────

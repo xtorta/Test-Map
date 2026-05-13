@@ -64,15 +64,15 @@ const FILTER_GROUPS = [
   { key:'enemies',     title:'Enemies',           icon:'⚔️', cats:['Mobs','Minibosses','Sparkling mobs'] },
 ];
 const ORE_SUBS   = {
-  'Copper':    { labels:['Copper Ore Large','Copper Ore Small'], icon:'./icons/gatherables/copper.png?v=2' },
-  'Tin':       { labels:['Tin Ore Large','Tin Ore Small'],       icon:'./icons/gatherables/tin.png?v=2' },
-  'Tungstene': { labels:['Tungstene'],                           icon:'./icons/gatherables/tungstene.png?v=2' },
+  'Copper':    { labels:['Copper Ore Large','Copper Ore Small'], icon:'./icons/gatherables/copper.png?v=3' },
+  'Tin':       { labels:['Tin Ore Large','Tin Ore Small'],       icon:'./icons/gatherables/tin.png?v=3' },
+  'Tungstene': { labels:['Tungstene'],                           icon:'./icons/gatherables/tungstene.png?v=3' },
 };
 const PLANT_SUBS = {
-  'Madrigold':    { labels:['Madrigold Large','Madrigold Small'],          icon:'./icons/gatherables/madrigold.png?v=2' },
-  'Lavendula':    { labels:['Lavendula Large','Lavendula Small'],          icon:'./icons/gatherables/lavendula.png?v=2' },
-  'Ancient Thyme':{ labels:['Ancient Thyme Large','Ancient Thyme Small'],  icon:'./icons/gatherables/ancientthyme.png?v=2' },
-  'Zealotus':     { labels:['Zealotus','Zealotus Large','Zealotus Small'], icon:'./icons/gatherables/zealous.png?v=2' },
+  'Madrigold':    { labels:['Madrigold Large','Madrigold Small'],          icon:'./icons/gatherables/madrigold.png?v=3' },
+  'Lavendula':    { labels:['Lavendula Large','Lavendula Small'],          icon:'./icons/gatherables/lavendula.png?v=3' },
+  'Ancient Thyme':{ labels:['Ancient Thyme Large','Ancient Thyme Small'],  icon:'./icons/gatherables/ancientthyme.png?v=3' },
+  'Zealotus':     { labels:['Zealotus','Zealotus Large','Zealotus Small'], icon:'./icons/gatherables/zealous.png?v=3' },
 };
 const GATHERABLE_SUBS = { Ores: ORE_SUBS, Plants: PLANT_SUBS };
 
@@ -662,7 +662,7 @@ function buildSidebar(layers) {
 
         Object.entries(subs).forEach(([subName,{labels,icon}])=>{
           const subRow=mk('div',{class:'sublabel-row'}); subRow.dataset.sublabel=subName;
-          const rowChk=mk('span',{class:'sb-check-img',style:'flex-shrink:0;'}); // unchecked by default
+          const rowChk=mk('span',{class:'sb-check-img',style:'flex-shrink:0;background-image:url("check0.png");'});
           const iconEl=mk('img'); iconEl.src=icon; iconEl.className='sublabel-icon'; iconEl.alt=subName;
           const nameEl=mk('span',{class:'sublabel-name'}); nameEl.textContent=subName;
           subRow.appendChild(rowChk); subRow.appendChild(iconEl); subRow.appendChild(nameEl);
@@ -793,11 +793,7 @@ function buildSidebar(layers) {
 
   // ── Layout & state ───────────────────────────────────────────────
   let sidebarOpen=savedView!=='closed';
-  function curW(){
-    // +2 for sidebar border-left so toggle sits flush
-    if (isCompact()) return 52 + 2;
-    return (isMobile() ? 290 : 320) + 2;
-  }
+  function curW(){ return isCompact() ? 52 : (isMobile() ? 290 : 320); }
   function saveView(){localStorage.setItem('sbView',!sidebarOpen?'closed':isCompact()?'compact':'full');}
   function applyLayout(animate){
     if(!animate){sidebar.style.transition='none';toggle.style.transition='none';}

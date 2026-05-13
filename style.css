@@ -31,7 +31,8 @@ html, body {
 #sidebar.compact .full-only        { display: none !important; }
 #sidebar.compact #sb-tabs          { display: none !important; }
 #sidebar.compact #sb-panel-filter,
-#sidebar.compact #sb-panel-custom  { display: none !important; }
+#sidebar.compact #sb-panel-custom,
+#sidebar.compact #sb-panel-routes  { display: none !important; }
 #sidebar.compact #sb-sep-about,
 #sidebar.compact #sb-about-row,
 #sidebar.compact #sb-about-panel   { display: none !important; }
@@ -349,6 +350,10 @@ html, body {
   display: none; flex-direction: column; flex: 1; overflow-y: auto; padding: 0.6em 0.75em; gap: 0.55em;
 }
 #sb-panel-custom.active { display: flex; }
+#sb-panel-routes {
+  display: none; flex-direction: column; flex: 1; overflow-y: auto; padding: 0.6em 0.75em; gap: 0.5em;
+}
+#sb-panel-routes.active { display: flex; }
 .cust-section-title { font-size: 0.78em; font-weight: 700; color: #3a2e1e; margin-bottom: 0.2em; }
 .cust-icon-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 0.3em; }
 .cust-icon-btn {

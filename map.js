@@ -231,25 +231,41 @@ function buildCustPopup(cm, i) {
 }
 
 function openCustPopup(marker) {
-  if (isMobile()) {
+  let restored = false;
+  const hideSidebar = () => {
     const sb  = document.getElementById('sidebar');
     const tog = document.getElementById('sb-toggle');
-    if (sb && tog) {
-      const w = sb.classList.contains('compact') ? 52 : 290;
-      // Always hide sidebar when popup opens on mobile
-      sb.style.transform = `translateX(${w}px)`;
-      tog.style.right = '0'; tog.innerHTML = '◀';
-      // Restore on any popup close
-      const restore = () => {
-        sb.style.transform = '';
-        tog.style.right = w + 'px';
-        tog.innerHTML = '▶';
-      };
-      map.once('popupclose', restore);
-    }
-  }
+    if (!sb || !tog) return;
+    const w = sb.classList.contains('compact') ? 52 : (isMobile() ? 290 : 320);
+    sb.style.transform = `translateX(${w}px)`;
+    tog.style.right = '0'; tog.innerHTML = '◀';
+    const restore = () => {
+      if (restored) return; restored = true;
+      sb.style.transform = '';
+      tog.style.right = w + 'px';
+      tog.innerHTML = '▶';
+    };
+    // Small delay so openPopup() doesn't immediately trigger popupclose from previous popup
+    setTimeout(() => map.once('popupclose', restore), 150);
+  };
+  if (isMobile()) hideSidebar();
   marker.openPopup();
 }
+// Also hide sidebar on mobile for any map popup (routes, game markers)
+map.on('popupopen', () => {
+  if (!isMobile()) return;
+  const sb  = document.getElementById('sidebar');
+  const tog = document.getElementById('sb-toggle');
+  if (!sb || !tog || sb.style.transform) return; // already hidden
+  const w = sb.classList.contains('compact') ? 52 : 290;
+  sb.style.transform = `translateX(${w}px)`;
+  tog.style.right = '0'; tog.innerHTML = '◀';
+  map.once('popupclose', () => {
+    sb.style.transform = '';
+    tog.style.right = w + 'px';
+    tog.innerHTML = '▶';
+  });
+});
 function renderRoutes() {
   custRouteLayer.clearLayers();
   if (!routesVisible) { window._routeRenderHook?.(); return; }
@@ -583,40 +599,65 @@ function buildSidebar(layers) {
         const subDiv=mk('div',{class:'filter-subgroup'});
         const subCollapsed=localStorage.getItem(`fsg_${mainCat}`)==='1';
         if(subCollapsed) subDiv.classList.add('collapsed');
+
+        // ── Subgroup header: checkbox + icon + title + chevron ───────
         const shdr=mk('div',{class:'filter-subgroup-header'});
-        shdr.innerHTML=`<span class="fsh-title" style="color:${colour}">${mainCat}</span><span class="fsh-chevron">▼</span>`;
-        shdr.addEventListener('click',()=>{ subDiv.classList.toggle('collapsed'); localStorage.setItem(`fsg_${mainCat}`,subDiv.classList.contains('collapsed')?'1':'0'); });
+        const chkImg=mk('span',{class:'sb-check-img',style:'flex-shrink:0;cursor:pointer;'});
+        const savedCheckedMain=(JSON.parse(localStorage.getItem('checkedBoxes'))||[]).includes(mainCat);
+        chkImg.style.backgroundImage=savedCheckedMain?'url("check1.png")':'url("check0.png")';
+        let mainChecked=savedCheckedMain;
+        chkImg.addEventListener('click',e=>{
+          e.stopPropagation();
+          mainChecked=!mainChecked;
+          chkImg.style.backgroundImage=mainChecked?'url("check1.png")':'url("check0.png")';
+          if(!hiddenGroups.has(mainCat)&&layers[mainCat]){mainChecked?map.addLayer(layers[mainCat]):map.removeLayer(layers[mainCat]);}
+          // update saved state
+          const saved=JSON.parse(localStorage.getItem('checkedBoxes'))||[];
+          if(mainChecked&&!saved.includes(mainCat)) saved.push(mainCat);
+          else if(!mainChecked){ const i=saved.indexOf(mainCat); if(i>-1) saved.splice(i,1); }
+          localStorage.setItem('checkedBoxes',JSON.stringify(saved));
+        });
+        const shdrTitle=mk('span',{class:'fsh-title',style:`color:${colour};flex:1;`}); shdrTitle.textContent=mainCat;
+        const shdrChev=mk('span',{class:'fsh-chevron'}); shdrChev.textContent='▼';
+        shdr.appendChild(chkImg); shdr.appendChild(shdrTitle); shdr.appendChild(shdrChev);
+        shdr.addEventListener('click',e=>{
+          if(e.target===chkImg) return;
+          subDiv.classList.toggle('collapsed');
+          localStorage.setItem(`fsg_${mainCat}`,subDiv.classList.contains('collapsed')?'1':'0');
+        });
         subDiv.appendChild(shdr);
+
         const subRows=mk('div',{class:'filter-subgroup-rows'});
-        // All sub-type markers still live in layers[mainCat], so parent checkbox controls all
-        // Keep the parent row for show/hide all of this type
-        // Sub-label highlight rows — stacking: multiple selections show union
         const activeSubs = new Set();
+
         function applySubFilter() {
-          allMarkers.forEach(({label,marker,category,subKey})=>{
+          allMarkers.forEach(({marker,category,subKey})=>{
             if(category!==mainCat) return;
             const el=getMarkerEl(marker); if(!el) return;
             if(activeSubs.size===0){
               el.style.display=''; el.style.opacity='';
               applyCompletedStyle(marker,completedMarkers.has(allMarkers.find(m=>m.marker===marker)?.markerId));
             } else {
-              const match = activeSubs.has(subKey);
-              el.style.display = match ? '' : 'none';
-              if(match) el.style.opacity='';
+              el.style.display=activeSubs.has(subKey)?'':'none';
+              if(activeSubs.has(subKey)) el.style.opacity='';
             }
           });
         }
+
         Object.entries(subs).forEach(([subName,{labels,icon}])=>{
           const subRow=mk('div',{class:'sublabel-row'}); subRow.dataset.sublabel=subName;
-          const eyeEl=mk('span',{class:'sublabel-eye'}); eyeEl.innerHTML=SVG.eye;
+          const rowChk=mk('span',{class:'sb-check-img',style:'flex-shrink:0;'}); // unchecked by default
           const iconEl=mk('img'); iconEl.src=icon; iconEl.className='sublabel-icon'; iconEl.alt=subName;
           const nameEl=mk('span',{class:'sublabel-name'}); nameEl.textContent=subName;
-          subRow.appendChild(eyeEl);
-          subRow.appendChild(iconEl);
-          subRow.appendChild(nameEl);
+          subRow.appendChild(rowChk); subRow.appendChild(iconEl); subRow.appendChild(nameEl);
           subRow.addEventListener('click',()=>{
-            if(activeSubs.has(subName)) { activeSubs.delete(subName); subRow.classList.remove('active'); eyeEl.innerHTML=SVG.eye; }
-            else { activeSubs.add(subName); subRow.classList.add('active'); eyeEl.innerHTML=SVG.eyeOff; }
+            if(activeSubs.has(subName)){
+              activeSubs.delete(subName); subRow.classList.remove('active');
+              rowChk.style.backgroundImage='url("check0.png")';
+            } else {
+              activeSubs.add(subName); subRow.classList.add('active');
+              rowChk.style.backgroundImage='url("check1.png")';
+            }
             applySubFilter();
           });
           subRows.appendChild(subRow);

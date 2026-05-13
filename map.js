@@ -63,8 +63,18 @@ const FILTER_GROUPS = [
   { key:'gatherables', title:'Gatherables',       icon:'🌿', cats:['Plants','Ores'], hasSub:true },
   { key:'enemies',     title:'Enemies',           icon:'⚔️', cats:['Mobs','Minibosses','Sparkling mobs'] },
 ];
-const ORE_SUBS   = { 'Copper':['Copper Ore Large','Copper Ore Small'], 'Tin':['Tin Ore Large','Tin Ore Small'], 'Tungstene':['Tungstene'] };
-const PLANT_SUBS = { 'Madrigold':['Madrigold Large','Madrigold Small'], 'Lavendula':['Lavendula Large','Lavendula Small'], 'Ancient Thyme':['Ancient Thyme Large','Ancient Thyme Small'], 'Zealotus':['Zealotus','Zealotus Large','Zealotus Small'] };
+const ORE_SUBS   = {
+  'Copper':    { labels:['Copper Ore Large','Copper Ore Small'], icon:'./icons/gatherables/copper.png' },
+  'Tin':       { labels:['Tin Ore Large','Tin Ore Small'],       icon:'./icons/gatherables/tin.png' },
+  'Tungstene': { labels:['Tungstene'],                           icon:'./icons/gatherables/tungstene.png' },
+};
+const PLANT_SUBS = {
+  'Madrigold':   { labels:['Madrigold Large','Madrigold Small'],                icon:'./icons/gatherables/madrigold.png' },
+  'Lavendula':   { labels:['Lavendula Large','Lavendula Small'],                icon:'./icons/gatherables/lavendula.png' },
+  'Ancient Thyme':{ labels:['Ancient Thyme Large','Ancient Thyme Small'],       icon:'./icons/gatherables/ancientthyme.png' },
+  'Zealotus':    { labels:['Zealotus','Zealotus Large','Zealotus Small'],       icon:'./icons/gatherables/zealous.png' },
+};
+const GATHERABLE_SUBS = { Ores: ORE_SUBS, Plants: PLANT_SUBS };
 
 const SVG = {
   search:  `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4"/><line x1="10" y1="10" x2="14" y2="14"/></svg>`,
@@ -200,6 +210,7 @@ function renderCustomMarkers() {
   customMarkers.forEach((cm, i) => {
     const m = L.marker([cm.lat, cm.lng], { icon:makeCustMarkerIcon(cm.icon||'⚔️', cm.colour||'#e74c3c'), draggable:true });
     m.bindPopup(buildCustPopup(cm, i), {maxWidth:200});
+    m.on('click', () => openCustPopup(m));
     m.on('dragend', () => { const p=m.getLatLng(); cm.lat=p.lat; cm.lng=p.lng; saveCustom(); });
     m.addTo(custMarkerLayer);
     cm._leaflet = m;
@@ -218,6 +229,24 @@ function buildCustPopup(cm, i) {
   div.appendChild(noteEl); div.appendChild(delBtn);
   return div;
 }
+
+function openCustPopup(marker) {
+  if (isMobile()) {
+    // Temporarily hide sidebar so popup is visible
+    const sb=document.getElementById('sidebar');
+    const tog=document.getElementById('sb-toggle');
+    if(sb&&tog&&!sb.style.transform) {
+      const w=sb.classList.contains('compact')?52:290;
+      sb.style.transform=`translateX(${w}px)`;
+      tog.style.right='0'; tog.innerHTML='◀';
+      // Restore sidebar when popup closes
+      map.once('popupclose', ()=>{
+        sb.style.transform=''; tog.style.right=w+'px'; tog.innerHTML='▶';
+      });
+    }
+  }
+  marker.openPopup();
+}
 function renderRoutes() {
   custRouteLayer.clearLayers();
   if (!routesVisible) { window._routeRenderHook?.(); return; }
@@ -231,15 +260,24 @@ function renderRoutes() {
     const line = L.polyline(smooth, { color:colour, weight:3.5, opacity:0.88, smoothFactor:1 });
     line.addTo(custRouteLayer);
 
-    // Place directional arrows every ~15% of total length
+    // Place directional arrows every ~20% of smooth path
     const total = smooth.length;
-    const interval = Math.max(5, Math.floor(total * 0.15));
-    for (let i=interval; i<total-1; i+=interval) {
-      const a=smooth[i], b=smooth[Math.min(i+3,total-1)];
-      const angle = Math.atan2(b[1]-a[1], b[0]-a[0]) * 180/Math.PI;
+    const interval = Math.max(8, Math.floor(total * 0.2));
+    for (let i = Math.floor(interval/2); i < total - 2; i += interval) {
+      const a = smooth[i];
+      const b = smooth[Math.min(i+4, total-1)];
+      // atan2(dy_lng, dy_lat) gives bearing in map coords
+      const dLat = b[0]-a[0], dLng = b[1]-a[1];
+      // CSS rotation: 0deg = up, positive = clockwise
+      // atan2(dLng, dLat) gives angle from north
+      const angle = Math.atan2(dLng, dLat) * 180 / Math.PI;
+      const arrowSvg = `<svg width="14" height="18" viewBox="0 0 14 18" fill="none" stroke="${colour}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="7" y1="17" x2="7" y2="1"/>
+        <polyline points="2,7 7,1 12,7"/>
+      </svg>`;
       const arrowIcon = L.divIcon({
-        html:`<div style="transform:rotate(${angle}deg);color:${colour};font-size:0.9em;line-height:1;pointer-events:none;text-shadow:0 0 3px rgba(0,0,0,0.7);">➤</div>`,
-        className:'', iconAnchor:[8,8]
+        html:`<div style="transform:rotate(${angle}deg);transform-origin:center;opacity:0.9;filter:drop-shadow(0 0 2px rgba(0,0,0,0.6));">${arrowSvg}</div>`,
+        className:'', iconAnchor:[7,9], iconSize:[14,18]
       });
       L.marker([a[0],a[1]], {icon:arrowIcon, interactive:false}).addTo(custRouteLayer);
     }
@@ -307,17 +345,38 @@ function initMap(data) {
     'Haydn Seek':new circleArea({fillColor:'#388e9f',radius:coordToMapScalar*70,opacity:0.5,fillOpacity:0.5}).props,
   };
   data.forEach((item,idx)=>{ const cat=item.categories?.[0]||'Misc'; if(!categoryRegistry[cat]) categoryRegistry[cat]={total:0,markerIds:[],markers:[]}; categoryRegistry[cat].total++; categoryRegistry[cat].markerIds.push(getMarkerId(item,idx)); });
+
+  // Build subtype icon lookup: label → {iconUrl, subKey, mainCat}
+  const subTypeMap = {};
+  ['Ores','Plants'].forEach(mainCat => {
+    const subs = GATHERABLE_SUBS[mainCat];
+    Object.entries(subs).forEach(([subKey,{labels,icon}]) => {
+      labels.forEach(lbl => { subTypeMap[lbl.toLowerCase()] = {iconUrl:icon, subKey, mainCat}; });
+    });
+  });
+
   data.forEach((item,idx)=>{
     const coords=[(s1*(4096-item.y)+b1),s2*(item.x+b2)];
     const cat=item.categories?.[0]||'Misc';
     if (!layers[cat]) layers[cat]=L.layerGroup();
     let m;
-    if (cat in iconDict)        m=L.marker(coords,{icon:L.icon(iconDict[cat])});
-    else if (cat in circleDict) m=L.circle(coords,circleDict[cat]);
-    else if (cat in stylingDict)m=L.circleMarker(coords,stylingDict[cat]);
-    else                        m=L.circleMarker(coords,new cMarker().props);
+    // Check for per-subtype icon
+    const subInfo = subTypeMap[item.label.toLowerCase()];
+    if (subInfo && subInfo.iconUrl) {
+      const sz=28;
+      const icon = L.icon({iconUrl:subInfo.iconUrl, iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2]});
+      m = L.marker(coords, {icon});
+    } else if (cat in iconDict) {
+      m = L.marker(coords,{icon:L.icon(iconDict[cat])});
+    } else if (cat in circleDict) {
+      m = L.circle(coords,circleDict[cat]);
+    } else if (cat in stylingDict) {
+      m = L.circleMarker(coords,stylingDict[cat]);
+    } else {
+      m = L.circleMarker(coords,new cMarker().props);
+    }
     const mid=getMarkerId(item,idx);
-    allMarkers.push({markerId:mid,marker:m,category:cat,label:item.label,coords});
+    allMarkers.push({markerId:mid,marker:m,category:cat,label:item.label,coords,subKey:subInfo?.subKey});
     m.bindPopup(`<div style="text-align:center;font-family:Noto,sans-serif;">${item.label}</div>`);
     m.on('contextmenu',e=>{ L.DomEvent.preventDefault(e); L.DomEvent.stopPropagation(e); m.closePopup(); toggleComplete(mid,m,cat); });
     m.on('click',e=>{ if (!isMobile()||routeDrawing) return; toggleComplete(mid,m,cat); });
@@ -403,7 +462,7 @@ function initMap(data) {
       }
       // Open popup for note
       const placed = custMarkerLayer.getLayers().slice(-1)[0];
-      if (placed) setTimeout(() => placed.openPopup(), isMobile() ? 400 : 100);
+      if (placed) setTimeout(() => openCustPopup(placed), isMobile() ? 400 : 100);
     }
   });
 
@@ -536,33 +595,35 @@ function buildSidebar(layers) {
         shdr.addEventListener('click',()=>{ subDiv.classList.toggle('collapsed'); localStorage.setItem(`fsg_${mainCat}`,subDiv.classList.contains('collapsed')?'1':'0'); });
         subDiv.appendChild(shdr);
         const subRows=mk('div',{class:'filter-subgroup-rows'});
-        // Main category checkbox row
-        subRows.appendChild(buildCatRow(mainCat, layers));
+        // All sub-type markers still live in layers[mainCat], so parent checkbox controls all
+        // Keep the parent row for show/hide all of this type
         // Sub-label highlight rows — stacking: multiple selections show union
-        const activeSubs = new Set(); // tracks which sublabels are active for this mainCat
+        const activeSubs = new Set();
         function applySubFilter() {
-          allMarkers.forEach(({label,marker,category})=>{
+          allMarkers.forEach(({label,marker,category,subKey})=>{
             if(category!==mainCat) return;
             const el=getMarkerEl(marker); if(!el) return;
             if(activeSubs.size===0){
-              // nothing selected — restore normal visibility
-              el.style.outline=''; el.style.opacity='';
+              el.style.display=''; el.style.opacity='';
               applyCompletedStyle(marker,completedMarkers.has(allMarkers.find(m=>m.marker===marker)?.markerId));
             } else {
-              // show markers matching ANY active sub, dim others
-              const match=Object.entries(subs).some(([sn,lbls])=>activeSubs.has(sn)&&lbls.some(sl=>label.toLowerCase().includes(sl.toLowerCase())));
-              el.style.outline=match?'2px solid #f39c12':'';
-              el.style.opacity=match?'':el.classList.contains('marker-done')?'0.4':'0.15';
+              const match = activeSubs.has(subKey);
+              el.style.display = match ? '' : 'none';
+              if(match) el.style.opacity='';
             }
           });
         }
-        Object.entries(subs).forEach(([subName,subLabels])=>{
+        Object.entries(subs).forEach(([subName,{labels,icon}])=>{
           const subRow=mk('div',{class:'sublabel-row'}); subRow.dataset.sublabel=subName;
-          subRow.innerHTML=`<span class="sublabel-dot" style="background:${colour}"></span><span class="sublabel-name" style="color:${colour}">${subName}</span>`;
+          const eyeEl=mk('span',{class:'sublabel-eye'}); eyeEl.innerHTML=SVG.eye;
+          const iconEl=mk('img'); iconEl.src=icon; iconEl.className='sublabel-icon'; iconEl.alt=subName;
+          const nameEl=mk('span',{class:'sublabel-name'}); nameEl.textContent=subName;
+          subRow.appendChild(eyeEl);
+          subRow.appendChild(iconEl);
+          subRow.appendChild(nameEl);
           subRow.addEventListener('click',()=>{
-            if(activeSubs.has(subName)) activeSubs.delete(subName);
-            else activeSubs.add(subName);
-            subRow.classList.toggle('active', activeSubs.has(subName));
+            if(activeSubs.has(subName)) { activeSubs.delete(subName); subRow.classList.remove('active'); eyeEl.innerHTML=SVG.eye; }
+            else { activeSubs.add(subName); subRow.classList.add('active'); eyeEl.innerHTML=SVG.eyeOff; }
             applySubFilter();
           });
           subRows.appendChild(subRow);

@@ -234,38 +234,23 @@ function buildCustPopup(cm, i) {
 }
 
 function openCustPopup(marker) {
-  let restored = false;
-  const hideSidebar = () => {
-    const sb  = document.getElementById('sidebar');
-    const tog = document.getElementById('sb-toggle');
-    if (!sb || !tog) return;
-    const w = sb.classList.contains('compact') ? 52 : (isMobile() ? 290 : 320);
-    sb.style.transform = `translateX(${w}px)`;
-    tog.innerHTML = '◀';
-    const restore = () => {
-      if (restored) return; restored = true;
-      sb.style.transform = '';
-      tog.innerHTML = '▶';
-    };
-    // Small delay so openPopup() doesn't immediately trigger popupclose from previous popup
-    setTimeout(() => map.once('popupclose', restore), 150);
-  };
-  if (isMobile()) hideSidebar();
+  if (isMobile()) {
+    const sb = document.getElementById('sidebar');
+    if (sb && !sb.style.transform) {
+      sb.style.transform = `translateX(${sb.offsetWidth||290}px)`;
+      let done = false;
+      setTimeout(() => map.once('popupclose', () => { if(!done){done=true; sb.style.transform='';} }), 150);
+    }
+  }
   marker.openPopup();
 }
-// Also hide sidebar on mobile for any map popup (routes, game markers)
+// Hide sidebar on mobile for all popups (game markers, routes)
 map.on('popupopen', () => {
   if (!isMobile()) return;
-  const sb  = document.getElementById('sidebar');
-  const tog = document.getElementById('sb-toggle');
-  if (!sb || !tog || sb.style.transform) return; // already hidden
-  const w = sb.classList.contains('compact') ? 52 : 290;
-  sb.style.transform = `translateX(${w}px)`;
-  tog.innerHTML = '◀';
-  map.once('popupclose', () => {
-    sb.style.transform = '';
-    tog.innerHTML = '▶';
-  });
+  const sb = document.getElementById('sidebar');
+  if (!sb || sb.style.transform) return;
+  sb.style.transform = `translateX(${sb.offsetWidth||290}px)`;
+  map.once('popupclose', () => { sb.style.transform = ''; });
 });
 function renderRoutes() {
   custRouteLayer.clearLayers();
@@ -702,10 +687,10 @@ function buildSidebar(layers) {
   sidebar.appendChild(hint);
   document.body.appendChild(sidebar);
 
-  // ── Toggle arrow — fixed to body, right managed by JS ────────────
-  const toggle=mk('button',{id:'sb-toggle'});
-  toggle.innerHTML='▶';
-  document.body.appendChild(toggle);
+  // ── Toggle arrow — lives inside sidebar, always attached ──────────
+  const toggle = mk('button',{id:'sb-toggle'});
+  toggle.innerHTML = '▶';
+  sidebar.appendChild(toggle);
 
   // ── Floating search (sidebar closed) ────────────────────────────
   const floatWrap=mk('div',{id:'sb-search-float'});
@@ -753,15 +738,13 @@ function buildSidebar(layers) {
   // ── Layout & state ───────────────────────────────────────────────
   let sidebarOpen = savedView !== 'closed';
   function saveView() { localStorage.setItem('sbView', !sidebarOpen ? 'closed' : isCompact() ? 'compact' : 'full'); }
+  function sbW() { return sidebar.offsetWidth || (isCompact() ? 52 : (isMobile() ? 290 : 320)); }
   function applyLayout(animate) {
-    if (!animate) { sidebar.style.transition = 'none'; toggle.style.transition = 'none'; }
-    // Use actual rendered width — avoids desktop/mobile width mismatch
-    const w = sidebar.offsetWidth || (isCompact() ? 52 : (isMobile() ? 290 : 320));
-    sidebar.style.transform = sidebarOpen ? '' : `translateX(${w}px)`;
-    toggle.style.right = sidebarOpen ? w + 'px' : '0px';
+    if (!animate) sidebar.style.transition = 'none';
+    sidebar.style.transform = sidebarOpen ? '' : `translateX(${sbW()}px)`;
     toggle.innerHTML = sidebarOpen ? '▶' : '◀';
     floatWrap.style.display = sidebarOpen ? 'none' : 'flex';
-    if (!animate) requestAnimationFrame(() => { sidebar.style.transition = ''; toggle.style.transition = ''; });
+    if (!animate) requestAnimationFrame(() => sidebar.style.transition = '');
   }
   toggle.addEventListener('click',()=>{sidebarOpen=!sidebarOpen;saveView();applyLayout(true);});
   btnTV.addEventListener('click',()=>{
@@ -1090,31 +1073,25 @@ function mkToolBtn(id,svg,tip){const b=mk('button',{id,class:'sb-tool-btn'});b.s
 // ─── Mobile route bottom bar ──────────────────────────────────────────────────
 function showMobileRouteBar() {
   document.getElementById('mobile-route-bar')?.remove();
-  // Hide sidebar
-  const sb=document.getElementById('sidebar');
-  const tog=document.getElementById('sb-toggle');
-  if(sb&&tog){ const w=sb.classList.contains('compact')?52:290; sb.style.transform=`translateX(${w}px)`; tog.innerHTML='◀'; }
-
-  const bar=mk('div',{id:'mobile-route-bar'});
+  const sb = document.getElementById('sidebar');
+  if(sb) { const w = sb.offsetWidth || 290; sb.style.transform = `translateX(${w}px)`; }
+  const bar = mk('div',{id:'mobile-route-bar'});
   bar.style.cssText=`position:fixed;bottom:0;left:0;right:0;z-index:1200;display:flex;gap:0.5em;padding:0.75em 1em;background:linear-gradient(135deg,#785a37 50%,#8e6a41 50%);box-shadow:0 -3px 12px rgba(0,0,0,0.3);`;
   const label=mk('span'); label.style.cssText='color:white;font-size:0.82em;font-weight:700;flex:1;display:flex;align-items:center;'; label.textContent='Hold & drag to draw route';
   const finBtn=mk('button'); finBtn.style.cssText='padding:0.5em 1em;border-radius:6px;border:none;background:linear-gradient(135deg,#4c9da8 50%,#74babe 50%);color:white;font-weight:700;font-size:0.82em;cursor:pointer;';
   finBtn.textContent='✓ Finish';
   const canBtn=mk('button'); canBtn.style.cssText='padding:0.5em 0.8em;border-radius:6px;border:none;background:linear-gradient(135deg,#b0665d 50%,#ce715c 50%);color:white;font-weight:700;font-size:0.82em;cursor:pointer;';
   canBtn.textContent='✕ Cancel';
-  finBtn.addEventListener('click',()=>{ finishRoute(); routeDrawing=false; hideMobileRouteBar(true); document.getElementById('sb-panel-custom')?.classList.add('active'); document.querySelector('[data-tab="custom"]')?.classList.add('active'); });
+  finBtn.addEventListener('click',()=>{ finishRoute(); routeDrawing=false; hideMobileRouteBar(true); });
   canBtn.addEventListener('click',()=>{ routeDrawing=false; routePoints=[]; routeDrawActive=false; if(routePreviewLayer){map.removeLayer(routePreviewLayer);routePreviewLayer=null;} hideMobileRouteBar(true); });
   bar.appendChild(label); bar.appendChild(finBtn); bar.appendChild(canBtn);
   document.body.appendChild(bar);
-  // Sync with sidebar finish/cancel buttons
-  document.querySelector('#sb-panel-custom .cust-btn-route')?.dispatchEvent; // noop
 }
 function hideMobileRouteBar(reopenSidebar) {
   document.getElementById('mobile-route-bar')?.remove();
-  if (reopenSidebar && isMobile()) {
-    const sb=document.getElementById('sidebar');
-    const tog=document.getElementById('sb-toggle');
-    if(sb&&tog){ sb.style.transform=''; tog.innerHTML='▶'; }
+  if (reopenSidebar) {
+    const sb = document.getElementById('sidebar');
+    if(sb) sb.style.transform = '';
   }
 }
 

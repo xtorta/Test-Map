@@ -597,38 +597,13 @@ function buildSidebar(layers) {
         const subDiv = mk('div',{class:'filter-subgroup'});
         if(localStorage.getItem(`fsg_${mainCat}`)==='1') subDiv.classList.add('collapsed');
 
+        // Plain title header — just a label + collapse chevron, no checkbox
         const shdr = mk('div',{class:'filter-subgroup-header'});
-
-        // Checkbox: show/hide the entire Plants or Ores layer
-        const chkImg = mk('span',{class:'sb-check-img',style:'flex-shrink:0;cursor:pointer;'});
-        const savedOn = (JSON.parse(localStorage.getItem('checkedBoxes'))||[]).includes(mainCat);
-        chkImg.style.backgroundImage = savedOn ? 'url("check1.png")' : 'url("check0.png")';
-        let layerOn = savedOn;
-        const saveLayerState = () => {
-          const saved = JSON.parse(localStorage.getItem('checkedBoxes'))||[];
-          if(layerOn && !saved.includes(mainCat)) saved.push(mainCat);
-          else if(!layerOn){ const i=saved.indexOf(mainCat); if(i>-1) saved.splice(i,1); }
-          localStorage.setItem('checkedBoxes', JSON.stringify(saved));
-        };
-        chkImg.addEventListener('click', e => {
-          e.stopPropagation();
-          layerOn = !layerOn;
-          chkImg.style.backgroundImage = layerOn ? 'url("check1.png")' : 'url("check0.png")';
-          if(!hiddenGroups.has(mainCat) && layers[mainCat]) {
-            layerOn ? map.addLayer(layers[mainCat]) : map.removeLayer(layers[mainCat]);
-          }
-          saveLayerState();
-        });
-
-        // Title: clicking toggles ALL subcategory rows on/off (filter within layer)
-        const shdrTitle = mk('span',{class:'fsh-title',style:`color:${colour};flex:1;cursor:pointer;`});
+        const shdrTitle = mk('span',{class:'fsh-title',style:`color:${colour};flex:1;`});
         shdrTitle.textContent = mainCat;
-        shdrTitle.title = `Show/hide all ${mainCat} types`;
-
         const shdrChev = mk('span',{class:'fsh-chevron'}); shdrChev.textContent='▼';
-        shdr.appendChild(chkImg); shdr.appendChild(shdrTitle); shdr.appendChild(shdrChev);
-        shdr.addEventListener('click', e => {
-          if(e.target===chkImg || e.target===shdrTitle) return;
+        shdr.appendChild(shdrTitle); shdr.appendChild(shdrChev);
+        shdr.addEventListener('click', () => {
           subDiv.classList.toggle('collapsed');
           localStorage.setItem(`fsg_${mainCat}`, subDiv.classList.contains('collapsed')?'1':'0');
         });
@@ -642,38 +617,23 @@ function buildSidebar(layers) {
             if(category !== mainCat) return;
             const el = getMarkerEl(marker); if(!el) return;
             if(activeSubs.size === 0) {
-              // none selected = show all
               el.style.display = ''; el.style.opacity = '';
               applyCompletedStyle(marker, completedMarkers.has(allMarkers.find(m=>m.marker===marker)?.markerId));
             } else {
               el.style.display = activeSubs.has(subKey) ? '' : 'none';
-              if(activeSubs.has(subKey)) el.style.opacity = '';
             }
           });
         }
 
-        // Title click: select/deselect all sub rows
-        shdrTitle.addEventListener('click', e => {
-          e.stopPropagation();
-          const allKeys = Object.keys(subs);
-          const anyActive = allKeys.some(k => activeSubs.has(k));
-          // Toggle: if any on → turn all off; if none on → turn all on
-          allKeys.forEach(k => anyActive ? activeSubs.delete(k) : activeSubs.add(k));
-          subRows.querySelectorAll('.sublabel-row').forEach((row, i) => {
-            const active = activeSubs.has(allKeys[i]);
-            row.classList.toggle('active', active);
-            row.querySelector('.sb-check-img').style.backgroundImage = active ? 'url("check1.png")' : 'url("check0.png")';
-          });
-          applySubFilter();
-        });
-
-        Object.entries(subs).forEach(([subName,{labels,icon}]) => {
-          const subRow = mk('div',{class:'sublabel-row'}); subRow.dataset.sublabel=subName;
+        Object.entries(subs).forEach(([subName,{icon}]) => {
+          const subRow = mk('label',{class:'sublabel-row'}); subRow.dataset.sublabel=subName;
+          const inp = mk('input'); inp.type='checkbox'; inp.style.display='none'; inp.dataset.sub=subName;
           const rowChk = mk('span',{class:'sb-check-img',style:'flex-shrink:0;background-image:url("check0.png");'});
           const iconEl = mk('img'); iconEl.src=icon; iconEl.className='sublabel-icon'; iconEl.alt=subName;
           const nameEl = mk('span',{class:'sublabel-name'}); nameEl.textContent=subName;
-          subRow.appendChild(rowChk); subRow.appendChild(iconEl); subRow.appendChild(nameEl);
-          subRow.addEventListener('click', () => {
+          subRow.appendChild(inp); subRow.appendChild(rowChk); subRow.appendChild(iconEl); subRow.appendChild(nameEl);
+          subRow.addEventListener('click', e => {
+            e.preventDefault();
             if(activeSubs.has(subName)) {
               activeSubs.delete(subName); subRow.classList.remove('active');
               rowChk.style.backgroundImage = 'url("check0.png")';
@@ -802,11 +762,11 @@ function buildSidebar(layers) {
 
   // ── Layout & state ───────────────────────────────────────────────
   let sidebarOpen = savedView !== 'closed';
-  function curW() { return isCompact() ? 52 : (isMobile() ? 290 : 320); }
   function saveView() { localStorage.setItem('sbView', !sidebarOpen ? 'closed' : isCompact() ? 'compact' : 'full'); }
   function applyLayout(animate) {
     if (!animate) { sidebar.style.transition = 'none'; toggle.style.transition = 'none'; }
-    const w = curW();
+    // Use actual rendered width — avoids desktop/mobile width mismatch
+    const w = sidebar.offsetWidth || (isCompact() ? 52 : (isMobile() ? 290 : 320));
     sidebar.style.transform = sidebarOpen ? '' : `translateX(${w}px)`;
     toggle.style.right = sidebarOpen ? w + 'px' : '0px';
     toggle.innerHTML = sidebarOpen ? '▶' : '◀';
@@ -1080,12 +1040,19 @@ function wireSearch(input, clearBtn, container, layers, onResultClick) {
 
 // ─── Counts, storage, clear ───────────────────────────────────────────────────
 function updateCounts() {
-  Object.keys(categoryRegistry).forEach(cat=>{
-    const reg=categoryRegistry[cat], done=reg.markerIds.filter(id=>completedMarkers.has(id)).length;
-    const el=document.querySelector(`.sb-cat-count[data-cat="${cat}"]`); if(!el) return;
-    el.textContent=`${done}/${reg.total}`;
-    el.style.color=done===reg.total&&reg.total>0?'#27ae60':done>0?'#e67e22':'#777';
-    el.style.fontWeight=done>0?'bold':'normal';
+  Object.keys(categoryRegistry).forEach(cat => {
+    const reg = categoryRegistry[cat];
+    const el = document.querySelector(`.sb-cat-count[data-cat="${cat}"]`); if(!el) return;
+    if (COMPLETABLE.has(cat)) {
+      const done = reg.markerIds.filter(id => completedMarkers.has(id)).length;
+      el.textContent = `${done}/${reg.total}`;
+      el.style.color = done===reg.total&&reg.total>0 ? '#27ae60' : done>0 ? '#e67e22' : '#777';
+      el.style.fontWeight = done>0 ? 'bold' : 'normal';
+    } else {
+      el.textContent = reg.total;
+      el.style.color = '#777';
+      el.style.fontWeight = 'normal';
+    }
   });
 }
 function updateLocalStorage() {

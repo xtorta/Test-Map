@@ -301,17 +301,19 @@ html, body {
 .sb-hint-icon { font-size: 1.05em; flex-shrink: 0; }
 .sb-hint-text { flex: 1; }
 
-/* Toggle arrow — fixed position, right set by JS */
+/* Toggle arrow — absolute inside sidebar, always attached to its left edge */
 #sb-toggle {
-  position: fixed;
-  top: 50%; transform: translateY(-50%);
-  right: 320px;
+  position: absolute;
+  top: 50%;
+  left: -2.1em; /* protrudes left of sidebar */
+  transform: translateY(-50%);
   z-index: 1001;
   background: rgb(210,120,0); color: white; border: none;
   border-radius: 6px 0 0 6px; padding: 0.9em 0.42em;
   cursor: pointer; font-size: 0.85em; line-height: 1;
   box-shadow: -2px 0 8px rgba(0,0,0,0.3);
-  transition: right 0.25s ease, background 0.15s;
+  transition: background 0.15s;
+  white-space: nowrap;
 }
 #sb-toggle:hover { background: rgb(180,100,0); }
 #sb-search-float {

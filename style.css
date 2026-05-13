@@ -376,8 +376,19 @@ html, body {
 .cust-popup-del:hover { background: #a93226; }
 .cust-popup-note-area { width: 100%; padding: 0.35em 0.5em; border: 1px solid #a09880; border-radius: 4px; font-family: Noto,sans-serif; font-size: 0.82em; resize: none; background: rgb(245,242,236); }
 
-/* Mobile */
-@media (max-width:767px) {
+/* Zone toggle compact tooltip */
+#sidebar.compact .zone-tog-btn::after {
+  content: attr(data-tip); position: absolute; top: 50%; right: calc(100% + 8px);
+  transform: translateY(-50%); background: rgba(0,0,0,0.85); color: white;
+  font-size: 0.82em; font-weight: 600; white-space: nowrap; padding: 0.3em 0.55em;
+  border-radius: 4px; pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 2000;
+}
+#sidebar.compact .zone-tog-btn { position: relative; }
+#sidebar.compact .zone-tog-btn:hover::after { opacity: 1; }
+
+/* Mobile route bottom bar */
+#mobile-route-bar { safe-area-inset-bottom: env(safe-area-inset-bottom,0); }
+@media (max-width:767px) { #mobile-route-bar { padding-bottom: calc(0.75em + env(safe-area-inset-bottom,0)); } }
   :root { --sb-full: 290px; --sb-compact: 52px; }
   .sb-cat-row { min-height: 2.7em; }
   #sb-hint { font-size: 0.74em; }

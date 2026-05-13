@@ -985,6 +985,118 @@ function decodeRouteCode(code) {
   } catch { return null; }
 }
 
+// ─── Routes Panel ─────────────────────────────────────────────────────────────
+function buildRoutesPanel(panel) {
+  panel.innerHTML = '';
+
+  const drawTitle = mk('div',{class:'cust-section-title'}); drawTitle.textContent = 'Draw Route';
+  const drawInstr = mk('div',{class:'cust-route-instructions'}); drawInstr.textContent = 'Hold and drag on the map to draw. Click a route on the map to edit/delete.';
+
+  const modeRow = mk('div',{class:'cust-mode-row'});
+  const btnRoute = mk('button',{class:'cust-btn cust-btn-route'}); btnRoute.innerHTML = `${SVG.route} Draw Route`;
+  const btnFinish = mk('button',{class:'cust-btn cust-btn-route',style:'display:none'}); btnFinish.textContent = '✓ Finish';
+  const btnCancel = mk('button',{class:'cust-btn cust-btn-cancel',style:'display:none'}); btnCancel.textContent = '✕ Cancel';
+  modeRow.appendChild(btnRoute); modeRow.appendChild(btnFinish); modeRow.appendChild(btnCancel);
+
+  btnRoute.addEventListener('click', () => {
+    routeDrawing = true; pendingCustPlace = false;
+    btnRoute.style.display = 'none'; btnFinish.style.display = ''; btnCancel.style.display = '';
+    if (isMobile()) showMobileRouteBar();
+  });
+  btnFinish.addEventListener('click', () => {
+    finishRoute(); routeDrawing = false;
+    btnRoute.style.display = ''; btnFinish.style.display = 'none'; btnCancel.style.display = 'none';
+    hideMobileRouteBar(true); refreshRouteList();
+  });
+  btnCancel.addEventListener('click', () => {
+    routeDrawing = false; routePoints = []; routeDrawActive = false;
+    if (routePreviewLayer) { map.removeLayer(routePreviewLayer); routePreviewLayer = null; }
+    btnRoute.style.display = ''; btnFinish.style.display = 'none'; btnCancel.style.display = 'none';
+    hideMobileRouteBar(true);
+  });
+
+  const visRow = mk('div',{class:'cust-mode-row',style:'margin-top:0.3em;'});
+  const btnVis = mk('button',{class:`cust-btn cust-btn-route${routesVisible?' active':''}`});
+  btnVis.textContent = routesVisible ? '👁 Routes Visible' : '👁 Routes Hidden'; btnVis.style.flex = '1';
+  btnVis.addEventListener('click', () => {
+    routesVisible = !routesVisible; localStorage.setItem('routesVisible', routesVisible ? '1' : '0');
+    btnVis.classList.toggle('active', routesVisible);
+    btnVis.textContent = routesVisible ? '👁 Routes Visible' : '👁 Routes Hidden';
+    renderRoutes(); refreshRouteList();
+  });
+  visRow.appendChild(btnVis);
+
+  // Colour picker
+  const colTitle = mk('div',{class:'cust-section-title'}); colTitle.textContent = 'Route Colour';
+  const colRow = mk('div',{class:'color-swatch-row'});
+  let selSwatch = null;
+  CUSTOM_COLOURS.forEach(col => {
+    const s = mk('div',{class:'color-swatch'+(col===selectedCustColour?' selected':'')}); s.style.background = col;
+    s.addEventListener('click', () => { selectedCustColour = col; localStorage.setItem('custColour',col); selSwatch?.classList.remove('selected'); s.classList.add('selected'); selSwatch = s; });
+    if (col === selectedCustColour) selSwatch = s;
+    colRow.appendChild(s);
+  });
+
+  // Route list
+  const listTitle = mk('div',{class:'cust-section-title',id:'route-list-title'}); listTitle.textContent = `My Routes (${customRoutes.length})`;
+  const routeList = mk('div',{id:'route-list',style:'display:flex;flex-direction:column;gap:0.3em;'});
+
+  function refreshRouteList() {
+    listTitle.textContent = `My Routes (${customRoutes.length})`;
+    routeList.innerHTML = '';
+    if (!customRoutes.length) {
+      const empty = mk('div',{style:'font-size:0.78em;color:#888;padding:0.4em 0;'}); empty.textContent = 'No routes yet — draw one above';
+      routeList.appendChild(empty); return;
+    }
+    customRoutes.forEach((rt, i) => {
+      const row = mk('div',{style:'background:rgb(225,220,210);border-radius:5px;padding:0.45em 0.6em;border:1px solid #c0b898;'});
+      const topRow = mk('div',{style:'display:flex;align-items:center;gap:0.4em;'});
+      const dot = mk('div',{style:`width:10px;height:10px;border-radius:50%;background:${rt.colour||'#e74c3c'};flex-shrink:0;`});
+      const label = mk('span',{style:'flex:1;font-size:0.8em;font-weight:600;color:#3a2e1e;'}); label.textContent = rt.note || `Route ${i+1}`;
+      const flyBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#388e9f;font-size:0.8em;padding:0.1em 0.3em;'}); flyBtn.title = 'Go to route'; flyBtn.textContent = '🎯';
+      flyBtn.addEventListener('click', () => { if (rt.points.length) map.flyTo(rt.points[0], 0, {animate:true,duration:0.7}); });
+      const delBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#c0392b;font-size:0.8em;padding:0.1em 0.3em;'}); delBtn.title = 'Delete'; delBtn.innerHTML = SVG.trash;
+      delBtn.addEventListener('click', () => { customRoutes.splice(i,1); saveCustom(); renderRoutes(); refreshRouteList(); });
+      topRow.appendChild(dot); topRow.appendChild(label); topRow.appendChild(flyBtn); topRow.appendChild(delBtn);
+      const code = encodeRouteCode(rt);
+      const codeRow = mk('div',{style:'display:flex;align-items:center;gap:0.3em;margin-top:0.3em;'});
+      const codeBox = mk('input'); Object.assign(codeBox,{type:'text',readOnly:true,value:code,title:'Click to copy',style:'flex:1;padding:0.2em 0.4em;border:1px solid #a09880;border-radius:3px;font-size:0.68em;background:rgb(215,210,200);color:#3a2e1e;outline:none;cursor:pointer;'});
+      codeBox.addEventListener('click', () => { navigator.clipboard?.writeText(code).then(() => { codeBox.style.background='rgb(200,230,200)'; setTimeout(()=>codeBox.style.background='',1000); }); });
+      codeRow.appendChild(codeBox);
+      row.appendChild(topRow); row.appendChild(codeRow);
+      routeList.appendChild(row);
+    });
+  }
+  window._routeRenderHook = () => refreshRouteList();
+
+  // Import
+  const importTitle = mk('div',{class:'cust-section-title'}); importTitle.textContent = 'Import Route';
+  const importRow = mk('div',{style:'display:flex;gap:0.3em;'});
+  const importInput = mk('input'); Object.assign(importInput,{type:'text',placeholder:'Paste route code…',style:'flex:1;padding:0.32em 0.5em;border:1.5px solid #a09880;border-radius:4px;font-family:Noto,sans-serif;font-size:0.8em;background:rgb(232,228,218);color:#1a1a1a;outline:none;'});
+  const importBtn = mk('button',{style:'padding:0.32em 0.7em;border-radius:4px;border:none;background:rgb(120,90,55);color:white;font-family:Noto,sans-serif;font-size:0.78em;font-weight:700;cursor:pointer;white-space:nowrap;'}); importBtn.textContent = 'Import';
+  const importStatus = mk('div',{style:'font-size:0.72em;min-height:1em;color:#5a4a2a;'});
+  importBtn.addEventListener('click', () => {
+    const rt = decodeRouteCode(importInput.value.trim());
+    if (!rt) { importStatus.textContent = '❌ Invalid code'; importStatus.style.color = '#c0392b'; return; }
+    customRoutes.push(rt); saveCustom(); renderRoutes(); refreshRouteList();
+    importInput.value = ''; importStatus.textContent = '✓ Route imported!'; importStatus.style.color = '#27ae60';
+    setTimeout(() => importStatus.textContent = '', 3000);
+  });
+  importRow.appendChild(importInput); importRow.appendChild(importBtn);
+
+  panel.appendChild(drawTitle); panel.appendChild(drawInstr);
+  panel.appendChild(modeRow); panel.appendChild(visRow);
+  panel.appendChild(sep());
+  panel.appendChild(colTitle); panel.appendChild(colRow);
+  panel.appendChild(sep());
+  panel.appendChild(listTitle); panel.appendChild(routeList);
+  panel.appendChild(sep());
+  panel.appendChild(importTitle); panel.appendChild(importRow); panel.appendChild(importStatus);
+
+  refreshRouteList();
+}
+
+// ─── Custom marker panel ──────────────────────────────────────────────────────
 function buildCustomPanel(panel) {
   panel.innerHTML='';
 

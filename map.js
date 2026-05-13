@@ -390,14 +390,30 @@ function finishRoute() {
 
 // ─── Permalink: read URL hash on load ────────────────────────────────────────
 (function readPermalink() {
+  // Priority 1: URL hash (shared link)
   const hash = window.location.hash.replace('#','');
   const m = hash.match(/^@(-?\d+\.?\d*),(-?\d+\.?\d*),([-\d.]+)$/);
   if (m) {
-    const lat = parseFloat(m[1]), lng = parseFloat(m[2]), zoom = parseFloat(m[3]);
-    map.setView([lat, lng], zoom);
+    map.setView([parseFloat(m[1]), parseFloat(m[2])], parseFloat(m[3]));
     window._permalinkApplied = true;
+    return;
   }
+  // Priority 2: last saved position in localStorage
+  try {
+    const saved = localStorage.getItem('mapLastPos');
+    if (saved) {
+      const {lat,lng,zoom} = JSON.parse(saved);
+      map.setView([lat,lng], zoom);
+      window._permalinkApplied = true; // skip fitBounds
+    }
+  } catch(e) {}
 })();
+
+// Save position continuously
+map.on('moveend', () => {
+  const c = map.getCenter(), z = map.getZoom();
+  localStorage.setItem('mapLastPos', JSON.stringify({lat:+c.lat.toFixed(2),lng:+c.lng.toFixed(2),zoom:+z.toFixed(2)}));
+});
 
 function copyPermalink() {
   const c = map.getCenter();
@@ -448,18 +464,9 @@ function getDungeonLabel(rawLabel, coords) {
   return rawLabel;
 }
 function dungeonWikiLink(label) {
-  const key = DUNGEON_WIKI[label]; if (!key) return '';
-  // Each dungeon appears twice on the page: first under Weapons, then under Armors.
-  // MediaWiki auto-suffixes duplicate headings: first = DungeonName, second = DungeonName_2
-  const weaponAnchor = key.replace(/ /g,'_');
-  const armorAnchor  = weaponAnchor + '_2';
-  const weaponUrl = WIKI_LOOT_PAGE + '#' + weaponAnchor;
-  const armorUrl  = WIKI_LOOT_PAGE + '#' + armorAnchor;
-  const s = 'display:inline-flex;align-items:center;gap:0.25em;padding:0.3em 0.65em;border-radius:4px;text-decoration:none;font-size:0.8em;font-weight:700;color:white;';
-  return '<div style="display:flex;gap:0.4em;justify-content:center;margin-top:0.5em;flex-wrap:wrap;">'
-    + '<a href="' + weaponUrl + '" target="_blank" rel="noopener" style="' + s + 'background:rgb(120,90,55);">&#9876;&#65039; Weapons</a>'
-    + '<a href="' + armorUrl  + '" target="_blank" rel="noopener" style="' + s + 'background:rgb(65,55,110);">&#128737;&#65039; Armor</a>'
-    + '</div>';
+  if (!DUNGEON_WIKI[label]) return '';
+  const s = 'display:inline-flex;align-items:center;justify-content:center;gap:0.4em;margin-top:0.5em;padding:0.4em 1em;border-radius:5px;text-decoration:none;font-size:0.83em;font-weight:700;color:white;background:rgb(120,90,55);width:100%;box-sizing:border-box;';
+  return '<div style="margin-top:0.4em;"><a href="' + WIKI_LOOT_PAGE + '" target="_blank" rel="noopener" style="' + s + '">&#128666; View Dungeon Loot</a></div>';
 }
 
 
@@ -1106,6 +1113,16 @@ function buildRoutesPanel(panel) {
       delBtn.addEventListener('click', () => { customRoutes.splice(i,1); saveCustom(); renderRoutes(); refreshRouteList(); });
       topRow.appendChild(dot); topRow.appendChild(nameInp); topRow.appendChild(upBtn); topRow.appendChild(dnBtn); topRow.appendChild(flyBtn); topRow.appendChild(delBtn);
 
+      // Colour row
+      const colRow2 = mk('div',{style:'display:flex;gap:0.25em;flex-wrap:wrap;margin-top:0.3em;'});
+      CUSTOM_COLOURS.forEach(col => {
+        const sw = mk('div',{style:`width:1.2em;height:1.2em;border-radius:3px;background:${col};cursor:pointer;border:2px solid ${col===(rt.colour||'#e74c3c')?'#1a1a1a':'transparent'};flex-shrink:0;`});
+        sw.addEventListener('click', () => {
+          rt.colour = col; saveCustom(); renderRoutes(); refreshRouteList();
+        });
+        colRow2.appendChild(sw);
+      });
+
       // Opacity slider row
       const opRow = mk('div',{style:'display:flex;align-items:center;gap:0.4em;margin-top:0.3em;'});
       const opLabel = mk('span',{style:'font-size:0.7em;color:#666;white-space:nowrap;'}); opLabel.textContent='Opacity:';
@@ -1121,7 +1138,7 @@ function buildRoutesPanel(panel) {
       codeBox.addEventListener('click', () => { navigator.clipboard?.writeText(code).then(() => { codeBox.style.background='rgb(200,230,200)'; setTimeout(()=>codeBox.style.background='',1000); }); });
       codeRow.appendChild(codeBox);
 
-      row.appendChild(topRow); row.appendChild(opRow); row.appendChild(codeRow);
+      row.appendChild(topRow); row.appendChild(colRow2); row.appendChild(opRow); row.appendChild(codeRow);
       routeList.appendChild(row);
     });
   }

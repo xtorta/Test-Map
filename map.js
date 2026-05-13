@@ -90,6 +90,7 @@ const SVG = {
   sub:     `<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="10" height="10" rx="2"/></svg>`,
   zone:    `<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="7,1 13,13 1,13"/></svg>`,
   route:   `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2 12 Q4 5 9 4"/><polyline points="7,2 9,4 7,6" fill="none"/></svg>`,
+  trash:   `<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="1,3 13,3"/><path d="M4 3V2h6v1"/><rect x="3" y="4" width="8" height="9" rx="1"/></svg>`,
 };
 
 // ─── Region labels ────────────────────────────────────────────────────────────
@@ -627,25 +628,31 @@ function buildSidebar(layers) {
 
   // ── Tabs: Filter / Custom ────────────────────────────────────────
   const tabBar=mk('div',{id:'sb-tabs'});
-  [{key:'filter',label:'🔍 Filter'},{key:'custom',label:'📍 Custom'}].forEach((t,i)=>{
+  [{key:'filter',label:'Filter'},{key:'custom',label:'Add Icons'},{key:'routes',label:'Routes'}].forEach((t,i)=>{
     const btn=mk('button',{class:'sb-tab'+(i===0?' active':'')}); btn.dataset.tab=t.key; btn.textContent=t.label;
     btn.addEventListener('click',()=>{
       tabBar.querySelectorAll('.sb-tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
-      document.getElementById('sb-panel-filter')?.classList.toggle('active',t.key==='filter');
-      document.getElementById('sb-panel-custom')?.classList.toggle('active',t.key==='custom');
+      sidebar.querySelectorAll('.sb-panel').forEach(p=>p.classList.remove('active'));
+      document.getElementById(`sb-panel-${t.key}`)?.classList.add('active');
     });
     tabBar.appendChild(btn);
   });
   sidebar.appendChild(tabBar);
 
-  // ── Tool buttons (hide / reset) ──────────────────────────────────
+  // ── Tool buttons — hide/reset side by side + share ────────────────
   const iconTools=mk('div',{id:'sb-icon-tools'});
   const searchToolBtn=mkToolBtn('sb-search-tool',SVG.search,'Search'); searchToolBtn.classList.add('compact-only');
-  const hideBtn=mkToolBtn('sb-hide-btn',SVG.eye,'Hide Completed');
-  const resetBtn=mkToolBtn('sb-reset-btn',SVG.reset,'Reset Completed');
-  const shareBtn=mkToolBtn('sb-share-btn',`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="12" cy="13" r="2"/><line x1="6" y1="9" x2="10" y2="12"/><line x1="10" y1="4" x2="6" y2="7"/></svg>`,'Copy Map Link');
+
+  // Hide + Reset in a single row
+  const completedRow=mk('div',{style:'display:flex;border-bottom:1px solid rgba(0,0,0,0.07);flex-shrink:0;'});
+  const hideBtn=mk('button',{id:'sb-hide-btn',class:'sb-tool-btn',style:'border-bottom:none;border-right:1px solid rgba(0,0,0,0.07);flex:1;'}); hideBtn.setAttribute('data-tip','Hide Completed'); hideBtn.innerHTML=`${SVG.eye}<span class="sb-tool-label">Hide Done</span>`;
+  const resetBtn=mk('button',{id:'sb-reset-btn',class:'sb-tool-btn',style:'border-bottom:none;flex:1;color:#c0392b;'}); resetBtn.setAttribute('data-tip','Reset Completed'); resetBtn.innerHTML=`${SVG.reset}<span class="sb-tool-label">Reset Done</span>`;
+  completedRow.appendChild(hideBtn); completedRow.appendChild(resetBtn);
+
+  const shareBtn=mkToolBtn('sb-share-btn',`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="12" cy="13" r="2"/><line x1="6" y1="9" x2="10" y2="12"/><line x1="10" y1="4" x2="6" y2="7"/></svg>`,'Share Location');
   shareBtn.addEventListener('click', copyPermalink);
-  iconTools.appendChild(searchToolBtn); iconTools.appendChild(hideBtn); iconTools.appendChild(resetBtn); iconTools.appendChild(shareBtn);
+
+  iconTools.appendChild(searchToolBtn); iconTools.appendChild(completedRow); iconTools.appendChild(shareBtn);
   sidebar.appendChild(iconTools);
   sidebar.appendChild(sep());
 
@@ -772,6 +779,11 @@ function buildSidebar(layers) {
   const customPanel=mk('div',{id:'sb-panel-custom',class:'sb-panel'});
   buildCustomPanel(customPanel);
   sidebar.appendChild(customPanel);
+
+  // ── Panel: Routes ────────────────────────────────────────────────
+  const routesPanel=mk('div',{id:'sb-panel-routes',class:'sb-panel'});
+  buildRoutesPanel(routesPanel);
+  sidebar.appendChild(routesPanel);
 
   // ── Hint ─────────────────────────────────────────────────────────
   sidebar.appendChild(sep({id:'sb-sep-hint'}));
@@ -936,66 +948,29 @@ function decodeRouteCode(code) {
 
 function buildCustomPanel(panel) {
   panel.innerHTML='';
+  panel.style.cssText='display:none;flex-direction:column;flex:1;overflow-y:auto;padding:0.6em 0.75em;gap:0.5em;';
 
-  const statusEl=mk('div',{class:'cust-mode-status',id:'cust-mode-status'}); statusEl.textContent='Select an icon to place on the map';
+  // Status hint — always on top, never behind grid
+  const statusEl=mk('div',{class:'cust-mode-status',id:'cust-mode-status'});
+  statusEl.style.cssText='font-size:0.74em;font-weight:700;color:#f0a040;min-height:1.6em;padding:0.2em 0;flex-shrink:0;';
+  statusEl.textContent='Select an icon then click the map to place it';
 
   // Icon grid
-  const iconTitle=mk('div',{class:'cust-section-title'}); iconTitle.textContent='';
   const iconGrid=mk('div',{class:'cust-icon-grid'});
   let selIconBtn=null;
   CUSTOM_ICONS.forEach(ic=>{
     const b=mk('div',{class:'cust-icon-btn'}); b.textContent=ic;
     b.addEventListener('click',()=>{
-      if(selIconBtn===b && pendingCustPlace){ // clicking selected icon cancels
+      if(selIconBtn===b && pendingCustPlace){
         pendingCustPlace=false; b.classList.remove('selected'); selIconBtn=null;
-        updateCustModeStatus('Click an icon to select it');
+        updateCustModeStatus('Select an icon then click the map to place it');
         return;
       }
       selectedCustIcon=ic; localStorage.setItem('custIcon',ic);
       selIconBtn?.classList.remove('selected'); b.classList.add('selected'); selIconBtn=b;
-      pendingCustPlace=true; updateCustModeStatus(`Click map to place ${ic} — click icon again to cancel`);
+      pendingCustPlace=true; updateCustModeStatus(`Click map to place ${ic} — tap again to cancel`);
     });
     iconGrid.appendChild(b);
-  });
-
-  // Route drawing
-  const routeTitle=mk('div',{class:'cust-section-title'}); routeTitle.textContent='Routes';
-  const routeInstructions=mk('div',{class:'cust-route-instructions'}); routeInstructions.textContent='Click "Draw Route" then click the map to add waypoints. Click a route on the map to edit/delete.';
-  const modeRow=mk('div',{class:'cust-mode-row'});
-  const btnRoute=mk('button',{class:'cust-btn cust-btn-route'}); btnRoute.innerHTML=`${SVG.route} Draw Route`;
-  const btnFinish=mk('button',{class:'cust-btn cust-btn-route',style:'display:none'}); btnFinish.textContent='✓ Finish';
-  const btnCancel=mk('button',{class:'cust-btn cust-btn-cancel',style:'display:none'}); btnCancel.textContent='✕ Cancel';
-  modeRow.appendChild(btnRoute); modeRow.appendChild(btnFinish); modeRow.appendChild(btnCancel);
-
-  const routeVisRow=mk('div',{class:'cust-mode-row',style:'margin-top:0.3em;'});
-  const btnToggleRoutes=mk('button',{class:`cust-btn cust-btn-route${routesVisible?' active':''}`});
-  btnToggleRoutes.textContent=routesVisible?'👁 Routes Visible':'👁 Routes Hidden';
-  btnToggleRoutes.style.flex='1';
-  btnToggleRoutes.addEventListener('click',()=>{
-    routesVisible=!routesVisible; localStorage.setItem('routesVisible',routesVisible?'1':'0');
-    btnToggleRoutes.classList.toggle('active',routesVisible);
-    btnToggleRoutes.textContent=routesVisible?'👁 Routes Visible':'👁 Routes Hidden';
-    renderRoutes();
-  });
-  routeVisRow.appendChild(btnToggleRoutes);
-  btnRoute.addEventListener('click',()=>{
-    routeDrawing=true; pendingCustPlace=false;
-    btnRoute.style.display='none'; btnFinish.style.display=''; btnCancel.style.display='';
-    updateCustModeStatus('Hold and drag on the map to draw a route');
-    if(isMobile()) showMobileRouteBar(btnFinish, btnCancel, btnRoute);
-  });
-  btnFinish.addEventListener('click',()=>{
-    finishRoute(); routeDrawing=false;
-    btnRoute.style.display=''; btnFinish.style.display='none'; btnCancel.style.display='none';
-    updateCustModeStatus('Route saved');
-    hideMobileRouteBar(true);
-  });
-  btnCancel.addEventListener('click',()=>{
-    routeDrawing=false; routePoints=[]; routeDrawActive=false;
-    if(routePreviewLayer){map.removeLayer(routePreviewLayer);routePreviewLayer=null;}
-    btnRoute.style.display=''; btnFinish.style.display='none'; btnCancel.style.display='none';
-    updateCustModeStatus('');
-    hideMobileRouteBar(true);
   });
 
   // Colour picker
@@ -1009,62 +984,11 @@ function buildCustomPanel(panel) {
     colRow.appendChild(s);
   });
 
-  // Route share
-  const shareTitle=mk('div',{class:'cust-section-title'}); shareTitle.textContent='Share Routes';
-  const shareWrap=mk('div',{style:'display:flex;flex-direction:column;gap:0.4em;'});
-
-  // Export: pick a route to share
-  const exportLabel=mk('div',{style:'font-size:0.74em;color:#5a4a2a;'}); exportLabel.textContent='Copy code for a route:';
-  const exportSelect=mk('select',{style:'width:100%;padding:0.35em 0.5em;border:1.5px solid #a09880;border-radius:4px;font-family:Noto,sans-serif;font-size:0.82em;background:rgb(232,228,218);color:#1a1a1a;outline:none;'});
-  const exportCodeBox=mk('input'); Object.assign(exportCodeBox,{type:'text',readOnly:true,placeholder:'Select a route above',style:'width:100%;padding:0.32em 0.5em;border:1.5px solid #a09880;border-radius:4px;font-family:Noto,sans-serif;font-size:0.74em;background:rgb(225,220,210);color:#1a1a1a;outline:none;cursor:pointer;'});
-  exportCodeBox.title='Click to copy';
-  exportCodeBox.addEventListener('click',()=>{ if(exportCodeBox.value&&exportCodeBox.value!=='No routes yet'){ navigator.clipboard?.writeText(exportCodeBox.value).then(()=>{exportCodeBox.style.background='rgb(200,230,200)';setTimeout(()=>exportCodeBox.style.background='',1000);}); } });
-
-  function refreshExportSelect() {
-    exportSelect.innerHTML='';
-    if (!customRoutes.length) { const o=mk('option'); o.textContent='No routes'; exportSelect.appendChild(o); exportCodeBox.value='No routes yet'; return; }
-    customRoutes.forEach((rt,i)=>{
-      const o=mk('option'); o.value=i; o.textContent=`Route ${i+1}${rt.note?' — '+rt.note.slice(0,20):''}  (${rt.points.length} pts)`;
-      exportSelect.appendChild(o);
-    });
-    exportSelect.dispatchEvent(new Event('change'));
-  }
-  exportSelect.addEventListener('change',()=>{ const rt=customRoutes[+exportSelect.value]; if(rt) exportCodeBox.value=encodeRouteCode(rt); });
-
-  // Import
-  const importLabel=mk('div',{style:'font-size:0.74em;color:#5a4a2a;margin-top:0.2em;'}); importLabel.textContent='Import a shared code:';
-  const importRow=mk('div',{style:'display:flex;gap:0.3em;'});
-  const importInput=mk('input'); Object.assign(importInput,{type:'text',placeholder:'Paste code here…',style:'flex:1;padding:0.32em 0.5em;border:1.5px solid #a09880;border-radius:4px;font-family:Noto,sans-serif;font-size:0.8em;background:rgb(232,228,218);color:#1a1a1a;outline:none;'});
-  const importBtn=mk('button',{style:'padding:0.32em 0.7em;border-radius:4px;border:none;background:rgb(120,90,55);color:white;font-family:Noto,sans-serif;font-size:0.78em;font-weight:700;cursor:pointer;white-space:nowrap;'}); importBtn.textContent='Import';
-  const importStatus=mk('div',{style:'font-size:0.72em;min-height:1em;color:#5a4a2a;'});
-  importBtn.addEventListener('click',()=>{
-    const rt=decodeRouteCode(importInput.value.trim());
-    if (!rt) { importStatus.textContent='❌ Invalid code'; importStatus.style.color='#c0392b'; return; }
-    customRoutes.push(rt); saveCustom(); renderRoutes(); refreshExportSelect();
-    importInput.value=''; importStatus.textContent='✓ Route imported!'; importStatus.style.color='#27ae60';
-    setTimeout(()=>importStatus.textContent='',3000);
-  });
-  importRow.appendChild(importInput); importRow.appendChild(importBtn);
-
-  shareWrap.appendChild(exportLabel); shareWrap.appendChild(exportSelect);
-  shareWrap.appendChild(exportCodeBox); shareWrap.appendChild(importLabel);
-  shareWrap.appendChild(importRow); shareWrap.appendChild(importStatus);
-
-  // Refresh export list when routes change
-  const origRenderRoutes = window._routeRenderHook;
-  window._routeRenderHook = () => { refreshExportSelect(); };
-
   panel.appendChild(statusEl);
   panel.appendChild(iconGrid);
   panel.appendChild(sep());
-  panel.appendChild(routeTitle); panel.appendChild(routeInstructions);
-  panel.appendChild(modeRow); panel.appendChild(routeVisRow);
-  panel.appendChild(sep());
-  panel.appendChild(colTitle); panel.appendChild(colRow);
-  panel.appendChild(sep());
-  panel.appendChild(shareTitle); panel.appendChild(shareWrap);
-
-  refreshExportSelect();
+  panel.appendChild(colTitle);
+  panel.appendChild(colRow);
 }
 
 // ─── Build category row ───────────────────────────────────────────────────────

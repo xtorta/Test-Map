@@ -752,10 +752,10 @@ function buildSidebar(layers) {
   sidebar.appendChild(hint);
   document.body.appendChild(sidebar);
 
-  // ── Toggle arrow ─────────────────────────────────────────────────
+  // ── Toggle arrow — fixed to body, right managed by JS ────────────
   const toggle=mk('button',{id:'sb-toggle'});
   toggle.innerHTML='▶';
-  sidebar.appendChild(toggle); // inside sidebar so position:absolute works relative to it
+  document.body.appendChild(toggle);
 
   // ── Floating search (sidebar closed) ────────────────────────────
   const floatWrap=mk('div',{id:'sb-search-float'});
@@ -801,16 +801,17 @@ function buildSidebar(layers) {
   attachTip(compactList); attachTip(iconTools); attachTip(zoneTogs);
 
   // ── Layout & state ───────────────────────────────────────────────
-  let sidebarOpen=savedView!=='closed';
-  function curW(){ return isCompact() ? 52 : (isMobile() ? 290 : 320); }
-  function saveView(){localStorage.setItem('sbView',!sidebarOpen?'closed':isCompact()?'compact':'full');}
-  function applyLayout(animate){
-    if(!animate){sidebar.style.transition='none';}
+  let sidebarOpen = savedView !== 'closed';
+  function curW() { return isCompact() ? 52 : (isMobile() ? 290 : 320); }
+  function saveView() { localStorage.setItem('sbView', !sidebarOpen ? 'closed' : isCompact() ? 'compact' : 'full'); }
+  function applyLayout(animate) {
+    if (!animate) { sidebar.style.transition = 'none'; toggle.style.transition = 'none'; }
     const w = curW();
     sidebar.style.transform = sidebarOpen ? '' : `translateX(${w}px)`;
+    toggle.style.right = sidebarOpen ? w + 'px' : '0px';
     toggle.innerHTML = sidebarOpen ? '▶' : '◀';
     floatWrap.style.display = sidebarOpen ? 'none' : 'flex';
-    if(!animate) requestAnimationFrame(()=>{sidebar.style.transition='';});
+    if (!animate) requestAnimationFrame(() => { sidebar.style.transition = ''; toggle.style.transition = ''; });
   }
   toggle.addEventListener('click',()=>{sidebarOpen=!sidebarOpen;saveView();applyLayout(true);});
   btnTV.addEventListener('click',()=>{sidebar.classList.toggle('compact');updateViewBtn();saveView();applyLayout(true);});

@@ -438,6 +438,15 @@ const DUNGEON_WIKI = {
   "Chakram's Chapel":         "Chakram's_Chapel",
 };
 const WIKI_LOOT_PAGE = 'https://farever.wiki/Dungeons_loots:_Armors_%26_Weapons';
+function getDungeonLabel(rawLabel, coords) {
+  if (DUNGEON_NAME_FIX[rawLabel]) return DUNGEON_NAME_FIX[rawLabel];
+  if (rawLabel === 'Dungeon entrance') {
+    const [lat, lng] = coords;
+    if (lat > 1750 && lat < 2100 && lng > 2400 && lng < 2750) return "Ruins of Gorgon's Hollow";
+    if (lat < 1300 && lng > 2900) return 'Abyss of New Atlaan';
+  }
+  return rawLabel;
+}
 function dungeonWikiLink(label) {
   const key = DUNGEON_WIKI[label]; if (!key) return '';
   const weaponUrl = WIKI_LOOT_PAGE;

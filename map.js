@@ -449,12 +449,16 @@ function getDungeonLabel(rawLabel, coords) {
 }
 function dungeonWikiLink(label) {
   const key = DUNGEON_WIKI[label]; if (!key) return '';
-  const weaponUrl = WIKI_LOOT_PAGE;
-  const armorUrl  = WIKI_LOOT_PAGE + '#Armors';
+  // Each dungeon appears twice on the page: first under Weapons, then under Armors.
+  // MediaWiki auto-suffixes duplicate headings: first = DungeonName, second = DungeonName_2
+  const weaponAnchor = key.replace(/ /g,'_');
+  const armorAnchor  = weaponAnchor + '_2';
+  const weaponUrl = WIKI_LOOT_PAGE + '#' + weaponAnchor;
+  const armorUrl  = WIKI_LOOT_PAGE + '#' + armorAnchor;
   const s = 'display:inline-flex;align-items:center;gap:0.25em;padding:0.3em 0.65em;border-radius:4px;text-decoration:none;font-size:0.8em;font-weight:700;color:white;';
   return '<div style="display:flex;gap:0.4em;justify-content:center;margin-top:0.5em;flex-wrap:wrap;">'
-    + '<a href="' + weaponUrl + '" target="_blank" rel="noopener" style="' + s + 'background:rgb(120,90,55);">Weapons</a>'
-    + '<a href="' + armorUrl  + '" target="_blank" rel="noopener" style="' + s + 'background:rgb(65,55,110);">Armor</a>'
+    + '<a href="' + weaponUrl + '" target="_blank" rel="noopener" style="' + s + 'background:rgb(120,90,55);">&#9876;&#65039; Weapons</a>'
+    + '<a href="' + armorUrl  + '" target="_blank" rel="noopener" style="' + s + 'background:rgb(65,55,110);">&#128737;&#65039; Armor</a>'
     + '</div>';
 }
 

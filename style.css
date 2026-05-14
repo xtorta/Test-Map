@@ -13,7 +13,7 @@ html, body {
 @media (max-width: 767px) { .leaflet-control-zoom { display: none !important; } }
 
 /* ── Sidebar shell ── */
-:root { --sb-full: 320px; --sb-compact: 52px; }
+:root { --sb-full: 350px; --sb-compact: 52px; }
 #sidebar {
   position: fixed; top: 0; right: 0; height: 100%;
   background: rgb(215,210,200);
@@ -121,10 +121,11 @@ html, body {
   display: flex; flex-shrink: 0; background: rgb(195,190,180); border-bottom: 2px solid #a09880;
 }
 .sb-tab {
-  flex: 1; padding: 0.45em 0.3em; border: none; cursor: pointer;
-  font-family: Noto, sans-serif; font-size: 0.76em; font-weight: 700;
+  flex: 1; padding: 0.5em 0.3em; border: none; cursor: pointer;
+  font-family: Noto, sans-serif; font-size: 0.84em; font-weight: 700;
   background: transparent; color: #5a4a2a; border-bottom: 3px solid transparent;
   transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 0.3em;
+  white-space: nowrap;
 }
 .sb-tab:hover { background: rgba(0,0,0,0.05); }
 .sb-tab.active { background: rgb(215,210,200); color: #3a2e1e; border-bottom-color: rgb(120,90,55); }
@@ -146,16 +147,19 @@ html, body {
 /* Tool buttons */
 #sb-icon-tools { display: flex; flex-direction: column; flex-shrink: 0; }
 .sb-tool-btn {
-  display: flex; align-items: center; gap: 0.6em; padding: 0.5em 0.85em;
+  display: flex; align-items: center; gap: 0.6em; padding: 0.55em 0.85em;
   cursor: pointer; border: none; background: transparent; width: 100%;
-  font-family: Noto, sans-serif; font-size: 0.83em; font-weight: 600; color: #3a2e1e;
-  text-align: left; border-bottom: 1px solid rgba(0,0,0,0.07); transition: background 0.1s; position: relative;
+  font-family: Noto, sans-serif; font-size: 0.88em; font-weight: 600; color: #3a2e1e;
+  text-align: left; border-bottom: 1px solid rgba(0,0,0,0.07); transition: background 0.1s;
+  position: relative; white-space: nowrap;
 }
 .sb-tool-btn:hover { background: rgba(0,0,0,0.06); }
 .sb-tool-btn.active { background: rgba(0,0,0,0.1); box-shadow: inset 0 2px 4px rgba(0,0,0,0.15); }
-.sb-tool-label { flex: 1; }
+#sb-hide-btn  { color: #555; }
+#sb-hide-btn:hover  { background: rgba(0,0,0,0.05) !important; }
 #sb-reset-btn { color: #c0392b; }
 #sb-reset-btn:hover { background: rgba(192,57,43,0.08) !important; }
+.sb-tool-label { flex: 1; }
 /* Compact icon-only tools */
 #sidebar.compact #sb-icon-tools { display: flex; }
 #sidebar.compact .sb-tool-btn { justify-content: center; padding: 0.6em 0; }
@@ -232,7 +236,7 @@ html, body {
 }
 .filter-group-header:hover { filter: brightness(0.92); }
 .fgh-left { display: flex; align-items: center; gap: 0.4em; }
-.fgh-title { font-size: 0.8em; font-weight: 700; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+.fgh-title { font-size: 0.87em; font-weight: 700; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); white-space: nowrap; }
 .fgh-chevron { font-size: 0.65em; color: rgba(255,255,255,0.85); transition: transform 0.2s; }
 .filter-group.collapsed .fgh-chevron { transform: rotate(-90deg); }
 .fgh-eye { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.8); padding: 0.15em; border-radius: 3px; display: flex; align-items: center; font-size: 0.85em; transition: all 0.15s; }
@@ -253,9 +257,9 @@ html, body {
   border-bottom: 1px solid rgba(0,0,0,0.07); cursor: pointer; user-select: none;
 }
 .filter-subgroup-header:hover { filter: brightness(0.92); }
-.filter-subgroup-header[data-sub="Plants"] { background: #b55c8a; }
-.filter-subgroup-header[data-sub="Ores"]   { background: #6040aa; }
-.fsh-title { font-size: 0.76em; font-weight: 700; flex: 1; color: white !important; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+.filter-subgroup-header[data-sub="Plants"] { background: #c47fa0; }
+.filter-subgroup-header[data-sub="Ores"]   { background: #8068bb; }
+.fsh-title { font-size: 0.83em; font-weight: 700; flex: 1; color: white !important; text-shadow: 0 1px 2px rgba(0,0,0,0.3); white-space: nowrap; }
 .fsh-chevron { font-size: 0.62em; color: rgba(255,255,255,0.8); transition: transform 0.2s; }
 .filter-subgroup.collapsed .fsh-chevron { transform: rotate(-90deg); }
 
@@ -276,7 +280,7 @@ html, body {
 .sublabel-row:hover { background: rgba(0,0,0,0.05); }
 .sublabel-row.active { background: rgba(120,90,55,0.1); }
 .sublabel-icon { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; }
-.sublabel-name { font-size: 0.8em; font-weight: 600; flex: 1; color: #3a2e1e; }
+.sublabel-name { font-size: 0.86em; font-weight: 600; flex: 1; color: #3a2e1e; white-space: nowrap; }
 
 /* Category rows */
 .sb-cat-row {
@@ -291,8 +295,8 @@ html, body {
 .sb-cat-icon { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; }
 .sb-cat-dot-wrap { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .sb-cat-dot { width: 22px; height: 22px; border-radius: 4px; border: 1.5px solid rgba(0,0,0,0.15); display: block; }
-.sb-cat-name { flex: 1; font-size: 0.85em; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sb-cat-count { font-size: 0.78em; color: #777; flex-shrink: 0; }
+.sb-cat-name { flex: 1; font-size: 0.9em; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-cat-count { font-size: 0.82em; color: #777; flex-shrink: 0; white-space: nowrap; }
 
 /* Scroll indicators */
 #sb-scroll-up, #sb-scroll-down {
@@ -424,7 +428,7 @@ html, body {
 /* Mobile route bottom bar */
 #mobile-route-bar { safe-area-inset-bottom: env(safe-area-inset-bottom,0); }
 @media (max-width:767px) { #mobile-route-bar { padding-bottom: calc(0.75em + env(safe-area-inset-bottom,0)); } }
-  :root { --sb-full: 290px; --sb-compact: 52px; }
+  :root { --sb-full: 310px; --sb-compact: 52px; }
   .sb-cat-row { min-height: 2.7em; }
   #sb-hint { font-size: 0.74em; }
   .sb-tab { font-size: 0.7em; padding: 0.4em 0.2em; }

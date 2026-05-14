@@ -771,6 +771,9 @@ function buildSidebar(layers) {
     catList.appendChild(groupDiv);
   });
 
+  // Scroll indicators
+  // Scroll indicators removed - they caused layout recalculation on every scroll event
+
   filterPanel.appendChild(catList);
   sidebar.appendChild(filterPanel);
 

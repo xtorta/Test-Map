@@ -229,47 +229,6 @@ let routePreviewLayer = null;
 let routesVisible = localStorage.getItem('routesVisible') !== '0';
 let globalRouteOpacity = parseFloat(localStorage.getItem('routeOpacity')||'0.88');
 
-// Douglas-Peucker simplification — removes points within epsilon of the line
-function simplifyPoints(pts, epsilon=30) {
-  if (pts.length <= 2) return pts;
-  let maxDist = 0, maxIdx = 0;
-  const start = pts[0], end = pts[pts.length-1];
-  for (let i=1; i<pts.length-1; i++) {
-    // Perpendicular distance from point to line segment
-    const dx = end[1]-start[1], dy = end[0]-start[0];
-    const len = Math.sqrt(dx*dx+dy*dy);
-    const d = len===0 ? 0 : Math.abs(dy*(pts[i][1]-start[1]) - dx*(pts[i][0]-start[0])) / len;
-    if (d > maxDist) { maxDist=d; maxIdx=i; }
-  }
-  if (maxDist > epsilon) {
-    const l = simplifyPoints(pts.slice(0, maxIdx+1), epsilon);
-    const r = simplifyPoints(pts.slice(maxIdx), epsilon);
-    return [...l.slice(0,-1), ...r];
-  }
-  return [start, end];
-}
-
-// Catmull-Rom with high step count for very smooth curves
-function smoothPoints(pts, tension=0.5, steps=20) {
-  if (pts.length < 2) return pts;
-  if (pts.length === 2) return pts;
-  const out = [pts[0]];
-  for (let i=0; i<pts.length-1; i++) {
-    const p0 = pts[Math.max(0,i-1)];
-    const p1 = pts[i];
-    const p2 = pts[i+1];
-    const p3 = pts[Math.min(pts.length-1,i+2)];
-    for (let t=1; t<=steps; t++) {
-      const s = t/steps;
-      const s2=s*s, s3=s2*s;
-      const lat = 0.5*((2*p1[0])+(-p0[0]+p2[0])*s+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*s2+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*s3);
-      const lng = 0.5*((2*p1[1])+(-p0[1]+p2[1])*s+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*s2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*s3);
-      out.push([lat,lng]);
-    }
-  }
-  return out;
-}
-
 // Subsample raw points to avoid too many stored points
 function subsample(pts, minDist=15) {
   if (!pts.length) return pts;
@@ -343,7 +302,7 @@ function renderRoutes() {
   customRoutes.forEach((route, ri) => {
     if (route.points.length < 2) return;
     const raw = route.points.map(p=>[p[0],p[1]]);
-    const smooth = smoothPoints(raw);
+    const smooth = raw;
     const colour = route.colour||'#e74c3c';
     const opacity = (route.hidden ? 0 : globalRouteOpacity);
     if (route.hidden) return; // skip hidden routes
@@ -398,14 +357,13 @@ function buildRoutePopup(route, ri) {
 function updateRoutePreview() {
   if (routePreviewLayer) map.removeLayer(routePreviewLayer);
   if (routePoints.length >= 2) {
-    const smooth = smoothPoints(routePoints);
+    const smooth = routePoints;
     routePreviewLayer = L.polyline(smooth, {color:selectedCustColour, weight:3, dashArray:'5 4', opacity:0.8, smoothFactor:1}).addTo(map);
   }
 }
 function finishRoute() {
-  const sub = subsample(routePoints, 8); // finer subsample
-  const simplified = simplifyPoints(sub, 25); // remove noise
-  if (simplified.length >= 2) { customRoutes.push({points:simplified, colour:selectedCustColour, note:''}); saveCustom(); renderRoutes(); }
+  const sub = subsample(routePoints, 8);
+  if (sub.length >= 2) { customRoutes.push({points:sub, colour:selectedCustColour, note:''}); saveCustom(); renderRoutes(); }
   routePoints = []; routeDrawActive = false;
   if (routePreviewLayer) { map.removeLayer(routePreviewLayer); routePreviewLayer=null; }
 }
@@ -1149,11 +1107,9 @@ function buildRoutesPanel(panel) {
       dnBtn.addEventListener('click',()=>{ if(i<customRoutes.length-1){[customRoutes[i],customRoutes[i+1]]=[customRoutes[i+1],customRoutes[i]]; saveCustom(); renderRoutes(); refreshRouteList();} });
       const flyBtn=mk('button',{style:'background:none;border:none;cursor:pointer;color:#388e9f;font-size:0.85em;padding:0.1em 0.2em;'}); flyBtn.title='Go to route'; flyBtn.textContent='🎯';
       flyBtn.addEventListener('click',()=>{ if(rt.points.length) map.flyTo(rt.points[0],0,{animate:true,duration:0.7}); });
-      const smoothBtn=mk('button',{style:'background:none;border:none;cursor:pointer;color:#27ae60;font-size:0.72em;padding:0.1em 0.2em;white-space:nowrap;'}); smoothBtn.title='Smoothen route'; smoothBtn.textContent='〰';
-      smoothBtn.addEventListener('click',()=>{ rt.points=simplifyPoints(rt.points, 40); saveCustom(); renderRoutes(); refreshRouteList(); });
       const delBtn=mk('button',{style:'background:none;border:none;cursor:pointer;color:#c0392b;font-size:0.8em;padding:0.1em 0.2em;'}); delBtn.innerHTML=SVG.trash;
       delBtn.addEventListener('click',()=>{ customRoutes.splice(i,1); saveCustom(); renderRoutes(); refreshRouteList(); });
-      topRow.appendChild(visChk); topRow.appendChild(colDot); topRow.appendChild(nameInp); topRow.appendChild(upBtn); topRow.appendChild(dnBtn); topRow.appendChild(flyBtn); topRow.appendChild(smoothBtn); topRow.appendChild(delBtn);
+      topRow.appendChild(visChk); topRow.appendChild(colDot); topRow.appendChild(nameInp); topRow.appendChild(upBtn); topRow.appendChild(dnBtn); topRow.appendChild(flyBtn); topRow.appendChild(delBtn);
 
       // Share code row
       const code=encodeRouteCode(rt);

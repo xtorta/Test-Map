@@ -123,18 +123,30 @@ function makeRegionIcon(name, tier, interactive) {
   });
 }
 function isRegionVisible(tier) { return tier==='region'?showRegions:tier==='subregion'?showSubregions:showZones; }
+function isZoomVisible(tier) {
+  const z = map.getZoom();
+  if (tier === 'zone')      return z >= -2;   // zones only when zoomed in
+  if (tier === 'subregion') return z >= -4;   // subregions at medium zoom
+  return true;                                 // regions always
+}
 function refreshRegionVisibility() {
   regionLabels.forEach(({marker,tier}) => {
-    if (isRegionVisible(tier)) { if (!regionLayer.hasLayer(marker)) marker.addTo(regionLayer); }
-    else regionLayer.removeLayer(marker);
+    if (isRegionVisible(tier) && isZoomVisible(tier)) {
+      if (!regionLayer.hasLayer(marker)) marker.addTo(regionLayer);
+    } else {
+      regionLayer.removeLayer(marker);
+    }
   });
 }
-map.on('zoomend', () => regionLabels.forEach(({marker,name,tier}) => {
-  if (regionLayer.hasLayer(marker)) {
-    const interactive = (tier === 'region' || tier === 'subregion' || tier === 'zone');
-    marker.setIcon(makeRegionIcon(name, tier, interactive));
-  }
-}));
+map.on('zoomend', () => {
+  regionLabels.forEach(({marker,name,tier}) => {
+    if (regionLayer.hasLayer(marker)) {
+      const interactive = (tier === 'region' || tier === 'subregion' || tier === 'zone');
+      marker.setIcon(makeRegionIcon(name, tier, interactive));
+    }
+  });
+  refreshRegionVisibility();
+});
 async function loadRegions() {
   try {
     const r = await fetch('regions.json'); if (!r.ok) return;
@@ -1149,6 +1161,38 @@ function buildRoutesPanel(panel) {
   panel.appendChild(listTitle); panel.appendChild(routeList);
   panel.appendChild(sep());
   panel.appendChild(importTitle); panel.appendChild(importRow); panel.appendChild(importStatus);
+
+  // Delete All Routes
+  panel.appendChild(sep());
+  const delAllBtn = mk('button',{style:'width:100%;padding:0.5em;border-radius:5px;border:none;background:linear-gradient(135deg,#b0665d 50%,#ce715c 50%);color:white;font-family:Noto,sans-serif;font-size:0.88em;font-weight:700;cursor:pointer;'});
+  delAllBtn.textContent = '🗑 Delete All Routes';
+  const delAllStatus = mk('div',{style:'font-size:0.75em;text-align:center;min-height:1.2em;margin-top:0.3em;'});
+  let delAllPending = false;
+  delAllBtn.addEventListener('click', () => {
+    if (!delAllPending) {
+      delAllPending = true;
+      delAllBtn.textContent = '⚠️ Are you sure? Click again to confirm';
+      delAllBtn.style.background = 'linear-gradient(135deg,#8a3030 50%,#a03030 50%)';
+      setTimeout(() => {
+        if (delAllPending) {
+          delAllPending = false;
+          delAllBtn.textContent = '🗑 Delete All Routes';
+          delAllBtn.style.background = 'linear-gradient(135deg,#b0665d 50%,#ce715c 50%)';
+        }
+      }, 4000);
+    } else {
+      delAllPending = false;
+      customRoutes.length = 0;
+      saveCustom(); renderRoutes(); refreshRouteList();
+      delAllBtn.textContent = '🗑 Delete All Routes';
+      delAllBtn.style.background = 'linear-gradient(135deg,#b0665d 50%,#ce715c 50%)';
+      delAllStatus.textContent = '✓ All routes deleted';
+      delAllStatus.style.color = '#27ae60';
+      setTimeout(() => delAllStatus.textContent = '', 3000);
+    }
+  });
+  panel.appendChild(delAllBtn);
+  panel.appendChild(delAllStatus);
 
   refreshRouteList();
 }

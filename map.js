@@ -227,6 +227,7 @@ let routeDrawActive = false; // mouse is held down drawing
 let routePoints  = [];
 let routePreviewLayer = null;
 let routesVisible = localStorage.getItem('routesVisible') !== '0';
+let globalRouteOpacity = parseFloat(localStorage.getItem('routeOpacity')||'0.88');
 
 // Convert raw drawn points to smoothed Catmull-Rom curve
 function smoothPoints(pts, tension=0.4, steps=8) {
@@ -324,8 +325,8 @@ function renderRoutes() {
     const raw = route.points.map(p=>[p[0],p[1]]);
     const smooth = smoothPoints(raw);
     const colour = route.colour||'#e74c3c';
-    const opacity = route.opacity ?? 0.88;
-    // Draw smooth line
+    const opacity = (route.hidden ? 0 : globalRouteOpacity);
+    if (route.hidden) return; // skip hidden routes
     const line = L.polyline(smooth, { color:colour, weight:3.5, opacity:opacity, smoothFactor:1 });
     line.addTo(custRouteLayer);
 
@@ -700,24 +701,23 @@ function buildSidebar(layers) {
   });
   sidebar.appendChild(tabBar);
 
-  // ── Tool buttons — hide/reset side by side + share ────────────────
+  // ── Panel: Filter (tools + zones + filters all inside) ───────────
+  const filterPanel=mk('div',{id:'sb-panel-filter',class:'sb-panel active'});
+
+  // Tool row inside filter panel
   const iconTools=mk('div',{id:'sb-icon-tools'});
   const searchToolBtn=mkToolBtn('sb-search-tool',SVG.search,'Search'); searchToolBtn.classList.add('compact-only');
-
-  // Hide + Reset in a single row
   const completedRow=mk('div',{style:'display:flex;border-bottom:1px solid rgba(0,0,0,0.07);flex-shrink:0;'});
-  const hideBtn=mk('button',{id:'sb-hide-btn',class:'sb-tool-btn',style:'border-bottom:none;border-right:1px solid rgba(0,0,0,0.07);flex:1;'}); hideBtn.setAttribute('data-tip','Hide Completed'); hideBtn.innerHTML=`${SVG.eye}<span class="sb-tool-label">Hide Done</span>`;
-  const resetBtn=mk('button',{id:'sb-reset-btn',class:'sb-tool-btn',style:'border-bottom:none;flex:1;color:#c0392b;'}); resetBtn.setAttribute('data-tip','Reset Completed'); resetBtn.innerHTML=`${SVG.reset}<span class="sb-tool-label">Reset Done</span>`;
+  const hideBtn=mk('button',{id:'sb-hide-btn',class:'sb-tool-btn',style:'border-bottom:none;border-right:1px solid rgba(0,0,0,0.07);flex:1;'}); hideBtn.setAttribute('data-tip','Hide Completed'); hideBtn.innerHTML=`${SVG.eye}<span class="sb-tool-label">Hide Completed</span>`;
+  const resetBtn=mk('button',{id:'sb-reset-btn',class:'sb-tool-btn',style:'border-bottom:none;flex:1;color:#c0392b;'}); resetBtn.setAttribute('data-tip','Reset Completed'); resetBtn.innerHTML=`${SVG.reset}<span class="sb-tool-label">Reset Completed</span>`;
   completedRow.appendChild(hideBtn); completedRow.appendChild(resetBtn);
-
   const shareBtn=mkToolBtn('sb-share-btn',`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="12" cy="13" r="2"/><line x1="6" y1="9" x2="10" y2="12"/><line x1="10" y1="4" x2="6" y2="7"/></svg>`,'Share Location');
   shareBtn.addEventListener('click', copyPermalink);
-
   iconTools.appendChild(searchToolBtn); iconTools.appendChild(completedRow); iconTools.appendChild(shareBtn);
-  sidebar.appendChild(iconTools);
-  sidebar.appendChild(sep());
+  filterPanel.appendChild(iconTools);
+  filterPanel.appendChild(sep());
 
-  // ── Zone toggles ─────────────────────────────────────────────────
+  // Zone toggles inside filter panel
   const zoneTogs=mk('div',{id:'sb-zone-toggles'});
   [{key:'region',svg:SVG.region,label:'Regions',id:'ztog-region',tip:'Toggle Regions'},{key:'subregion',svg:SVG.sub,label:'Sub',id:'ztog-subregion',tip:'Toggle Sub-regions'},{key:'zone',svg:SVG.zone,label:'Zones',id:'ztog-zone',tip:'Toggle Zones'}].forEach(({key,svg,label,id,tip})=>{
     const btn=mk('button',{class:'zone-tog-btn'+(isRegionVisible(key)?' active':''),id});
@@ -732,11 +732,8 @@ function buildSidebar(layers) {
     });
     zoneTogs.appendChild(btn);
   });
-  sidebar.appendChild(zoneTogs);
-  sidebar.appendChild(sep());
-
-  // ── Panel: Filter ────────────────────────────────────────────────
-  const filterPanel=mk('div',{id:'sb-panel-filter',class:'sb-panel active'});
+  filterPanel.appendChild(zoneTogs);
+  filterPanel.appendChild(sep());
 
   const catList=mk('div',{id:'sb-cat-list'});
   FILTER_GROUPS.forEach(group => {
@@ -1011,159 +1008,156 @@ function decodeRouteCode(code) {
 function buildRoutesPanel(panel) {
   panel.innerHTML = '';
 
-  const drawTitle = mk('div',{class:'cust-section-title'}); drawTitle.textContent = 'Draw Route';
-  const drawInstr = mk('div',{class:'cust-route-instructions'}); drawInstr.textContent = 'Hold and drag on the map to draw. Click a route on the map to edit/delete.';
+  // ── Hint ──────────────────────────────────────────────────────────
+  const hint = mk('div',{class:'cust-mode-status',style:'font-size:0.74em;font-weight:700;color:#f0a040;padding:0.2em 0;flex-shrink:0;'});
+  hint.textContent = 'Hold & drag on the map to draw a route';
 
-  // Route name input
-  const nameRow = mk('div',{style:'display:flex;gap:0.35em;align-items:center;margin-bottom:0.2em;'});
-  const nameLabel = mk('span',{style:'font-size:0.78em;font-weight:700;color:#3a2e1e;white-space:nowrap;'}); nameLabel.textContent='Route name:';
-  const nameInput = mk('input'); Object.assign(nameInput, {type:'text', placeholder:'e.g. Ore run, Chest route…', style:'flex:1;padding:0.32em 0.5em;border:1.5px solid #a09880;border-radius:4px;font-family:Noto,sans-serif;font-size:0.8em;background:rgb(232,228,218);color:#1a1a1a;outline:none;'});
+  // ── Name input ────────────────────────────────────────────────────
+  const nameRow = mk('div',{style:'display:flex;gap:0.35em;align-items:center;'});
+  const nameLabel = mk('span',{style:'font-size:0.78em;font-weight:700;color:#3a2e1e;white-space:nowrap;'}); nameLabel.textContent='Name:';
+  const nameInput = mk('input'); Object.assign(nameInput,{type:'text',placeholder:'e.g. Ore run, Chest route…',style:'flex:1;padding:0.32em 0.5em;border:1.5px solid #a09880;border-radius:4px;font-family:Noto,sans-serif;font-size:0.8em;background:rgb(232,228,218);color:#1a1a1a;outline:none;'});
   nameRow.appendChild(nameLabel); nameRow.appendChild(nameInput);
 
+  // ── Draw / Visible buttons ────────────────────────────────────────
   const modeRow = mk('div',{class:'cust-mode-row'});
-  const btnRoute = mk('button',{class:'cust-btn cust-btn-route'}); btnRoute.innerHTML = `${SVG.route} Draw Route`;
-  // Mobile only: finish/cancel buttons
-  const btnFinish = mk('button',{class:'cust-btn cust-btn-route',style:'display:none'}); btnFinish.textContent = '✓ Finish';
-  const btnCancel = mk('button',{class:'cust-btn cust-btn-cancel',style:'display:none'}); btnCancel.textContent = '✕ Cancel';
+  const btnRoute = mk('button',{class:'cust-btn cust-btn-route'}); btnRoute.innerHTML=`${SVG.route} Draw Route`;
+  const btnFinish = mk('button',{class:'cust-btn cust-btn-route',style:'display:none'}); btnFinish.textContent='✓ Finish';
+  const btnCancel = mk('button',{class:'cust-btn cust-btn-cancel',style:'display:none'}); btnCancel.textContent='✕ Cancel';
   modeRow.appendChild(btnRoute); modeRow.appendChild(btnFinish); modeRow.appendChild(btnCancel);
 
-  function saveRouteWithName() {
-    const name = nameInput.value.trim();
-    // Set note on last saved route if name given
-    if (name && customRoutes.length) {
-      customRoutes[customRoutes.length-1].note = name;
-      saveCustom();
-    }
-    nameInput.value = '';
-  }
-
-  btnRoute.addEventListener('click', () => {
-    routeDrawing = true; pendingCustPlace = false;
-    if (isMobile()) {
-      btnRoute.style.display = 'none'; btnFinish.style.display = ''; btnCancel.style.display = '';
-      showMobileRouteBar();
-    }
-    // Desktop: draw on mousedown+drag+mouseup — auto-saves, no finish button needed
-  });
-  btnFinish.addEventListener('click', () => {
-    finishRoute(); routeDrawing = false;
-    btnRoute.style.display = ''; btnFinish.style.display = 'none'; btnCancel.style.display = 'none';
-    hideMobileRouteBar(true); saveRouteWithName(); refreshRouteList();
-  });
-  btnCancel.addEventListener('click', () => {
-    // Cancel: discard current draw without saving
-    routeDrawing = false; routePoints = []; routeDrawActive = false;
-    if (routePreviewLayer) { map.removeLayer(routePreviewLayer); routePreviewLayer = null; }
-    btnRoute.style.display = ''; btnFinish.style.display = 'none'; btnCancel.style.display = 'none';
-    hideMobileRouteBar(true);
-  });
-
-  // Desktop: after mouseup auto-saves, apply name immediately
-  const origFinish = finishRoute;
-  window._onRouteFinished = () => { saveRouteWithName(); refreshRouteList(); };
-
   const visRow = mk('div',{class:'cust-mode-row',style:'margin-top:0.3em;'});
-  const btnVis = mk('button',{class:`cust-btn cust-btn-route${routesVisible?' active':''}`});
-  btnVis.textContent = routesVisible ? '👁 Routes Visible' : '👁 Routes Hidden'; btnVis.style.flex = '1';
-  btnVis.addEventListener('click', () => {
-    routesVisible = !routesVisible; localStorage.setItem('routesVisible', routesVisible ? '1' : '0');
-    btnVis.classList.toggle('active', routesVisible);
-    btnVis.textContent = routesVisible ? '👁 Routes Visible' : '👁 Routes Hidden';
+  const btnVis = mk('button',{class:`cust-btn cust-btn-route${routesVisible?' active':''}`,style:'flex:1;'});
+  btnVis.textContent = routesVisible?'👁 Routes Visible':'👁 Routes Hidden';
+  btnVis.addEventListener('click',()=>{
+    routesVisible=!routesVisible; localStorage.setItem('routesVisible',routesVisible?'1':'0');
+    btnVis.classList.toggle('active',routesVisible);
+    btnVis.textContent=routesVisible?'👁 Routes Visible':'👁 Routes Hidden';
     renderRoutes(); refreshRouteList();
   });
   visRow.appendChild(btnVis);
 
-  // Colour picker
-  const colTitle = mk('div',{class:'cust-section-title'}); colTitle.textContent = 'Route Colour';
-  const colRow = mk('div',{class:'color-swatch-row'});
-  let selSwatch = null;
-  CUSTOM_COLOURS.forEach(col => {
-    const s = mk('div',{class:'color-swatch'+(col===selectedCustColour?' selected':'')}); s.style.background = col;
-    s.addEventListener('click', () => { selectedCustColour = col; localStorage.setItem('custColour',col); selSwatch?.classList.remove('selected'); s.classList.add('selected'); selSwatch = s; });
-    if (col === selectedCustColour) selSwatch = s;
+  function saveRouteWithName() {
+    const name=nameInput.value.trim();
+    if(name&&customRoutes.length){ customRoutes[customRoutes.length-1].note=name; saveCustom(); }
+    nameInput.value='';
+  }
+  btnRoute.addEventListener('click',()=>{
+    routeDrawing=true; pendingCustPlace=false;
+    if(isMobile()){ btnRoute.style.display='none'; btnFinish.style.display=''; btnCancel.style.display=''; showMobileRouteBar(); }
+  });
+  btnFinish.addEventListener('click',()=>{
+    finishRoute(); routeDrawing=false;
+    btnRoute.style.display=''; btnFinish.style.display='none'; btnCancel.style.display='none';
+    hideMobileRouteBar(true); saveRouteWithName(); refreshRouteList();
+  });
+  btnCancel.addEventListener('click',()=>{
+    routeDrawing=false; routePoints=[]; routeDrawActive=false;
+    if(routePreviewLayer){map.removeLayer(routePreviewLayer);routePreviewLayer=null;}
+    btnRoute.style.display=''; btnFinish.style.display='none'; btnCancel.style.display='none';
+    hideMobileRouteBar(true);
+  });
+  window._onRouteFinished=()=>{ saveRouteWithName(); refreshRouteList(); };
+
+  // ── New route colour picker ───────────────────────────────────────
+  const colTitle=mk('div',{class:'cust-section-title'}); colTitle.textContent='New Route Colour';
+  const colRow=mk('div',{class:'color-swatch-row'});
+  let selSwatch=null;
+  CUSTOM_COLOURS.forEach(col=>{
+    const s=mk('div',{class:'color-swatch'+(col===selectedCustColour?' selected':'')}); s.style.background=col;
+    s.addEventListener('click',()=>{ selectedCustColour=col; localStorage.setItem('custColour',col); selSwatch?.classList.remove('selected'); s.classList.add('selected'); selSwatch=s; });
+    if(col===selectedCustColour) selSwatch=s;
     colRow.appendChild(s);
   });
 
-  // Route list
-  const listTitle = mk('div',{class:'cust-section-title',id:'route-list-title'}); listTitle.textContent = `My Routes (${customRoutes.length})`;
-  const routeList = mk('div',{id:'route-list',style:'display:flex;flex-direction:column;gap:0.3em;'});
+  // ── Global opacity slider ─────────────────────────────────────────
+  const opTitle=mk('div',{class:'cust-section-title'}); opTitle.textContent='All Routes Opacity';
+  const opRow=mk('div',{style:'display:flex;align-items:center;gap:0.5em;'});
+  const opSlider=mk('input'); Object.assign(opSlider,{type:'range',min:'0.05',max:'1',step:'0.01',value:String(globalRouteOpacity),style:'flex:1;cursor:pointer;accent-color:rgb(210,120,0);'});
+  const opVal=mk('span',{style:'font-size:0.75em;color:#555;width:2.8em;text-align:right;flex-shrink:0;'}); opVal.textContent=Math.round(globalRouteOpacity*100)+'%';
+  opSlider.addEventListener('input',()=>{ globalRouteOpacity=parseFloat(opSlider.value); opVal.textContent=Math.round(globalRouteOpacity*100)+'%'; localStorage.setItem('routeOpacity',globalRouteOpacity); renderRoutes(); });
+  opRow.appendChild(opSlider); opRow.appendChild(opVal);
+
+  // ── Route list ────────────────────────────────────────────────────
+  const listTitle=mk('div',{class:'cust-section-title',id:'route-list-title'}); listTitle.textContent=`My Routes (${customRoutes.length})`;
+  const routeList=mk('div',{id:'route-list',style:'display:flex;flex-direction:column;'});
 
   function refreshRouteList() {
-    listTitle.textContent = `My Routes (${customRoutes.length})`;
-    routeList.innerHTML = '';
-    if (!customRoutes.length) {
-      const empty = mk('div',{style:'font-size:0.78em;color:#888;padding:0.4em 0;'}); empty.textContent = 'No routes yet — draw one above';
-      routeList.appendChild(empty); return;
-    }
-    customRoutes.forEach((rt, i) => {
-      const row = mk('div',{style:'background:rgb(225,220,210);border-radius:5px;padding:0.45em 0.6em;border:1px solid #c0b898;margin-bottom:0.3em;'});
+    listTitle.textContent=`My Routes (${customRoutes.length})`;
+    routeList.innerHTML='';
+    if(!customRoutes.length){ const e=mk('div',{style:'font-size:0.78em;color:#888;padding:0.4em 0;'}); e.textContent='No routes yet — draw one above'; routeList.appendChild(e); return; }
+    customRoutes.forEach((rt,i)=>{
+      const row=mk('div',{style:'background:rgb(225,220,210);border-radius:5px;padding:0.45em 0.6em;border:1px solid #c0b898;margin-bottom:0.3em;'});
 
-      // Top row: colour dot + editable name + sort + fly + delete
-      const topRow = mk('div',{style:'display:flex;align-items:center;gap:0.3em;'});
-      const dot = mk('div',{style:`width:10px;height:10px;border-radius:50%;background:${rt.colour||'#e74c3c'};flex-shrink:0;`});
-      const nameInp = mk('input'); Object.assign(nameInp,{type:'text',value:rt.note||`Route ${i+1}`,style:'flex:1;padding:0.2em 0.4em;border:1px solid #a09880;border-radius:3px;font-size:0.79em;background:transparent;color:#3a2e1e;outline:none;font-weight:600;cursor:text;min-width:0;'});
-      nameInp.addEventListener('change', () => { rt.note = nameInp.value.trim()||`Route ${i+1}`; saveCustom(); });
-      const upBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#555;font-size:0.8em;padding:0.1em;line-height:1;'}); upBtn.textContent='↑'; upBtn.title='Move up';
-      upBtn.addEventListener('click', () => { if(i>0){[customRoutes[i-1],customRoutes[i]]=[customRoutes[i],customRoutes[i-1]]; saveCustom(); renderRoutes(); refreshRouteList();} });
-      const dnBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#555;font-size:0.8em;padding:0.1em;line-height:1;'}); dnBtn.textContent='↓'; dnBtn.title='Move down';
-      dnBtn.addEventListener('click', () => { if(i<customRoutes.length-1){[customRoutes[i],customRoutes[i+1]]=[customRoutes[i+1],customRoutes[i]]; saveCustom(); renderRoutes(); refreshRouteList();} });
-      const flyBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#388e9f;font-size:0.8em;padding:0.1em 0.2em;'}); flyBtn.title='Go to route'; flyBtn.textContent='🎯';
-      flyBtn.addEventListener('click', () => { if(rt.points.length) map.flyTo(rt.points[0],0,{animate:true,duration:0.7}); });
-      const delBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#c0392b;font-size:0.8em;padding:0.1em 0.2em;'}); delBtn.title='Delete'; delBtn.innerHTML=SVG.trash;
-      delBtn.addEventListener('click', () => { customRoutes.splice(i,1); saveCustom(); renderRoutes(); refreshRouteList(); });
-      topRow.appendChild(dot); topRow.appendChild(nameInp); topRow.appendChild(upBtn); topRow.appendChild(dnBtn); topRow.appendChild(flyBtn); topRow.appendChild(delBtn);
-
-      // Colour row
-      const colRow2 = mk('div',{style:'display:flex;gap:0.25em;flex-wrap:wrap;margin-top:0.3em;'});
-      CUSTOM_COLOURS.forEach(col => {
-        const sw = mk('div',{style:`width:1.2em;height:1.2em;border-radius:3px;background:${col};cursor:pointer;border:2px solid ${col===(rt.colour||'#e74c3c')?'#1a1a1a':'transparent'};flex-shrink:0;`});
-        sw.addEventListener('click', () => {
-          rt.colour = col; saveCustom(); renderRoutes(); refreshRouteList();
-        });
-        colRow2.appendChild(sw);
+      // Top: visibility check + editable name + sort + fly + delete
+      const topRow=mk('div',{style:'display:flex;align-items:center;gap:0.3em;'});
+      // Visibility checkbox (check0/check1 png)
+      const visChk=mk('span',{style:`background-image:url("${rt.hidden?'check0':'check1'}.png");background-size:contain;background-repeat:no-repeat;width:1.05em;height:1.05em;flex-shrink:0;cursor:pointer;`});
+      visChk.addEventListener('click',()=>{ rt.hidden=!rt.hidden; saveCustom(); renderRoutes(); refreshRouteList(); });
+      // Colour dot — click to open inline colour picker
+      const colDot=mk('div',{style:`width:14px;height:14px;border-radius:50%;background:${rt.colour||'#e74c3c'};flex-shrink:0;cursor:pointer;border:2px solid rgba(0,0,0,0.2);`});
+      colDot.title='Click to change colour';
+      // Inline colour picker (hidden until dot clicked)
+      const colPicker=mk('div',{style:'display:none;position:absolute;background:rgb(232,228,218);border:1.5px solid #a09880;border-radius:6px;padding:0.4em;z-index:500;gap:0.25em;flex-wrap:wrap;box-shadow:0 4px 12px rgba(0,0,0,0.2);'});
+      colPicker.style.display='none';
+      CUSTOM_COLOURS.forEach(col=>{
+        const sw=mk('div',{style:`width:1.3em;height:1.3em;border-radius:3px;background:${col};cursor:pointer;border:2px solid ${col===(rt.colour||'#e74c3c')?'#1a1a1a':'transparent'};`});
+        sw.addEventListener('click',e=>{ e.stopPropagation(); rt.colour=col; saveCustom(); renderRoutes(); refreshRouteList(); });
+        colPicker.appendChild(sw);
       });
+      colPicker.style.display='none';
+      let pickerOpen=false;
+      colDot.addEventListener('click',e=>{ e.stopPropagation(); pickerOpen=!pickerOpen; colPicker.style.display=pickerOpen?'flex':'none'; });
+      document.addEventListener('click',()=>{ pickerOpen=false; colPicker.style.display='none'; },{once:false});
+      const colWrap=mk('div',{style:'position:relative;flex-shrink:0;'}); colWrap.appendChild(colDot); colWrap.appendChild(colPicker);
 
-      // Opacity slider row
-      const opRow = mk('div',{style:'display:flex;align-items:center;gap:0.4em;margin-top:0.3em;'});
-      const opLabel = mk('span',{style:'font-size:0.7em;color:#666;white-space:nowrap;'}); opLabel.textContent='Opacity:';
-      const opSlider = mk('input'); Object.assign(opSlider,{type:'range',min:'0.1',max:'1',step:'0.05',value:String(rt.opacity??0.88),style:'flex:1;cursor:pointer;'});
-      const opVal = mk('span',{style:'font-size:0.7em;color:#555;width:2.5em;text-align:right;'}); opVal.textContent=Math.round((rt.opacity??0.88)*100)+'%';
-      opSlider.addEventListener('input', () => { rt.opacity=parseFloat(opSlider.value); opVal.textContent=Math.round(rt.opacity*100)+'%'; saveCustom(); renderRoutes(); });
-      opRow.appendChild(opLabel); opRow.appendChild(opSlider); opRow.appendChild(opVal);
+      const nameInp=mk('input'); Object.assign(nameInp,{type:'text',value:rt.note||`Route ${i+1}`,style:'flex:1;padding:0.2em 0.4em;border:1px solid #a09880;border-radius:3px;font-size:0.79em;background:transparent;color:#3a2e1e;outline:none;font-weight:600;cursor:text;min-width:0;'});
+      nameInp.addEventListener('change',()=>{ rt.note=nameInp.value.trim()||`Route ${i+1}`; saveCustom(); });
+      const upBtn=mk('button',{style:'background:none;border:none;cursor:pointer;color:#555;font-size:0.8em;padding:0.1em;'}); upBtn.textContent='↑';
+      upBtn.addEventListener('click',()=>{ if(i>0){[customRoutes[i-1],customRoutes[i]]=[customRoutes[i],customRoutes[i-1]]; saveCustom(); renderRoutes(); refreshRouteList();} });
+      const dnBtn=mk('button',{style:'background:none;border:none;cursor:pointer;color:#555;font-size:0.8em;padding:0.1em;'}); dnBtn.textContent='↓';
+      dnBtn.addEventListener('click',()=>{ if(i<customRoutes.length-1){[customRoutes[i],customRoutes[i+1]]=[customRoutes[i+1],customRoutes[i]]; saveCustom(); renderRoutes(); refreshRouteList();} });
+      const flyBtn=mk('button',{style:'background:none;border:none;cursor:pointer;color:#388e9f;font-size:0.85em;padding:0.1em 0.2em;'}); flyBtn.title='Go to route'; flyBtn.textContent='🎯';
+      flyBtn.addEventListener('click',()=>{ if(rt.points.length) map.flyTo(rt.points[0],0,{animate:true,duration:0.7}); });
+      const smoothBtn=mk('button',{style:'background:none;border:none;cursor:pointer;color:#27ae60;font-size:0.72em;padding:0.1em 0.2em;white-space:nowrap;'}); smoothBtn.title='Smoothen route'; smoothBtn.textContent='〰';
+      smoothBtn.addEventListener('click',()=>{ rt.points=smoothPoints(rt.points,0.4,6); saveCustom(); renderRoutes(); refreshRouteList(); });
+      const delBtn=mk('button',{style:'background:none;border:none;cursor:pointer;color:#c0392b;font-size:0.8em;padding:0.1em 0.2em;'}); delBtn.innerHTML=SVG.trash;
+      delBtn.addEventListener('click',()=>{ customRoutes.splice(i,1); saveCustom(); renderRoutes(); refreshRouteList(); });
+      topRow.appendChild(visChk); topRow.appendChild(colWrap); topRow.appendChild(nameInp); topRow.appendChild(upBtn); topRow.appendChild(dnBtn); topRow.appendChild(flyBtn); topRow.appendChild(smoothBtn); topRow.appendChild(delBtn);
 
       // Share code row
-      const code = encodeRouteCode(rt);
-      const codeRow = mk('div',{style:'display:flex;align-items:center;gap:0.3em;margin-top:0.3em;'});
-      const codeBox = mk('input'); Object.assign(codeBox,{type:'text',readOnly:true,value:code,title:'Click to copy',style:'flex:1;padding:0.2em 0.4em;border:1px solid #a09880;border-radius:3px;font-size:0.68em;background:rgb(215,210,200);color:#3a2e1e;outline:none;cursor:pointer;'});
-      codeBox.addEventListener('click', () => { navigator.clipboard?.writeText(code).then(() => { codeBox.style.background='rgb(200,230,200)'; setTimeout(()=>codeBox.style.background='',1000); }); });
+      const code=encodeRouteCode(rt);
+      const codeRow=mk('div',{style:'display:flex;align-items:center;gap:0.3em;margin-top:0.3em;'});
+      const codeBox=mk('input'); Object.assign(codeBox,{type:'text',readOnly:true,value:code,title:'Click to copy',style:'flex:1;padding:0.2em 0.4em;border:1px solid #a09880;border-radius:3px;font-size:0.68em;background:rgb(215,210,200);color:#3a2e1e;outline:none;cursor:pointer;'});
+      codeBox.addEventListener('click',()=>{ navigator.clipboard?.writeText(code).then(()=>{ codeBox.style.background='rgb(200,230,200)'; setTimeout(()=>codeBox.style.background='',1000); }); });
       codeRow.appendChild(codeBox);
 
-      row.appendChild(topRow); row.appendChild(colRow2); row.appendChild(opRow); row.appendChild(codeRow);
+      row.appendChild(topRow); row.appendChild(codeRow);
       routeList.appendChild(row);
     });
   }
-  window._routeRenderHook = () => refreshRouteList();
+  window._routeRenderHook=()=>refreshRouteList();
 
-  // Import
-  const importTitle = mk('div',{class:'cust-section-title'}); importTitle.textContent = 'Import Route';
-  const importRow = mk('div',{style:'display:flex;gap:0.3em;'});
-  const importInput = mk('input'); Object.assign(importInput,{type:'text',placeholder:'Paste route code…',style:'flex:1;padding:0.32em 0.5em;border:1.5px solid #a09880;border-radius:4px;font-family:Noto,sans-serif;font-size:0.8em;background:rgb(232,228,218);color:#1a1a1a;outline:none;'});
-  const importBtn = mk('button',{style:'padding:0.32em 0.7em;border-radius:4px;border:none;background:rgb(120,90,55);color:white;font-family:Noto,sans-serif;font-size:0.78em;font-weight:700;cursor:pointer;white-space:nowrap;'}); importBtn.textContent = 'Import';
-  const importStatus = mk('div',{style:'font-size:0.72em;min-height:1em;color:#5a4a2a;'});
-  importBtn.addEventListener('click', () => {
-    const rt = decodeRouteCode(importInput.value.trim());
-    if (!rt) { importStatus.textContent = '❌ Invalid code'; importStatus.style.color = '#c0392b'; return; }
+  // ── Import ────────────────────────────────────────────────────────
+  const importTitle=mk('div',{class:'cust-section-title'}); importTitle.textContent='Import Route';
+  const importRow=mk('div',{style:'display:flex;gap:0.3em;'});
+  const importInput=mk('input'); Object.assign(importInput,{type:'text',placeholder:'Paste route code…',style:'flex:1;padding:0.32em 0.5em;border:1.5px solid #a09880;border-radius:4px;font-family:Noto,sans-serif;font-size:0.8em;background:rgb(232,228,218);color:#1a1a1a;outline:none;'});
+  const importBtn=mk('button',{style:'padding:0.32em 0.7em;border-radius:4px;border:none;background:rgb(120,90,55);color:white;font-family:Noto,sans-serif;font-size:0.78em;font-weight:700;cursor:pointer;white-space:nowrap;'}); importBtn.textContent='Import';
+  const importStatus=mk('div',{style:'font-size:0.72em;min-height:1em;color:#5a4a2a;'});
+  importBtn.addEventListener('click',()=>{
+    const rt=decodeRouteCode(importInput.value.trim());
+    if(!rt){ importStatus.textContent='❌ Invalid code'; importStatus.style.color='#c0392b'; return; }
     customRoutes.push(rt); saveCustom(); renderRoutes(); refreshRouteList();
-    importInput.value = ''; importStatus.textContent = '✓ Route imported!'; importStatus.style.color = '#27ae60';
-    setTimeout(() => importStatus.textContent = '', 3000);
+    importInput.value=''; importStatus.textContent='✓ Route imported!'; importStatus.style.color='#27ae60';
+    setTimeout(()=>importStatus.textContent='',3000);
   });
   importRow.appendChild(importInput); importRow.appendChild(importBtn);
 
-  panel.appendChild(drawTitle); panel.appendChild(drawInstr);
-  panel.appendChild(nameRow);
-  panel.appendChild(modeRow); panel.appendChild(visRow);
+  panel.appendChild(hint);
+  panel.appendChild(nameRow); panel.appendChild(modeRow); panel.appendChild(visRow);
   panel.appendChild(sep());
   panel.appendChild(colTitle); panel.appendChild(colRow);
+  panel.appendChild(sep());
+  panel.appendChild(opTitle); panel.appendChild(opRow);
   panel.appendChild(sep());
   panel.appendChild(listTitle); panel.appendChild(routeList);
   panel.appendChild(sep());
@@ -1172,7 +1166,6 @@ function buildRoutesPanel(panel) {
   refreshRouteList();
 }
 
-// ─── Custom marker panel ──────────────────────────────────────────────────────
 function buildCustomPanel(panel) {
   panel.innerHTML='';
 

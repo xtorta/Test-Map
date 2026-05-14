@@ -678,7 +678,7 @@ function buildSidebar(layers) {
   aboutRow.innerHTML=`<span>ℹ️ About</span><span id="sb-about-chevron">${aboutOpen?'▲':'▼'}</span>`;
   const aboutPanel=mk('div',{id:'sb-about-panel'});
   aboutPanel.style.display=aboutOpen?'block':'none';
-  aboutPanel.innerHTML=`Welcome to the Farever interactive map by the <a href="https://farever.wiki" target="_blank">Farever Wiki</a> team.<br><br>Data pulled from the game. Feedback: <strong>@IceCaveBear</strong> on Discord.`;
+  aboutPanel.innerHTML=`Welcome to the Farever interactive map, built by the <a href="https://farever.wiki" target="_blank">Farever Wiki</a> team.<br><br>This map pulls data directly from the game. You can use the buttons to filter what is displayed. Note that some items have had their locations slightly obscured to avoid spoiling the fun of exploration! You will find them within the indicated area.<br><br>Please send any feedback about this map or the wiki to <strong>@IceCaveBear</strong> on Discord.`;
   aboutRow.addEventListener('click',()=>{ const o=aboutPanel.style.display==='block'; aboutPanel.style.display=o?'none':'block'; document.getElementById('sb-about-chevron').textContent=o?'▼':'▲'; localStorage.setItem('sbAboutOpen',o?'0':'1'); });
   sidebar.appendChild(aboutRow);
   sidebar.appendChild(aboutPanel);

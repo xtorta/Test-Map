@@ -209,7 +209,7 @@ async function loadRegions() {
       }
 
       regionLabels.push({name,tier,lat,lng,marker:m});
-      if (isRegionVisible(tier)) m.addTo(regionLayer);
+      if (isRegionVisible(tier) && isZoomVisible(tier)) m.addTo(regionLayer);
     });
   } catch(e) { console.warn('No regions.json'); }
 }
@@ -625,13 +625,14 @@ function initMap(data) {
   buildSidebar(layers);
   loadChecked(layers);
   updateCounts();
-  loadRegions();
+  loadRegions().then(() => refreshRegionVisibility());
   renderCustomMarkers();
   renderRoutes();
   // Fit full map now that sidebar is rendered, unless a permalink set the view
   if (!window._permalinkApplied) {
-    // invalidateSize so Leaflet recalculates container dimensions, then fit
-    setTimeout(() => { map.invalidateSize(); map.fitBounds(bounds, {animate:false}); }, 100);
+    setTimeout(() => { map.invalidateSize(); map.fitBounds(bounds, {animate:false}); refreshRegionVisibility(); }, 150);
+  } else {
+    setTimeout(() => refreshRegionVisibility(), 150);
   }
 }
 

@@ -612,8 +612,9 @@ function initMap(data) {
   data.forEach((item,idx)=>{
     const cat=item.categories?.[0]||'Misc';
     if (cat !== 'Mobs') return;
-    const faction = item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction
-      : (MOB_UNIT_FACTION[item.unit||''] || (/sparkle/i.test(item.label||'') ? 'Sparkles' : null));
+    const faction = /\bsparkle\b/i.test(item.label||'') && !/\bsparkling\b/i.test(item.label||'') ? 'Sparkles'
+      : item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction
+      : (MOB_UNIT_FACTION[item.unit||''] || null);
     if (!faction || faction === '__skip__' || faction === '__Critters__') return;
     categoryRegistry[faction].total++;
     categoryRegistry[faction].markerIds.push(getMarkerId(item,idx));
@@ -625,9 +626,9 @@ function initMap(data) {
     const subInfo = subTypeMap[item.label.toLowerCase()];
     // Mob faction routing
     const mobFaction = (cat==='Mobs')
-      ? (item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction
-         : MOB_UNIT_FACTION[item.unit||'']
-         || (/sparkle/i.test(item.label||'') ? 'Sparkles' : null))
+      ? (/\bsparkle\b/i.test(item.label||'') && !/\bsparkling\b/i.test(item.label||'') ? 'Sparkles'
+         : item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction
+         : MOB_UNIT_FACTION[item.unit||''] || null)
       : null;
     // Skip dummy/test markers
     if (mobFaction === '__skip__') return;
@@ -662,6 +663,11 @@ function initMap(data) {
       m = L.circleMarker(coords,new cMarker().props);
     }
     const mid=getMarkerId(item,idx);
+    // Track counts for subtype layers (gatherables, mob factions)
+    if (subInfo && categoryRegistry[effectiveCat]) {
+      categoryRegistry[effectiveCat].total++;
+      categoryRegistry[effectiveCat].markerIds.push(mid);
+    }
     // Fix dungeon display names and add wiki link
     const displayLabel = cat==='Dungeons' ? getDungeonLabel(item.label, coords) : item.label;
     const wikiLink = cat==='Dungeons' ? dungeonWikiLink(displayLabel) : '';

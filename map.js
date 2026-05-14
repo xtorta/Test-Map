@@ -49,7 +49,11 @@ const COLOURS = {
   'Mobs':'#d13a3a','Sparkling mobs':'#eb19c8','Dungeons':'#430dd8',
   'Checkpoints':'#4db3db','Minibosses':'#eb681c','Critters':'#de58ff',
   'Recipes':'#9b7700','Secret orbs':'#a23030',
-  // Gatherable subtypes
+  // Mob faction colours
+  'Slimes':'#4cbb6a','Nepsids':'#3a9abf','Crabs':'#c0392b','Spirits':'#7f60c2',
+  'Coyotes':'#c8853a','Skunks':'#8b5e3c','Kobolds':'#6a7a3a','Crimson':'#b03030',
+  'Golems':'#888a7a','Bees':'#d4a017','Wolves':'#5a6a8a','Boars':'#7a4a2a',
+  'Demons':'#8b1a1a','Sprouts':'#5a9a3a',
   'Copper':'#c67c3a','Tin':'#7a9bb5','Tungstene':'#9b7daa',
   'Madrigold':'#e8a030','Lavendula':'#9b59b6','Ancient Thyme':'#5d8a5e','Zealotus':'#c0392b',
 };
@@ -64,8 +68,24 @@ const FILTER_GROUPS = [
   { key:'poi',         title:'Points of Interest',icon:'⭐', cats:['Obelisks','Dungeons','Checkpoints'] },
   { key:'collectables',title:'Collectables',      icon:'📦', cats:['Chests','Secret orbs','Orb chests','Recipes','Critters'] },
   { key:'gatherables', title:'Gatherables',       icon:'🌿', cats:['Plants','Ores'], hasSub:true },
-  { key:'enemies',     title:'Enemies',           icon:'⚔️', cats:['Mobs','Minibosses','Sparkling mobs'] },
+  { key:'enemies',     title:'Enemies',           icon:'⚔️', cats:['Minibosses','Sparkling mobs'], hasMobSub:true },
 ];
+const MOB_FACTIONS = {
+  'Bees':    { icon:'./icons/mobs/bee.png' },
+  'Boars':   { icon:'./icons/mobs/boar.png' },
+  'Coyotes': { icon:'./icons/mobs/coyote.png' },
+  'Crabs':   { icon:'./icons/mobs/crab.png' },
+  'Crimson': { icon:'./icons/mobs/crimson.png' },
+  'Demons':  { icon:'./icons/mobs/demon.png' },
+  'Golems':  { icon:'./icons/mobs/golem.png' },
+  'Kobolds': { icon:'./icons/mobs/kobold.png' },
+  'Nepsids': { icon:'./icons/mobs/nepsid.png' },
+  'Skunks':  { icon:'./icons/mobs/skunk.png' },
+  'Slimes':  { icon:'./icons/mobs/slime.png' },
+  'Spirits': { icon:'./icons/mobs/spirits.png' },
+  'Sprouts': { icon:'./icons/mobs/sprout.png' },
+  'Wolves':  { icon:'./icons/mobs/wolf.png' },
+};
 const ORE_SUBS   = {
   'Copper':    { labels:['Copper Ore Large','Copper Ore Small'], icon:'./icons/gatherables/copper.png?v=3' },
   'Tin':       { labels:['Tin Ore Large','Tin Ore Small'],       icon:'./icons/gatherables/tin.png?v=3' },
@@ -78,7 +98,6 @@ const PLANT_SUBS = {
   'Zealotus':     { labels:['Zealotus','Zealotus Large','Zealotus Small'], icon:'./icons/gatherables/zealous.png?v=3' },
 };
 const GATHERABLE_SUBS = { Ores: ORE_SUBS, Plants: PLANT_SUBS };
-
 const SVG = {
   search:  `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4"/><line x1="10" y1="10" x2="14" y2="14"/></svg>`,
   eye:     `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>`,
@@ -496,15 +515,16 @@ function initMap(data) {
     'Secret orbs':new circleArea({fillColor:'#a23030',radius:coordToMapScalar*40,opacity:0.5,fillOpacity:0.5}).props,
     'Haydn Seek':new circleArea({fillColor:'#388e9f',radius:coordToMapScalar*70,opacity:0.5,fillOpacity:0.5}).props,
   };
-  // Pre-build registry for non-gatherable categories only
-  // Gatherable subtypes are counted when building subTypeMap
+  // Pre-build registry for non-gatherable, non-faction categories only
   const gatherableLabels = new Set();
   ['Ores','Plants'].forEach(mc => {
     Object.values(GATHERABLE_SUBS[mc]).forEach(({labels}) => labels.forEach(l => gatherableLabels.add(l.toLowerCase())));
   });
   data.forEach((item,idx)=>{
     const cat=item.categories?.[0]||'Misc';
-    if (gatherableLabels.has(item.label.toLowerCase())) return; // handled by subTypeMap
+    if (gatherableLabels.has(item.label.toLowerCase())) return;
+    // Mob factions are counted separately below
+    if (cat === 'Mobs' && item.unitFaction && MOB_FACTIONS[item.unitFaction]) return;
     if(!categoryRegistry[cat]) categoryRegistry[cat]={total:0,markerIds:[],markers:[]};
     categoryRegistry[cat].total++;
     categoryRegistry[cat].markerIds.push(getMarkerId(item,idx));
@@ -515,24 +535,45 @@ function initMap(data) {
   ['Ores','Plants'].forEach(mainCat => {
     const subs = GATHERABLE_SUBS[mainCat];
     Object.entries(subs).forEach(([subKey,{labels,icon}]) => {
-      const layerKey = subKey; // e.g. 'Copper', 'Tin', 'Madrigold'
+      const layerKey = subKey;
       if (!layers[layerKey]) layers[layerKey] = L.layerGroup();
       if (!categoryRegistry[layerKey]) categoryRegistry[layerKey] = {total:0, markerIds:[], markers:[], mainCat};
       labels.forEach(lbl => { subTypeMap[lbl.toLowerCase()] = {iconUrl:icon, subKey, layerKey, mainCat}; });
     });
   });
 
+  // Build mob faction layers
+  Object.entries(MOB_FACTIONS).forEach(([faction, {icon}]) => {
+    if (!layers[faction]) layers[faction] = L.layerGroup();
+    if (!categoryRegistry[faction]) categoryRegistry[faction] = {total:0, markerIds:[], markers:[], mainCat:'Mobs'};
+  });
+  // Pre-count faction mobs
+  data.forEach((item,idx)=>{
+    const cat=item.categories?.[0]||'Misc';
+    if (cat !== 'Mobs') return;
+    const faction = item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction : null;
+    if (!faction) return;
+    categoryRegistry[faction].total++;
+    categoryRegistry[faction].markerIds.push(getMarkerId(item,idx));
+  });
+
   data.forEach((item,idx)=>{
     const coords=[(s1*(4096-item.y)+b1),s2*(item.x+b2)];
     const cat=item.categories?.[0]||'Misc';
     const subInfo = subTypeMap[item.label.toLowerCase()];
-    // Subtypes go into their own layer, not layers['Ores']/layers['Plants']
-    const effectiveCat = subInfo ? subInfo.layerKey : cat;
+    // Mob faction routing
+    const mobFaction = (cat==='Mobs' && item.unitFaction && MOB_FACTIONS[item.unitFaction]) ? item.unitFaction : null;
+    const effectiveCat = subInfo ? subInfo.layerKey : mobFaction ? mobFaction : cat;
     if (!layers[effectiveCat]) layers[effectiveCat]=L.layerGroup();
     let m;
     if (subInfo && subInfo.iconUrl) {
       const sz=28;
       const icon = L.icon({iconUrl:subInfo.iconUrl, iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2]});
+      m = L.marker(coords, {icon});
+    } else if (mobFaction) {
+      // Mob faction icon: 32x32
+      const sz=32;
+      const icon = L.icon({iconUrl:MOB_FACTIONS[mobFaction].icon, iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2]});
       m = L.marker(coords, {icon});
     } else if (cat in iconDict) {
       m = L.marker(coords,{icon:L.icon(iconDict[cat])});
@@ -547,7 +588,7 @@ function initMap(data) {
     // Fix dungeon display names and add wiki link
     const displayLabel = cat==='Dungeons' ? getDungeonLabel(item.label, coords) : item.label;
     const wikiLink = cat==='Dungeons' ? dungeonWikiLink(displayLabel) : '';
-    allMarkers.push({markerId:mid,marker:m,category:effectiveCat,label:displayLabel,coords,subKey:subInfo?.subKey,mainCat:subInfo?.mainCat});
+    allMarkers.push({markerId:mid,marker:m,category:effectiveCat,label:displayLabel,coords,subKey:subInfo?.subKey,mainCat:subInfo?.mainCat||mobFaction?'Mobs':null});
     m.bindPopup(`<div style="text-align:center;font-family:Noto,sans-serif;">${displayLabel}${wikiLink}</div>`);
     m.on('contextmenu',e=>{ L.DomEvent.preventDefault(e); L.DomEvent.stopPropagation(e); m.closePopup(); toggleComplete(mid,m,cat); });
     m.on('click',e=>{ if (!isMobile()||routeDrawing) return; toggleComplete(mid,m,cat); });
@@ -756,29 +797,39 @@ function buildSidebar(layers) {
         const colour = COLOURS[mainCat]||'#ffa958';
         const subDiv = mk('div',{class:'filter-subgroup'});
         if(localStorage.getItem(`fsg_${mainCat}`)==='1') subDiv.classList.add('collapsed');
-
-        // Plain collapsible header - just title + chevron
         const shdr = mk('div',{class:'filter-subgroup-header'});
         shdr.setAttribute('data-sub', mainCat);
-        const shdrTitle = mk('span',{class:'fsh-title',style:'flex:1;'});
-        shdrTitle.textContent = mainCat;
+        const shdrTitle = mk('span',{class:'fsh-title',style:'flex:1;'}); shdrTitle.textContent = mainCat;
         const shdrChev = mk('span',{class:'fsh-chevron'}); shdrChev.textContent='▼';
         shdr.appendChild(shdrTitle); shdr.appendChild(shdrChev);
-        shdr.addEventListener('click', () => {
-          subDiv.classList.toggle('collapsed');
-          localStorage.setItem(`fsg_${mainCat}`, subDiv.classList.contains('collapsed')?'1':'0');
-        });
+        shdr.addEventListener('click', () => { subDiv.classList.toggle('collapsed'); localStorage.setItem(`fsg_${mainCat}`, subDiv.classList.contains('collapsed')?'1':'0'); });
         subDiv.appendChild(shdr);
-
-        // Each subtype is a normal category row
         const subRows = mk('div',{class:'filter-subgroup-rows'});
-        Object.entries(subs).forEach(([subName,{icon}]) => {
-          const row = buildCatRow(subName, layers, icon);
-          subRows.appendChild(row);
-        });
+        Object.entries(subs).forEach(([subName,{icon}]) => { subRows.appendChild(buildCatRow(subName, layers, icon)); });
         subDiv.appendChild(subRows);
         groupRows.appendChild(subDiv);
       });
+    } else if (group.hasMobSub) {
+      // Enemies: Minibosses + Sparkling mobs first, then Mobs subgroup with factions
+      group.cats.forEach(cat => { if (layers[cat]||categoryRegistry[cat]) groupRows.appendChild(buildCatRow(cat, layers)); });
+      // Mobs subgroup
+      const mobDiv = mk('div',{class:'filter-subgroup'});
+      if(localStorage.getItem('fsg_Mobs')==='1') mobDiv.classList.add('collapsed');
+      const mobHdr = mk('div',{class:'filter-subgroup-header'});
+      mobHdr.setAttribute('data-sub','Mobs');
+      const mobTitle = mk('span',{class:'fsh-title',style:'flex:1;'}); mobTitle.textContent='Mobs';
+      const mobChev = mk('span',{class:'fsh-chevron'}); mobChev.textContent='▼';
+      mobHdr.appendChild(mobTitle); mobHdr.appendChild(mobChev);
+      mobHdr.addEventListener('click',()=>{ mobDiv.classList.toggle('collapsed'); localStorage.setItem('fsg_Mobs',mobDiv.classList.contains('collapsed')?'1':'0'); });
+      mobDiv.appendChild(mobHdr);
+      const mobRows = mk('div',{class:'filter-subgroup-rows'});
+      Object.entries(MOB_FACTIONS).forEach(([faction,{icon}]) => {
+        mobRows.appendChild(buildCatRow(faction, layers, icon));
+      });
+      // Unfactioned mobs row (empty faction)
+      if (categoryRegistry['Mobs']) mobRows.appendChild(buildCatRow('Mobs', layers));
+      mobDiv.appendChild(mobRows);
+      groupRows.appendChild(mobDiv);
     } else {
       group.cats.forEach(cat => { if (layers[cat]) groupRows.appendChild(buildCatRow(cat, layers)); });
     }
@@ -800,6 +851,8 @@ function buildSidebar(layers) {
     if (prevGroup && prevGroup!==group.key) { compactList.appendChild(mk('span',{class:'compact-cat-sep'})); }
     const cats = group.hasSub
       ? [...Object.keys(PLANT_SUBS), ...Object.keys(ORE_SUBS)]
+      : group.hasMobSub
+      ? [...group.cats, ...Object.keys(MOB_FACTIONS)]
       : group.cats;
     cats.forEach(cat=>{
       if (!layers[cat]) return;
@@ -945,11 +998,9 @@ function buildSidebar(layers) {
 function toggleGroupVisibility(group, layers, eyeBtn) {
   let allCats;
   if (group.hasSub) {
-    // Get all subtype layer keys for Plants + Ores
-    allCats = [
-      ...Object.keys(PLANT_SUBS),
-      ...Object.keys(ORE_SUBS),
-    ];
+    allCats = [...Object.keys(PLANT_SUBS), ...Object.keys(ORE_SUBS)];
+  } else if (group.hasMobSub) {
+    allCats = [...group.cats, ...Object.keys(MOB_FACTIONS), 'Mobs'];
   } else {
     allCats = group.cats;
   }

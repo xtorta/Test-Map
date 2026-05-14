@@ -441,33 +441,33 @@ const DUNGEON_NAME_FIX = {
   'Honeyzabeth\u2019s Hivetrunk': "Honeyzabeth's Hivetrunk",
 };
 const DUNGEON_WIKI = {
-  'Lost City of Mayda':       'Lost_City_of_Mayda',
-  'Mine Estrone':             'Mine_Estrone',
-  "Crabgantua's Gorge":       "Crabgantua's_Gorge",
-  'Trunk of the Hivetree':    'Trunk_of_the_Hivetree',
-  "Ratsar's Lair":            "Ratsar's_Lair",
-  "Lady Bee's Palace":        "Lady_Bee's_Palace",
-  "Ruins of Gorgon's Hollow": "Ruins_of_Gorgon's_Hollow",
-  'Abyss of New Atlaan':      'Abyss_of_New_Atlaan',
-  "Honeyzabeth's Hivetrunk":  "Honeyzabeth's_Hivetrunk",
-  'Cheese Station':           'Cheese_Station',
-  'Crimson Barracks':         'Crimson_Barracks',
-  "Chakram's Chapel":         "Chakram's_Chapel",
+  'Lost City of Mayda':       { w:'Lost_City_of_Mayda',       a:'Lost_City_of_Mayda_(walkthrough)' },
+  'Mine Estrone':             { w:'Mine_Estrone',             a:'Mine_Estrone_(walkthrough)' },
+  "Crabgantua's Gorge":       { w:"Crabgantua's_Gorge",       a:"Crabgantua's_Gorge_(walkthrough)" },
+  "Ratsar's Lair":            { w:"Ratsar's_Lair",            a:"Ratsar's_Lair_(walkthrough)" },
+  'Trunk of the Hivetree':    { w:'Trunk_of_the_Hivetree',    a:'Trunk_of_the_Hivetree' },
+  "Lady Bee's Palace":        { w:"Lady_Bee's_Palace",        a:"Lady_Bee's_Palace_(walkthrough)" },
+  "Ruins of Gorgon's Hollow": { w:"Ruins_of_Gorgon's_Hollow", a:"Ruins_of_Gorgon's_Hollow" },
+  'Abyss of New Atlaan':      { w:'Abyss_of_New_Atlaan',      a:'Abyss_of_New_Atlaan' },
+  "Honeyzabeth's Hivetrunk":  { w:"Honeyzabeth's_Hivetrunk",  a:"Honeyzabeth's_Hivetrunk" },
+  'Cheese Station':           { w:'Cheese_Station',           a:'Cheese_Station' },
+  'Crimson Barracks':         { w:'Crimson_Barracks',         a:'Crimson_Barracks' },
+  "Chakram's Chapel":         { w:"Chakram's_Chapel",         a:"Chakram's_Chapel" },
 };
 const WIKI_LOOT_PAGE = 'https://farever.wiki/Dungeons_loots:_Armors_%26_Weapons';
 function getDungeonLabel(rawLabel, coords) {
   if (DUNGEON_NAME_FIX[rawLabel]) return DUNGEON_NAME_FIX[rawLabel];
-  if (rawLabel === 'Dungeon entrance') {
-    const [lat, lng] = coords;
-    if (lat > 1750 && lat < 2100 && lng > 2400 && lng < 2750) return "Ruins of Gorgon's Hollow";
-    if (lat < 1300 && lng > 2900) return 'Abyss of New Atlaan';
-  }
   return rawLabel;
 }
 function dungeonWikiLink(label) {
-  if (!DUNGEON_WIKI[label]) return '';
-  const s = 'display:inline-flex;align-items:center;justify-content:center;gap:0.4em;margin-top:0.5em;padding:0.4em 1em;border-radius:5px;text-decoration:none;font-size:0.83em;font-weight:700;color:white;background:rgb(120,90,55);width:100%;box-sizing:border-box;';
-  return '<div style="margin-top:0.4em;"><a href="' + WIKI_LOOT_PAGE + '" target="_blank" rel="noopener" style="' + s + '">&#128666; View Dungeon Loot</a></div>';
+  const entry = DUNGEON_WIKI[label]; if (!entry) return '';
+  const weaponUrl = WIKI_LOOT_PAGE + '#' + entry.w;
+  const armorUrl  = WIKI_LOOT_PAGE + '#' + entry.a;
+  const s = 'display:inline-flex;align-items:center;justify-content:center;gap:0.35em;padding:0.45em 0.9em;border-radius:5px;text-decoration:none;font-size:0.95em;font-weight:700;color:white;flex:1;';
+  return '<div style="display:flex;gap:0.5em;margin-top:0.6em;">'
+    + '<a href="' + weaponUrl + '" target="_blank" rel="noopener" style="' + s + 'background:rgb(120,90,55);">&#9876; Weapons</a>'
+    + '<a href="' + armorUrl  + '" target="_blank" rel="noopener" style="' + s + 'background:rgb(65,55,110);">&#128737; Armor</a>'
+    + '</div>';
 }
 
 

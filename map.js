@@ -766,7 +766,7 @@ function buildSidebar(layers) {
         // Plain collapsible header - just title + chevron
         const shdr = mk('div',{class:'filter-subgroup-header'});
         shdr.setAttribute('data-sub', mainCat);
-        const shdrTitle = mk('span',{class:'fsh-title',style:`color:${colour};flex:1;`});
+        const shdrTitle = mk('span',{class:'fsh-title',style:'flex:1;'});
         shdrTitle.textContent = mainCat;
         const shdrChev = mk('span',{class:'fsh-chevron'}); shdrChev.textContent='▼';
         shdr.appendChild(shdrTitle); shdr.appendChild(shdrChev);

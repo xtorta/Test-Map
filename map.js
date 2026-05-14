@@ -139,13 +139,15 @@ function refreshRegionVisibility() {
   });
 }
 map.on('zoomend', () => {
+  // First update visibility (adds/removes markers)
+  refreshRegionVisibility();
+  // Then refresh icons for everything currently visible
   regionLabels.forEach(({marker,name,tier}) => {
     if (regionLayer.hasLayer(marker)) {
       const interactive = (tier === 'region' || tier === 'subregion' || tier === 'zone');
       marker.setIcon(makeRegionIcon(name, tier, interactive));
     }
   });
-  refreshRegionVisibility();
 });
 async function loadRegions() {
   try {
@@ -374,7 +376,7 @@ function updateRoutePreview() {
   }
 }
 function finishRoute() {
-  const sub = subsample(routePoints, 8);
+  const sub = subsample(routePoints, 30);
   if (sub.length >= 2) { customRoutes.push({points:sub, colour:selectedCustColour, note:''}); saveCustom(); renderRoutes(); }
   routePoints = []; routeDrawActive = false;
   if (routePreviewLayer) { map.removeLayer(routePreviewLayer); routePreviewLayer=null; }

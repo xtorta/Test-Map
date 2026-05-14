@@ -855,10 +855,15 @@ function buildSidebar(layers) {
   sidebar.appendChild(hint);
   document.body.appendChild(sidebar);
 
-  // ── Toggle arrow — lives inside sidebar, always attached ──────────
+  // ── Toggle arrow — body child, positioned after sidebar transition ──
   const toggle = mk('button',{id:'sb-toggle'});
   toggle.innerHTML = '▶';
-  sidebar.appendChild(toggle);
+  document.body.appendChild(toggle);
+
+  function positionToggle() {
+    const rect = sidebar.getBoundingClientRect();
+    toggle.style.right = (window.innerWidth - rect.left) + 'px';
+  }
 
   // ── Floating search (sidebar closed) ────────────────────────────
   const floatWrap=mk('div',{id:'sb-search-float'});
@@ -912,7 +917,12 @@ function buildSidebar(layers) {
     sidebar.style.transform = sidebarOpen ? '' : `translateX(${sbW()}px)`;
     toggle.innerHTML = sidebarOpen ? '▶' : '◀';
     floatWrap.style.display = sidebarOpen ? 'none' : 'flex';
-    if (!animate) requestAnimationFrame(() => sidebar.style.transition = '');
+    if (!animate) {
+      requestAnimationFrame(() => { sidebar.style.transition = ''; positionToggle(); });
+    } else {
+      sidebar.addEventListener('transitionend', positionToggle, {once:true});
+    }
+    positionToggle();
   }
   toggle.addEventListener('click',()=>{sidebarOpen=!sidebarOpen;saveView();applyLayout(true);});
   btnTV.addEventListener('click',()=>{
@@ -922,7 +932,7 @@ function buildSidebar(layers) {
     sidebar.addEventListener('transitionend', () => applyLayout(false), {once:true});
   });
   applyLayout(false);
-  window.addEventListener('resize',()=>applyLayout(false));
+  window.addEventListener('resize',()=>{ applyLayout(false); positionToggle(); });
 
   // ── Checkboxes (full filter panel) ──────────────────────────────
   document.querySelectorAll('#sb-cat-list input[type="checkbox"]').forEach(cb=>{

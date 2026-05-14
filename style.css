@@ -331,7 +331,7 @@ html, body {
   border-radius: 6px 0 0 6px; padding: 0.9em 0.42em;
   cursor: pointer; font-size: 0.85em; line-height: 1;
   box-shadow: -2px 0 8px rgba(0,0,0,0.3);
-  transition: background 0.15s;
+  transition: right 0.25s ease, background 0.15s;
 }
 #sb-toggle:hover { background: rgb(180,100,0); }
 #sb-search-float {

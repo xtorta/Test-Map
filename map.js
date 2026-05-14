@@ -461,7 +461,7 @@ function getDungeonLabel(rawLabel, coords) {
 }
 function dungeonWikiLink(label) {
   const entry = DUNGEON_WIKI[label]; if (!entry) return '';
-  const weaponUrl = WIKI_LOOT_PAGE + '#' + entry.w;
+  const weaponUrl = WIKI_LOOT_PAGE + '#Weapons';
   const armorUrl  = WIKI_LOOT_PAGE + '#' + entry.a;
   const base = 'display:flex;align-items:center;justify-content:center;gap:0.4em;padding:0.5em 1em;border-radius:5px;text-decoration:none;font-size:1.05em;font-weight:700;color:white;letter-spacing:0.02em;';
   const wStyle = base + 'background:linear-gradient(135deg,#b0665d 50%,#ce715c 50%);';

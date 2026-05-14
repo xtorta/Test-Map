@@ -97,6 +97,31 @@ const PLANT_SUBS = {
   'Ancient Thyme':{ labels:['Ancient Thyme Large','Ancient Thyme Small'],  icon:'./icons/gatherables/ancientthyme.png?v=3' },
   'Zealotus':     { labels:['Zealotus','Zealotus Large','Zealotus Small'], icon:'./icons/gatherables/zealous.png?v=3' },
 };
+const MOB_UNIT_FACTION = {
+  // Bees
+  'Z1_Bee_Patrol_World':'Bees','Z1_Bee_Tree':'Bees','Z2_Bee_Nescent':'Bees','Z2_Bee_Nescent_3':'Bees','Z2_Bee_Patrol_World_Elite':'Bees',
+  // Crimson
+  'Crimson_Z1W_Sword_2':'Crimson','Dog_Z1W_Crimson':'Crimson',
+  'Z1_Crimson_Patrol_Stronghold_World':'Crimson','Z1_Crimson_Patrol_Stronghold_World_1':'Crimson',
+  'Z1_Crimson_Patrol_Stronghold_World_2':'Crimson','Z1_Crimson_Patrol_Stronghold_World_Unique':'Crimson',
+  'Z2_Crimson_Patrol_World':'Crimson','Z2_Crimson_Patrol_World_2':'Crimson','Z2_Crimson_Patrol_World_3':'Crimson',
+  'Z2_Crimson_Patrol_World_4':'Crimson','Z2_Crimson_Patrol_World_6':'Crimson','Z2_Crimson_Peasant_Nescent':'Crimson',
+  'TODO_Z2W_Peasant':'Crimson',
+  // Golems
+  'Golem_Z2W_Wind2':'Golems','Z2_Golem_Eksod_Exterior':'Golems','Z2_Golem_Eksod_Interior':'Golems',
+  'Z2_Golem_Krisomal_Exterior':'Golems','Z2_Golem_Krisomal_Interior':'Golems',
+  // Kobolds
+  'Z1_Kobold_Mines_2':'Kobolds','Z1_Kobold_Patrol_Unique':'Kobolds','Z2_Kobold_Eksod':'Kobolds','Z2_Kobold_Eksod_Ogre':'Kobolds',
+  // Nepsids (manfish = aquatic nepsid-type)
+  'Z2_Manfish_Krisomal':'Nepsids',
+  // Sprouts (plant enemies)
+  'Z2_Plant_Azuram_NoRice':'Sprouts','Z2_Plant_Nescent_NoRice':'Sprouts',
+  // Spirits (elementals + herald)
+  'Elemental_Z1W_Underwater':'Spirits','Elemental_Z2W':'Spirits','Elemental_Z2W_2':'Spirits',
+  'Elemental_Z2W_Underwater_2':'Spirits','TODO_Z1W_HeraldSpirit':'Spirits',
+  // Wolves/Coyotes (wild zone patrols)
+  'Z1_Forest':'Wolves','Z1_Start_Patrol_World':'Wolves','Z2_Wild_Azuram':'Wolves','Z2_Wild_Nescent':'Wolves',
+};
 const GATHERABLE_SUBS = { Ores: ORE_SUBS, Plants: PLANT_SUBS };
 const SVG = {
   search:  `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4"/><line x1="10" y1="10" x2="14" y2="14"/></svg>`,
@@ -523,8 +548,10 @@ function initMap(data) {
   data.forEach((item,idx)=>{
     const cat=item.categories?.[0]||'Misc';
     if (gatherableLabels.has(item.label.toLowerCase())) return;
-    // Mob factions are counted separately below
-    if (cat === 'Mobs' && item.unitFaction && MOB_FACTIONS[item.unitFaction]) return;
+    if (cat === 'Mobs') {
+      const uf = item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction : MOB_UNIT_FACTION[item.unit||''];
+      if (uf) return; // counted via faction
+    }
     if(!categoryRegistry[cat]) categoryRegistry[cat]={total:0,markerIds:[],markers:[]};
     categoryRegistry[cat].total++;
     categoryRegistry[cat].markerIds.push(getMarkerId(item,idx));
@@ -551,7 +578,8 @@ function initMap(data) {
   data.forEach((item,idx)=>{
     const cat=item.categories?.[0]||'Misc';
     if (cat !== 'Mobs') return;
-    const faction = item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction : null;
+    const faction = item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction 
+      : (MOB_UNIT_FACTION[item.unit||''] || null);
     if (!faction) return;
     categoryRegistry[faction].total++;
     categoryRegistry[faction].markerIds.push(getMarkerId(item,idx));
@@ -562,7 +590,10 @@ function initMap(data) {
     const cat=item.categories?.[0]||'Misc';
     const subInfo = subTypeMap[item.label.toLowerCase()];
     // Mob faction routing
-    const mobFaction = (cat==='Mobs' && item.unitFaction && MOB_FACTIONS[item.unitFaction]) ? item.unitFaction : null;
+    const mobFaction = (cat==='Mobs') 
+      ? (item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction 
+         : MOB_UNIT_FACTION[item.unit||''] || null)
+      : null;
     const effectiveCat = subInfo ? subInfo.layerKey : mobFaction ? mobFaction : cat;
     if (!layers[effectiveCat]) layers[effectiveCat]=L.layerGroup();
     let m;

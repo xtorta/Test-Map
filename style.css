@@ -266,6 +266,7 @@ html, body {
 .filter-subgroup-header:hover { filter: brightness(0.92); }
 .filter-subgroup-header[data-sub="Plants"] { background: #c47fa0; }
 .filter-subgroup-header[data-sub="Ores"]   { background: #8068bb; }
+.filter-subgroup-header[data-sub="Mobs"]   { background: #a04040; }
 .fsh-title { font-size: 0.83em; font-weight: 700; flex: 1; color: white !important; text-shadow: 0 1px 2px rgba(0,0,0,0.3); white-space: nowrap; }
 .fsh-chevron { font-size: 0.62em; color: rgba(255,255,255,0.8); transition: transform 0.2s; }
 .filter-subgroup.collapsed .fsh-chevron { transform: rotate(-90deg); }

@@ -21,7 +21,7 @@ html, body {
   display: flex; flex-direction: column; z-index: 1000;
   transition: transform 0.25s ease, width 0.25s ease;
   box-shadow: -4px 0 20px rgba(0,0,0,0.25);
-  overflow: visible; width: var(--sb-full);
+  overflow: hidden; width: var(--sb-full);
 }
 #sidebar.closed     { transform: translateX(var(--sb-full)); }
 #sidebar.compact    { width: var(--sb-compact); }
@@ -320,19 +320,16 @@ html, body {
 .sb-hint-icon { font-size: 1.05em; flex-shrink: 0; }
 .sb-hint-text { flex: 1; }
 
-/* Toggle arrow — absolute inside sidebar, always attached to its left edge */
+/* Toggle arrow — fixed to viewport, JS positions it flush with sidebar left edge */
 #sb-toggle {
-  position: absolute;
-  top: 50%;
-  left: -2.1em; /* protrudes left of sidebar */
-  transform: translateY(-50%);
+  position: fixed;
+  top: 50%; transform: translateY(-50%);
   z-index: 1001;
   background: rgb(210,120,0); color: white; border: none;
   border-radius: 6px 0 0 6px; padding: 0.9em 0.42em;
   cursor: pointer; font-size: 0.85em; line-height: 1;
   box-shadow: -2px 0 8px rgba(0,0,0,0.3);
   transition: background 0.15s;
-  white-space: nowrap;
 }
 #sb-toggle:hover { background: rgb(180,100,0); }
 #sb-search-float {

@@ -793,17 +793,9 @@ function buildSidebar(layers) {
   });
 
   // Scroll indicators
-  const scrollUp=mk('div',{id:'sb-scroll-up'}); scrollUp.innerHTML=`<svg width="12" height="8" viewBox="0 0 12 8" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,7 6,1 11,7"/></svg>`;
-  const scrollDn=mk('div',{id:'sb-scroll-down'}); scrollDn.innerHTML=`<svg width="12" height="8" viewBox="0 0 12 8" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 6,7 11,1"/></svg>`;
-  const updateScrollInds=()=>{ scrollUp.style.display=catList.scrollTop>8?'flex':'none'; scrollDn.style.display=(catList.scrollHeight-catList.scrollTop-catList.clientHeight)>8?'flex':'none'; };
-  catList.addEventListener('scroll',updateScrollInds);
-  btnTV.addEventListener('click',()=>setTimeout(updateScrollInds,300));
-  requestAnimationFrame(()=>setTimeout(updateScrollInds,50));
-  window.addEventListener('resize',updateScrollInds);
+  // Scroll indicators removed - they caused layout recalculation on every scroll event
 
-  filterPanel.appendChild(scrollUp);
   filterPanel.appendChild(catList);
-  filterPanel.appendChild(scrollDn);
   sidebar.appendChild(filterPanel);
 
   // ── Compact list (icon-only, all cats) ───────────────────────────

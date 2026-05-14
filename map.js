@@ -646,6 +646,12 @@ function initMap(data) {
       const sz=32;
       const icon = L.icon({iconUrl:MOB_FACTIONS[mobFaction].icon, iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2]});
       m = L.marker(coords, {icon});
+    } else if (effectiveCat in iconDict) {
+      m = L.marker(coords,{icon:L.icon(iconDict[effectiveCat])});
+    } else if (effectiveCat in circleDict) {
+      m = L.circle(coords,circleDict[effectiveCat]);
+    } else if (effectiveCat in stylingDict) {
+      m = L.circleMarker(coords,stylingDict[effectiveCat]);
     } else if (cat in iconDict) {
       m = L.marker(coords,{icon:L.icon(iconDict[cat])});
     } else if (cat in circleDict) {

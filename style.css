@@ -307,10 +307,17 @@ html, body {
 
 /* CSS fade at bottom of cat list - pure CSS, no JS scroll events */
 #sb-panel-filter { position: relative; }
-#sb-panel-filter::after {
-  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1.5em;
-  background: linear-gradient(to bottom, transparent, rgb(215,210,200));
-  pointer-events: none; z-index: 5;
+
+/* Scroll arrows */
+#sb-arrow-up, #sb-arrow-dn {
+  display: none; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #b2a46f 50%, #ccba8c 50%);
+  color: white; font-size: 0.65em; padding: 0.2em 0;
+  flex-shrink: 0; cursor: pointer; user-select: none;
+  opacity: 0; transition: opacity 0.2s; pointer-events: none;
+}
+#sb-arrow-up.visible, #sb-arrow-dn.visible {
+  display: flex; opacity: 1; pointer-events: auto;
 }
 
 /* Hint */

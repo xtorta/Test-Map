@@ -136,16 +136,19 @@ html, body {
 /* Tab panels */
 .sb-panel { display: none; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
 .sb-panel.active { display: flex; }
-#sb-panel-filter { display: none; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
+#sb-panel-filter { display: none; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; contain: layout; }
 #sb-panel-filter.active { display: flex; }
 
 /* Cat list scrollable */
 #sb-cat-list {
-  flex: 1; overflow-y: auto; overflow-x: hidden; background: rgb(215,210,200); min-height: 0;
-  scroll-behavior: smooth; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  flex: 1; overflow-y: scroll; overflow-x: hidden; background: rgb(215,210,200); min-height: 0;
+  -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain;
+  will-change: scroll-position; contain: strict;
 }
-#sb-cat-list::-webkit-scrollbar { width: 4px; }
-#sb-cat-list::-webkit-scrollbar-thumb { background: #b0a898; border-radius: 2px; }
+#sb-cat-list::-webkit-scrollbar { width: 5px; }
+#sb-cat-list::-webkit-scrollbar-track { background: transparent; }
+#sb-cat-list::-webkit-scrollbar-thumb { background: #b0a898; border-radius: 3px; }
+#sb-cat-list::-webkit-scrollbar-thumb:hover { background: #8a8070; }
 
 /* Tool buttons */
 #sb-icon-tools { display: flex; flex-direction: column; flex-shrink: 0; }

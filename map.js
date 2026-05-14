@@ -1094,22 +1094,16 @@ function buildRoutesPanel(panel) {
       // Visibility checkbox (check0/check1 png)
       const visChk=mk('span',{style:`background-image:url("${rt.hidden?'check0':'check1'}.png");background-size:contain;background-repeat:no-repeat;width:1.05em;height:1.05em;flex-shrink:0;cursor:pointer;`});
       visChk.addEventListener('click',()=>{ rt.hidden=!rt.hidden; saveCustom(); renderRoutes(); refreshRouteList(); });
-      // Colour dot — click to open inline colour picker
-      const colDot=mk('div',{style:`width:14px;height:14px;border-radius:50%;background:${rt.colour||'#e74c3c'};flex-shrink:0;cursor:pointer;border:2px solid rgba(0,0,0,0.2);`});
+      // Colour dot — click to expand inline swatch row below
+      const colDot=mk('div',{style:`width:16px;height:16px;border-radius:50%;background:${rt.colour||'#e74c3c'};flex-shrink:0;cursor:pointer;border:2px solid rgba(0,0,0,0.25);`});
       colDot.title='Click to change colour';
-      // Inline colour picker (hidden until dot clicked)
-      const colPicker=mk('div',{style:'display:none;position:absolute;background:rgb(232,228,218);border:1.5px solid #a09880;border-radius:6px;padding:0.4em;z-index:500;gap:0.25em;flex-wrap:wrap;box-shadow:0 4px 12px rgba(0,0,0,0.2);'});
-      colPicker.style.display='none';
+      const colSwatchRow=mk('div',{style:'display:none;flex-wrap:wrap;gap:0.25em;margin-top:0.3em;'});
       CUSTOM_COLOURS.forEach(col=>{
-        const sw=mk('div',{style:`width:1.3em;height:1.3em;border-radius:3px;background:${col};cursor:pointer;border:2px solid ${col===(rt.colour||'#e74c3c')?'#1a1a1a':'transparent'};`});
-        sw.addEventListener('click',e=>{ e.stopPropagation(); rt.colour=col; saveCustom(); renderRoutes(); refreshRouteList(); });
-        colPicker.appendChild(sw);
+        const sw=mk('div',{style:`width:1.3em;height:1.3em;border-radius:3px;background:${col};cursor:pointer;border:2px solid ${col===(rt.colour||'#e74c3c')?'#1a1a1a':'transparent'};flex-shrink:0;`});
+        sw.addEventListener('click',()=>{ rt.colour=col; saveCustom(); renderRoutes(); refreshRouteList(); });
+        colSwatchRow.appendChild(sw);
       });
-      colPicker.style.display='none';
-      let pickerOpen=false;
-      colDot.addEventListener('click',e=>{ e.stopPropagation(); pickerOpen=!pickerOpen; colPicker.style.display=pickerOpen?'flex':'none'; });
-      document.addEventListener('click',()=>{ pickerOpen=false; colPicker.style.display='none'; },{once:false});
-      const colWrap=mk('div',{style:'position:relative;flex-shrink:0;'}); colWrap.appendChild(colDot); colWrap.appendChild(colPicker);
+      colDot.addEventListener('click',e=>{ e.stopPropagation(); colSwatchRow.style.display=colSwatchRow.style.display==='none'?'flex':'none'; });
 
       const nameInp=mk('input'); Object.assign(nameInp,{type:'text',value:rt.note||`Route ${i+1}`,style:'flex:1;padding:0.2em 0.4em;border:1px solid #a09880;border-radius:3px;font-size:0.79em;background:transparent;color:#3a2e1e;outline:none;font-weight:600;cursor:text;min-width:0;'});
       nameInp.addEventListener('change',()=>{ rt.note=nameInp.value.trim()||`Route ${i+1}`; saveCustom(); });
@@ -1123,7 +1117,7 @@ function buildRoutesPanel(panel) {
       smoothBtn.addEventListener('click',()=>{ rt.points=smoothPoints(rt.points,0.4,6); saveCustom(); renderRoutes(); refreshRouteList(); });
       const delBtn=mk('button',{style:'background:none;border:none;cursor:pointer;color:#c0392b;font-size:0.8em;padding:0.1em 0.2em;'}); delBtn.innerHTML=SVG.trash;
       delBtn.addEventListener('click',()=>{ customRoutes.splice(i,1); saveCustom(); renderRoutes(); refreshRouteList(); });
-      topRow.appendChild(visChk); topRow.appendChild(colWrap); topRow.appendChild(nameInp); topRow.appendChild(upBtn); topRow.appendChild(dnBtn); topRow.appendChild(flyBtn); topRow.appendChild(smoothBtn); topRow.appendChild(delBtn);
+      topRow.appendChild(visChk); topRow.appendChild(colDot); topRow.appendChild(nameInp); topRow.appendChild(upBtn); topRow.appendChild(dnBtn); topRow.appendChild(flyBtn); topRow.appendChild(smoothBtn); topRow.appendChild(delBtn);
 
       // Share code row
       const code=encodeRouteCode(rt);
@@ -1132,7 +1126,7 @@ function buildRoutesPanel(panel) {
       codeBox.addEventListener('click',()=>{ navigator.clipboard?.writeText(code).then(()=>{ codeBox.style.background='rgb(200,230,200)'; setTimeout(()=>codeBox.style.background='',1000); }); });
       codeRow.appendChild(codeBox);
 
-      row.appendChild(topRow); row.appendChild(codeRow);
+      row.appendChild(topRow); row.appendChild(colSwatchRow); row.appendChild(codeRow);
       routeList.appendChild(row);
     });
   }

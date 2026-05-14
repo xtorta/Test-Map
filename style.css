@@ -136,14 +136,14 @@ html, body {
 /* Tab panels */
 .sb-panel { display: none; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
 .sb-panel.active { display: flex; }
-#sb-panel-filter { display: none; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; contain: layout; }
+#sb-panel-filter { display: none; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
 #sb-panel-filter.active { display: flex; }
 
 /* Cat list scrollable */
 #sb-cat-list {
   flex: 1; overflow-y: scroll; overflow-x: hidden; background: rgb(215,210,200); min-height: 0;
   -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain;
-  will-change: scroll-position; contain: strict;
+  will-change: transform;
 }
 #sb-cat-list::-webkit-scrollbar { width: 5px; }
 #sb-cat-list::-webkit-scrollbar-track { background: transparent; }

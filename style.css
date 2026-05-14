@@ -118,17 +118,17 @@ html, body {
 
 /* Tabs */
 #sb-tabs {
-  display: flex; flex-shrink: 0; background: rgb(195,190,180); border-bottom: 2px solid #a09880;
+  display: flex; flex-shrink: 0; background: rgb(185,180,170); border-bottom: 2px solid #a09880;
 }
 .sb-tab {
-  flex: 1; padding: 0.5em 0.3em; border: none; cursor: pointer;
-  font-family: Noto, sans-serif; font-size: 0.84em; font-weight: 700;
-  background: transparent; color: #5a4a2a; border-bottom: 3px solid transparent;
+  flex: 1; padding: 0.6em 0.4em; border: none; cursor: pointer;
+  font-family: Noto, sans-serif; font-size: 1em; font-weight: 800;
+  background: transparent; color: #4a3a1a; border-bottom: 3px solid transparent;
   transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 0.3em;
-  white-space: nowrap;
+  white-space: nowrap; letter-spacing: 0.01em;
 }
-.sb-tab:hover { background: rgba(0,0,0,0.05); }
-.sb-tab.active { background: rgb(215,210,200); color: #3a2e1e; border-bottom-color: rgb(120,90,55); }
+.sb-tab:hover { background: rgba(0,0,0,0.06); }
+.sb-tab.active { background: rgb(215,210,200); color: #2a1e08; border-bottom-color: rgb(120,90,55); }
 
 /* Hide first sep in compact (redundant double sep) */
 #sidebar.compact #sb-sep-first { display: none !important; }
@@ -140,7 +140,10 @@ html, body {
 #sb-panel-filter.active { display: flex; }
 
 /* Cat list scrollable */
-#sb-cat-list { flex: 1; overflow-y: auto; overflow-x: visible; background: rgb(215,210,200); min-height: 0; }
+#sb-cat-list {
+  flex: 1; overflow-y: auto; overflow-x: hidden; background: rgb(215,210,200); min-height: 0;
+  scroll-behavior: smooth; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+}
 #sb-cat-list::-webkit-scrollbar { width: 4px; }
 #sb-cat-list::-webkit-scrollbar-thumb { background: #b0a898; border-radius: 2px; }
 
@@ -431,5 +434,5 @@ html, body {
   :root { --sb-full: 310px; --sb-compact: 52px; }
   .sb-cat-row { min-height: 2.7em; }
   #sb-hint { font-size: 0.74em; }
-  .sb-tab { font-size: 0.7em; padding: 0.4em 0.2em; }
+  .sb-tab { font-size: 0.88em; padding: 0.55em 0.3em; }
 }

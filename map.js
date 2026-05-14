@@ -463,10 +463,12 @@ function dungeonWikiLink(label) {
   const entry = DUNGEON_WIKI[label]; if (!entry) return '';
   const weaponUrl = WIKI_LOOT_PAGE + '#' + entry.w;
   const armorUrl  = WIKI_LOOT_PAGE + '#' + entry.a;
-  const s = 'display:inline-flex;align-items:center;justify-content:center;gap:0.35em;padding:0.45em 0.9em;border-radius:5px;text-decoration:none;font-size:0.95em;font-weight:700;color:white;flex:1;';
-  return '<div style="display:flex;gap:0.5em;margin-top:0.6em;">'
-    + '<a href="' + weaponUrl + '" target="_blank" rel="noopener" style="' + s + 'background:rgb(120,90,55);">&#9876; Weapons</a>'
-    + '<a href="' + armorUrl  + '" target="_blank" rel="noopener" style="' + s + 'background:rgb(65,55,110);">&#128737; Armor</a>'
+  const base = 'display:flex;align-items:center;justify-content:center;gap:0.4em;padding:0.5em 1em;border-radius:5px;text-decoration:none;font-size:1.05em;font-weight:700;color:white;letter-spacing:0.02em;';
+  const wStyle = base + 'background:linear-gradient(135deg,#b0665d 50%,#ce715c 50%);';
+  const aStyle = base + 'background:linear-gradient(135deg,#6e1ac7 50%,#8a35e0 50%);';
+  return '<div style="display:flex;flex-direction:column;gap:0.4em;margin-top:0.65em;">'
+    + '<a href="' + weaponUrl + '" target="_blank" rel="noopener" style="' + wStyle + '">&#9876;&#xFE0F; Weapon Loot</a>'
+    + '<a href="' + armorUrl  + '" target="_blank" rel="noopener" style="' + aStyle + '">&#128737;&#xFE0F; Armor Loot</a>'
     + '</div>';
 }
 
@@ -743,6 +745,7 @@ function buildSidebar(layers) {
 
     // Group header
     const ghdr=mk('div',{class:'filter-group-header'});
+    ghdr.setAttribute('data-group', group.key);
     const eyeBtn=mk('button',{class:'fgh-eye'}); eyeBtn.innerHTML=SVG.eye;
     eyeBtn.addEventListener('click',e=>{ e.stopPropagation(); toggleGroupVisibility(group, layers, eyeBtn); });
     ghdr.innerHTML=`<div class="fgh-left"><span>${group.icon}</span><span class="fgh-title">${group.title}</span></div><div style="display:flex;align-items:center;gap:0.4em"></div>`;
@@ -762,6 +765,7 @@ function buildSidebar(layers) {
 
         // Plain collapsible header - just title + chevron
         const shdr = mk('div',{class:'filter-subgroup-header'});
+        shdr.setAttribute('data-sub', mainCat);
         const shdrTitle = mk('span',{class:'fsh-title',style:`color:${colour};flex:1;`});
         shdrTitle.textContent = mainCat;
         const shdrChev = mk('span',{class:'fsh-chevron'}); shdrChev.textContent='▼';

@@ -112,8 +112,14 @@ const MOB_UNIT_FACTION = {
   // Golems
   'Golem_Z2W_Wind2':'Golems','Z2_Golem_Eksod_Exterior':'Golems','Z2_Golem_Eksod_Interior':'Golems',
   'Z2_Golem_Krisomal_Exterior':'Golems','Z2_Golem_Krisomal_Interior':'Golems',
-  // Sparkles (golem-type but distinct)
+  // Sparkles (golem-family, distinct icon)
   'Elemental_Z1W_Earth':'Sparkles',
+  'Elemental_Z1W_Earth_2':'Sparkles',
+  'Elemental_Z1W_Underwater':'Sparkles',   // Naya Sparkle — was wrongly Spirits
+  'Elemental_Z2W_Underwater_U':'Sparkles', // Aquamarine Sparkle
+  // Spirits (non-sparkle elementals + herald)
+  'Elemental_Z2W':'Spirits','Elemental_Z2W_2':'Spirits',
+  'Elemental_Z2W_Underwater_2':'Spirits','TODO_Z1W_HeraldSpirit':'Spirits',
   // Kobolds
   'Z1_Kobold_Mines_2':'Kobolds','Z1_Kobold_Patrol_Unique':'Kobolds',
   'Z2_Kobold_Eksod':'Kobolds','Z2_Kobold_Eksod_Ogre':'Kobolds',
@@ -121,9 +127,6 @@ const MOB_UNIT_FACTION = {
   'Z2_Manfish_Krisomal':'Nepsids',
   // Sprouts
   'Z2_Plant_Azuram_NoRice':'Sprouts','Z2_Plant_Nescent_NoRice':'Sprouts',
-  // Spirits
-  'Elemental_Z1W_Underwater':'Spirits','Elemental_Z2W':'Spirits','Elemental_Z2W_2':'Spirits',
-  'Elemental_Z2W_Underwater_2':'Spirits','TODO_Z1W_HeraldSpirit':'Spirits',
   // Wolves (true wolves)
   'Z1_Forest':'Wolves',
   // Coyotes (wild zone patrols — coyote icon)
@@ -511,6 +514,15 @@ const DUNGEON_WIKI = {
 const WIKI_LOOT_PAGE = 'https://farever.wiki/Dungeons_loots:_Armors_%26_Weapons';
 function getDungeonLabel(rawLabel, coords) {
   if (DUNGEON_NAME_FIX[rawLabel]) return DUNGEON_NAME_FIX[rawLabel];
+  if (rawLabel === 'Dungeon entrance') {
+    const [lat, lng] = coords;
+    if (lat > 1400 && lat < 1600 && lng > 2400 && lng < 2750) return "Ruins of Gorgon's Hollow";  // lat~1495, lng~2587
+    if (lat < 800  && lng > 2900)                              return 'Abyss of New Atlaan';        // lat~670,  lng~3050
+    if (lat < 500  && lng > 1400 && lng < 1900)               return 'Lost City of Mayda';         // lat~386,  lng~1627
+    if (lat > 1800 && lng > 3400)                              return "Honeyzabeth's Hivetrunk";    // lat~1907, lng~3582
+    if (lat > 1100 && lat < 1350 && lng < 900)                return 'Trunk of the Hivetree';      // lat~1269, lng~749
+    if (lat > 1350 && lat < 1500 && lng < 900)                return "Lady Bee's Palace";          // lat~1412, lng~755
+  }
   return rawLabel;
 }
 function dungeonWikiLink(label) {

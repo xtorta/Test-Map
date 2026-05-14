@@ -22,6 +22,7 @@ html, body {
   transition: transform 0.25s ease, width 0.25s ease;
   box-shadow: -4px 0 20px rgba(0,0,0,0.25);
   overflow: hidden; width: var(--sb-full);
+  overscroll-behavior: contain;
 }
 #sidebar.closed     { transform: translateX(var(--sb-full)); }
 #sidebar.compact    { width: var(--sb-compact); }

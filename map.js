@@ -125,8 +125,8 @@ function makeRegionIcon(name, tier, interactive) {
 function isRegionVisible(tier) { return tier==='region'?showRegions:tier==='subregion'?showSubregions:showZones; }
 function isZoomVisible(tier) {
   const z = map.getZoom();
-  if (tier === 'zone')      return z >= -2;   // zones only when zoomed in
-  if (tier === 'subregion') return z >= -4;   // subregions at medium zoom
+  if (tier === 'zone')      return z >= 0;    // zones only at zoom 0+
+  if (tier === 'subregion') return z >= -2;   // subregions at medium zoom
   return true;                                 // regions always
 }
 function refreshRegionVisibility() {
@@ -969,30 +969,41 @@ function toggleGroupVisibility(group, layers, eyeBtn) {
 
 // ─── Route share codes ────────────────────────────────────────────────────────
 function encodeRouteCode(route) {
-  // Compact: colour (3 hex digits) + point count + lat/lng pairs rounded to 1dp
-  const c = route.colour||'#e74c3c';
-  const hex6 = c.replace('#','');
-  // Convert to 3-char hex
-  const r3 = Math.round(parseInt(hex6.slice(0,2),16)/17).toString(16);
-  const g3 = Math.round(parseInt(hex6.slice(2,4),16)/17).toString(16);
-  const b3 = Math.round(parseInt(hex6.slice(4,6),16)/17).toString(16);
+  const c = (route.colour||'#e74c3c').replace('#','');
+  const r3 = Math.round(parseInt(c.slice(0,2),16)/17).toString(16);
+  const g3 = Math.round(parseInt(c.slice(2,4),16)/17).toString(16);
+  const b3 = Math.round(parseInt(c.slice(4,6),16)/17).toString(16);
   const colCode = r3+g3+b3;
-  const pts = route.points.map(p=>`${Math.round(p[0]*10)},${Math.round(p[1]*10)}`).join(';');
-  const note = (route.note||'').replace(/[^a-zA-Z0-9 ]/g,'').slice(0,30);
-  const raw = `${colCode}|${pts}|${note}`;
+  // Delta encode: store first point then differences, rounded to nearest 2 units
+  const pts = route.points;
+  const first = [Math.round(pts[0][0]/2), Math.round(pts[0][1]/2)];
+  const deltas = [first[0]+','+first[1]];
+  for (let i=1;i<pts.length;i++) {
+    const da = Math.round(pts[i][0]/2) - Math.round(pts[i-1][0]/2);
+    const db = Math.round(pts[i][1]/2) - Math.round(pts[i-1][1]/2);
+    deltas.push(da+','+db);
+  }
+  const raw = colCode+'|'+deltas.join(';');
   return btoa(raw).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
 }
 function decodeRouteCode(code) {
   try {
     const padded = code.replace(/-/g,'+').replace(/_/g,'/');
     const raw = atob(padded + '=='.slice(0,(4-padded.length%4)%4));
-    const [colCode, ptsStr, note=''] = raw.split('|');
-    // Expand 3-char hex to 6
+    const pipe = raw.indexOf('|');
+    const colCode = raw.slice(0,pipe), ptsStr = raw.slice(pipe+1);
     const r=parseInt(colCode[0],16)*17, g=parseInt(colCode[1],16)*17, b=parseInt(colCode[2],16)*17;
     const colour = '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
-    const points = ptsStr.split(';').map(s=>{ const [a,b2]=s.split(','); return [parseFloat(a)/10,parseFloat(b2)/10]; });
+    const deltas = ptsStr.split(';').map(s=>s.split(',').map(Number));
+    if (!deltas.length) return null;
+    const points = [[deltas[0][0]*2, deltas[0][1]*2]];
+    for (let i=1;i<deltas.length;i++) {
+      const prev = [Math.round(points[i-1][0]/2), Math.round(points[i-1][1]/2)];
+      points.push([(prev[0]+deltas[i][0])*2, (prev[1]+deltas[i][1])*2]);
+    }
     if (points.length<2) return null;
-    return {colour, points, note};
+    // Try legacy format (flat coords, no delta) if points look wrong
+    return {colour, points, note:''};
   } catch { return null; }
 }
 

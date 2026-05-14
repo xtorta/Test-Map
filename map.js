@@ -302,7 +302,7 @@ function openCustPopup(marker) {
   if (isMobile()) {
     const sb = document.getElementById('sidebar');
     if (sb && !sb.style.transform) {
-      sb.style.transform = `translateX(${sb.offsetWidth||290}px)`;
+      sb.style.transform = `translateX(${sb.offsetWidth||310}px)`;
       let done = false;
       setTimeout(() => map.once('popupclose', () => { if(!done){done=true; sb.style.transform='';} }), 150);
     }
@@ -314,7 +314,7 @@ map.on('popupopen', () => {
   if (!isMobile()) return;
   const sb = document.getElementById('sidebar');
   if (!sb || sb.style.transform) return;
-  sb.style.transform = `translateX(${sb.offsetWidth||290}px)`;
+  sb.style.transform = `translateX(${sb.offsetWidth||310}px)`;
   map.once('popupclose', () => { sb.style.transform = ''; });
 });
 function renderRoutes() {
@@ -906,7 +906,7 @@ function buildSidebar(layers) {
   // ── Layout & state ───────────────────────────────────────────────
   let sidebarOpen = savedView !== 'closed';
   function saveView() { localStorage.setItem('sbView', !sidebarOpen ? 'closed' : isCompact() ? 'compact' : 'full'); }
-  function sbW() { return sidebar.offsetWidth || (isCompact() ? 52 : (isMobile() ? 290 : 320)); }
+  function sbW() { return sidebar.offsetWidth || (isCompact() ? 52 : (isMobile() ? 310 : 350)); }
   function applyLayout(animate) {
     if (!animate) sidebar.style.transition = 'none';
     sidebar.style.transform = sidebarOpen ? '' : `translateX(${sbW()}px)`;
@@ -1312,7 +1312,7 @@ function mkToolBtn(id,svg,tip){const b=mk('button',{id,class:'sb-tool-btn'});b.s
 function showMobileRouteBar() {
   document.getElementById('mobile-route-bar')?.remove();
   const sb = document.getElementById('sidebar');
-  if(sb) { const w = sb.offsetWidth || 290; sb.style.transform = `translateX(${w}px)`; }
+  if(sb) { const w = sb.offsetWidth || 310; sb.style.transform = `translateX(${w}px)`; }
   const bar = mk('div',{id:'mobile-route-bar'});
   bar.style.cssText=`position:fixed;bottom:0;left:0;right:0;z-index:1200;display:flex;gap:0.5em;padding:0.75em 1em;background:linear-gradient(135deg,#785a37 50%,#8e6a41 50%);box-shadow:0 -3px 12px rgba(0,0,0,0.3);`;
   const label=mk('span'); label.style.cssText='color:white;font-size:0.82em;font-weight:700;flex:1;display:flex;align-items:center;'; label.textContent='Hold & drag to draw route';

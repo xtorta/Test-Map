@@ -629,8 +629,7 @@ function initMap(data) {
       const sz=28;
       const icon = L.icon({iconUrl:subInfo.iconUrl, iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2]});
       m = L.marker(coords, {icon});
-    } else if (mobFaction) {
-      // Mob faction icon: 32x32
+    } else if (mobFaction && MOB_FACTIONS[mobFaction]) {
       const sz=32;
       const icon = L.icon({iconUrl:MOB_FACTIONS[mobFaction].icon, iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2]});
       m = L.marker(coords, {icon});

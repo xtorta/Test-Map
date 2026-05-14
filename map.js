@@ -613,7 +613,7 @@ function initMap(data) {
     const cat=item.categories?.[0]||'Misc';
     if (cat !== 'Mobs') return;
     const faction = item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction
-      : (MOB_UNIT_FACTION[item.unit||''] || null);
+      : (MOB_UNIT_FACTION[item.unit||''] || (/sparkle/i.test(item.label||'') ? 'Sparkles' : null));
     if (!faction || faction === '__skip__' || faction === '__Critters__') return;
     categoryRegistry[faction].total++;
     categoryRegistry[faction].markerIds.push(getMarkerId(item,idx));
@@ -626,7 +626,8 @@ function initMap(data) {
     // Mob faction routing
     const mobFaction = (cat==='Mobs')
       ? (item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction
-         : MOB_UNIT_FACTION[item.unit||''] || null)
+         : MOB_UNIT_FACTION[item.unit||'']
+         || (/sparkle/i.test(item.label||'') ? 'Sparkles' : null))
       : null;
     // Skip dummy/test markers
     if (mobFaction === '__skip__') return;

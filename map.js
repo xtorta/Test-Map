@@ -49,11 +49,10 @@ const COLOURS = {
   'Mobs':'#d13a3a','Sparkling mobs':'#eb19c8','Dungeons':'#430dd8',
   'Checkpoints':'#4db3db','Minibosses':'#eb681c','Critters':'#de58ff',
   'Recipes':'#9b7700','Secret orbs':'#a23030',
-  // Mob faction colours
   'Slimes':'#4cbb6a','Nepsids':'#3a9abf','Crabs':'#c0392b','Spirits':'#7f60c2',
   'Coyotes':'#c8853a','Skunks':'#8b5e3c','Kobolds':'#6a7a3a','Crimson':'#b03030',
-  'Golems':'#888a7a','Bees':'#d4a017','Wolves':'#5a6a8a','Boars':'#7a4a2a',
-  'Demons':'#8b1a1a','Sprouts':'#5a9a3a',
+  'Golems':'#888a7a','Sparkles':'#70c8d0','Bees':'#d4a017','Wolves':'#5a6a8a',
+  'Boars':'#7a4a2a','Demons':'#8b1a1a','Sprouts':'#5a9a3a',
   'Copper':'#c67c3a','Tin':'#7a9bb5','Tungstene':'#9b7daa',
   'Madrigold':'#e8a030','Lavendula':'#9b59b6','Ancient Thyme':'#5d8a5e','Zealotus':'#c0392b',
 };
@@ -71,20 +70,21 @@ const FILTER_GROUPS = [
   { key:'enemies',     title:'Enemies',           icon:'⚔️', cats:['Minibosses','Sparkling mobs'], hasMobSub:true },
 ];
 const MOB_FACTIONS = {
-  'Bees':    { icon:'./icons/mobs/bee.png' },
-  'Boars':   { icon:'./icons/mobs/boar.png' },
-  'Coyotes': { icon:'./icons/mobs/coyote.png' },
-  'Crabs':   { icon:'./icons/mobs/crab.png' },
-  'Crimson': { icon:'./icons/mobs/crimson.png' },
-  'Demons':  { icon:'./icons/mobs/demon.png' },
-  'Golems':  { icon:'./icons/mobs/golem.png' },
-  'Kobolds': { icon:'./icons/mobs/kobold.png' },
-  'Nepsids': { icon:'./icons/mobs/nepsid.png' },
-  'Skunks':  { icon:'./icons/mobs/skunk.png' },
-  'Slimes':  { icon:'./icons/mobs/slime.png' },
-  'Spirits': { icon:'./icons/mobs/spirits.png' },
-  'Sprouts': { icon:'./icons/mobs/sprout.png' },
-  'Wolves':  { icon:'./icons/mobs/wolf.png' },
+  'Bees':     { icon:'./icons/mobs/bee.png' },
+  'Boars':    { icon:'./icons/mobs/boar.png' },
+  'Coyotes':  { icon:'./icons/mobs/coyote.png' },
+  'Crabs':    { icon:'./icons/mobs/crab.png' },
+  'Crimson':  { icon:'./icons/mobs/crimson.png' },
+  'Demons':   { icon:'./icons/mobs/demon.png' },
+  'Golems':   { icon:'./icons/mobs/golem.png' },
+  'Sparkles': { icon:'./icons/mobs/sparkle.png' },
+  'Kobolds':  { icon:'./icons/mobs/kobold.png' },
+  'Nepsids':  { icon:'./icons/mobs/nepsid.png' },
+  'Skunks':   { icon:'./icons/mobs/skunk.png' },
+  'Slimes':   { icon:'./icons/mobs/slime.png' },
+  'Spirits':  { icon:'./icons/mobs/spirits.png' },
+  'Sprouts':  { icon:'./icons/mobs/sprout.png' },
+  'Wolves':   { icon:'./icons/mobs/wolf.png' },
 };
 const ORE_SUBS   = {
   'Copper':    { labels:['Copper Ore Large','Copper Ore Small'], icon:'./icons/gatherables/copper.png?v=3' },
@@ -99,28 +99,45 @@ const PLANT_SUBS = {
 };
 const MOB_UNIT_FACTION = {
   // Bees
-  'Z1_Bee_Patrol_World':'Bees','Z1_Bee_Tree':'Bees','Z2_Bee_Nescent':'Bees','Z2_Bee_Nescent_3':'Bees','Z2_Bee_Patrol_World_Elite':'Bees',
+  'Z1_Bee_Patrol_World':'Bees','Z1_Bee_Tree':'Bees','Z2_Bee_Nescent':'Bees',
+  'Z2_Bee_Nescent_3':'Bees','Z2_Bee_Patrol_World_Elite':'Bees',
   // Crimson
   'Crimson_Z1W_Sword_2':'Crimson','Dog_Z1W_Crimson':'Crimson',
   'Z1_Crimson_Patrol_Stronghold_World':'Crimson','Z1_Crimson_Patrol_Stronghold_World_1':'Crimson',
   'Z1_Crimson_Patrol_Stronghold_World_2':'Crimson','Z1_Crimson_Patrol_Stronghold_World_Unique':'Crimson',
-  'Z2_Crimson_Patrol_World':'Crimson','Z2_Crimson_Patrol_World_2':'Crimson','Z2_Crimson_Patrol_World_3':'Crimson',
-  'Z2_Crimson_Patrol_World_4':'Crimson','Z2_Crimson_Patrol_World_6':'Crimson','Z2_Crimson_Peasant_Nescent':'Crimson',
+  'Z2_Crimson_Patrol_World':'Crimson','Z2_Crimson_Patrol_World_2':'Crimson',
+  'Z2_Crimson_Patrol_World_3':'Crimson','Z2_Crimson_Patrol_World_4':'Crimson',
+  'Z2_Crimson_Patrol_World_6':'Crimson','Z2_Crimson_Peasant_Nescent':'Crimson',
   'TODO_Z2W_Peasant':'Crimson',
   // Golems
   'Golem_Z2W_Wind2':'Golems','Z2_Golem_Eksod_Exterior':'Golems','Z2_Golem_Eksod_Interior':'Golems',
   'Z2_Golem_Krisomal_Exterior':'Golems','Z2_Golem_Krisomal_Interior':'Golems',
+  // Sparkles (golem-type but distinct)
+  'Elemental_Z1W_Earth':'Sparkles',
   // Kobolds
-  'Z1_Kobold_Mines_2':'Kobolds','Z1_Kobold_Patrol_Unique':'Kobolds','Z2_Kobold_Eksod':'Kobolds','Z2_Kobold_Eksod_Ogre':'Kobolds',
-  // Nepsids (manfish = aquatic nepsid-type)
+  'Z1_Kobold_Mines_2':'Kobolds','Z1_Kobold_Patrol_Unique':'Kobolds',
+  'Z2_Kobold_Eksod':'Kobolds','Z2_Kobold_Eksod_Ogre':'Kobolds',
+  // Nepsids
   'Z2_Manfish_Krisomal':'Nepsids',
-  // Sprouts (plant enemies)
+  // Sprouts
   'Z2_Plant_Azuram_NoRice':'Sprouts','Z2_Plant_Nescent_NoRice':'Sprouts',
-  // Spirits (elementals + herald)
+  // Spirits
   'Elemental_Z1W_Underwater':'Spirits','Elemental_Z2W':'Spirits','Elemental_Z2W_2':'Spirits',
   'Elemental_Z2W_Underwater_2':'Spirits','TODO_Z1W_HeraldSpirit':'Spirits',
-  // Wolves/Coyotes (wild zone patrols)
-  'Z1_Forest':'Wolves','Z1_Start_Patrol_World':'Wolves','Z2_Wild_Azuram':'Wolves','Z2_Wild_Nescent':'Wolves',
+  // Wolves (true wolves)
+  'Z1_Forest':'Wolves',
+  // Coyotes (wild zone patrols — coyote icon)
+  'Z1_Start_Patrol_World':'Coyotes','Z2_Wild_Azuram':'Coyotes','Z2_Wild_Nescent':'Coyotes',
+  // Critters (miscategorised as Mobs in data)
+  'Z1_World_Critters_Lizard':'__Critters__',
+  'Z1_World_Critters_Squirel':'__Critters__',
+  'Z1_World_Critters_Frog':'__Critters__',
+  'Z1_World_Critters_Ladybugs':'__Critters__',
+  'Z1_World_Critters_StinkBug':'__Critters__',
+  'Z1_World_Critters_Tortorock':'__Critters__',
+  'Z1_World_Critters_Sheep':'__Critters__',
+  // Dummy — skip
+  'Dummy':'__skip__',
 };
 const GATHERABLE_SUBS = { Ores: ORE_SUBS, Plants: PLANT_SUBS };
 const SVG = {
@@ -550,7 +567,12 @@ function initMap(data) {
     if (gatherableLabels.has(item.label.toLowerCase())) return;
     if (cat === 'Mobs') {
       const uf = item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction : MOB_UNIT_FACTION[item.unit||''];
-      if (uf) return; // counted via faction
+      if (uf === '__skip__') return; // Dummy items
+      if (uf === '__Critters__') { // count toward Critters
+        if(!categoryRegistry['Critters']) categoryRegistry['Critters']={total:0,markerIds:[],markers:[]};
+        categoryRegistry['Critters'].total++; categoryRegistry['Critters'].markerIds.push(getMarkerId(item,idx)); return;
+      }
+      if (uf) return; // counted via faction pre-count below
     }
     if(!categoryRegistry[cat]) categoryRegistry[cat]={total:0,markerIds:[],markers:[]};
     categoryRegistry[cat].total++;
@@ -578,9 +600,9 @@ function initMap(data) {
   data.forEach((item,idx)=>{
     const cat=item.categories?.[0]||'Misc';
     if (cat !== 'Mobs') return;
-    const faction = item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction 
+    const faction = item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction
       : (MOB_UNIT_FACTION[item.unit||''] || null);
-    if (!faction) return;
+    if (!faction || faction === '__skip__' || faction === '__Critters__') return;
     categoryRegistry[faction].total++;
     categoryRegistry[faction].markerIds.push(getMarkerId(item,idx));
   });
@@ -590,11 +612,17 @@ function initMap(data) {
     const cat=item.categories?.[0]||'Misc';
     const subInfo = subTypeMap[item.label.toLowerCase()];
     // Mob faction routing
-    const mobFaction = (cat==='Mobs') 
-      ? (item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction 
+    const mobFaction = (cat==='Mobs')
+      ? (item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction
          : MOB_UNIT_FACTION[item.unit||''] || null)
       : null;
-    const effectiveCat = subInfo ? subInfo.layerKey : mobFaction ? mobFaction : cat;
+    // Skip dummy/test markers
+    if (mobFaction === '__skip__') return;
+    // Critters miscategorised as Mobs
+    const effectiveCat = subInfo ? subInfo.layerKey
+      : mobFaction === '__Critters__' ? 'Critters'
+      : mobFaction ? mobFaction
+      : cat;
     if (!layers[effectiveCat]) layers[effectiveCat]=L.layerGroup();
     let m;
     if (subInfo && subInfo.iconUrl) {

@@ -771,20 +771,7 @@ function buildSidebar(layers) {
     catList.appendChild(groupDiv);
   });
 
-  // ── Scroll arrows via IntersectionObserver (no scroll events, no jank) ──
-  const arrowUp = mk('div',{id:'sb-arrow-up'}); arrowUp.innerHTML='▲';
-  const arrowDn = mk('div',{id:'sb-arrow-dn'}); arrowDn.innerHTML='▼';
-  const sentTop = mk('div',{style:'height:1px;flex-shrink:0;pointer-events:none;'});
-  const sentBot = mk('div',{style:'height:1px;flex-shrink:0;pointer-events:none;'});
-  catList.prepend(sentTop); catList.append(sentBot);
-  const obsOpts = {root:catList, threshold:0};
-  new IntersectionObserver(([e])=>{ arrowUp.classList.toggle('visible',!e.isIntersecting); },obsOpts).observe(sentTop);
-  new IntersectionObserver(([e])=>{ arrowDn.classList.toggle('visible',!e.isIntersecting); },obsOpts).observe(sentBot);
-  arrowUp.addEventListener('click',()=>catList.scrollBy({top:-120,behavior:'smooth'}));
-  arrowDn.addEventListener('click',()=>catList.scrollBy({top:120,behavior:'smooth'}));
-  filterPanel.appendChild(arrowUp);
   filterPanel.appendChild(catList);
-  filterPanel.appendChild(arrowDn);
   sidebar.appendChild(filterPanel);
 
   // ── Compact list (icon-only, all cats) ───────────────────────────

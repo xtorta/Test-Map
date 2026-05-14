@@ -305,20 +305,8 @@ html, body {
 .sb-cat-name { flex: 1; font-size: 0.9em; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb-cat-count { font-size: 0.82em; color: #777; flex-shrink: 0; white-space: nowrap; }
 
-/* CSS fade at bottom of cat list - pure CSS, no JS scroll events */
+/* CSS fade at bottom of cat list */
 #sb-panel-filter { position: relative; }
-
-/* Scroll arrows */
-#sb-arrow-up, #sb-arrow-dn {
-  display: none; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #b2a46f 50%, #ccba8c 50%);
-  color: white; font-size: 0.65em; padding: 0.2em 0;
-  flex-shrink: 0; cursor: pointer; user-select: none;
-  opacity: 0; transition: opacity 0.2s; pointer-events: none;
-}
-#sb-arrow-up.visible, #sb-arrow-dn.visible {
-  display: flex; opacity: 1; pointer-events: auto;
-}
 
 /* Hint */
 #sb-hint {

@@ -227,35 +227,42 @@ html, body {
 .filter-group { flex-shrink: 0; }
 .filter-group-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0.32em 0.85em 0.32em 0.75em; background: rgb(200,195,185);
+  padding: 0.32em 0.85em 0.32em 0.75em;
   border-bottom: 1px solid rgba(0,0,0,0.1); cursor: pointer; user-select: none;
 }
-.filter-group-header:hover { background: rgb(190,185,175); }
+.filter-group-header:hover { filter: brightness(0.92); }
 .fgh-left { display: flex; align-items: center; gap: 0.4em; }
-.fgh-title { font-size: 0.8em; font-weight: 700; color: #2a2010; }
-.fgh-chevron { font-size: 0.65em; color: #666; transition: transform 0.2s; }
+.fgh-title { font-size: 0.8em; font-weight: 700; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+.fgh-chevron { font-size: 0.65em; color: rgba(255,255,255,0.85); transition: transform 0.2s; }
 .filter-group.collapsed .fgh-chevron { transform: rotate(-90deg); }
-.fgh-eye {
-  background: none; border: none; cursor: pointer; color: #777;
-  padding: 0.15em; border-radius: 3px; display: flex; align-items: center;
-  font-size: 0.85em; transition: all 0.15s;
+.fgh-eye { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.8); padding: 0.15em; border-radius: 3px; display: flex; align-items: center; font-size: 0.85em; transition: all 0.15s; }
+.fgh-eye:hover { color: white; background: rgba(255,255,255,0.15); }
+.fgh-eye.hidden-state { color: rgba(255,255,255,0.5); }
+
+/* Per-group gradient colours */
+.filter-group-header[data-group="npcs"]        { background: linear-gradient(135deg, #27ad71 50%, #3dca8a 50%); }
+.filter-group-header[data-group="poi"]         { background: linear-gradient(135deg, #6e1ac7 50%, #8a35e0 50%); }
+.filter-group-header[data-group="collectables"]{ background: linear-gradient(135deg, #c68a09 50%, #e0a020 50%); }
+.filter-group-header[data-group="gatherables"] { background: linear-gradient(135deg, #388e9f 50%, #4aabbc 50%); }
+.filter-group-header[data-group="enemies"]     { background: linear-gradient(135deg, #b0665d 50%, #ce715c 50%); }
+
+/* Plants / Ores subgroup headers — solid colour, white text */
+.filter-subgroup-header {
+  display: flex; align-items: center; gap: 0.5em;
+  padding: 0.26em 0.85em 0.26em 1.1em;
+  border-bottom: 1px solid rgba(0,0,0,0.07); cursor: pointer; user-select: none;
 }
-.fgh-eye:hover { color: #333; background: rgba(0,0,0,0.08); }
-.fgh-eye.hidden-state { color: #c0392b; }
-.filter-group-rows { overflow: hidden; }
-.filter-group.collapsed .filter-group-rows { display: none; }
+.filter-subgroup-header:hover { filter: brightness(0.92); }
+.filter-subgroup-header[data-sub="Plants"] { background: #b55c8a; }
+.filter-subgroup-header[data-sub="Ores"]   { background: #6040aa; }
+.fsh-title { font-size: 0.76em; font-weight: 700; flex: 1; color: white !important; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+.fsh-chevron { font-size: 0.62em; color: rgba(255,255,255,0.8); transition: transform 0.2s; }
+.filter-subgroup.collapsed .fsh-chevron { transform: rotate(-90deg); }
 
 /* Subgroup */
 .filter-subgroup { flex-shrink: 0; }
-.filter-subgroup-header {
-  display: flex; align-items: center; gap: 0.5em;
-  padding: 0.26em 0.85em 0.26em 1.1em; background: rgb(208,203,193);
-  border-bottom: 1px solid rgba(0,0,0,0.07); cursor: pointer; user-select: none;
-}
-.filter-subgroup-header:hover { background: rgb(198,193,183); }
-.fsh-title { font-size: 0.76em; font-weight: 600; flex: 1; }
-.fsh-chevron { font-size: 0.62em; color: #888; transition: transform 0.2s; }
-.filter-subgroup.collapsed .fsh-chevron { transform: rotate(-90deg); }
+.filter-group-rows { overflow: hidden; }
+.filter-group.collapsed .filter-group-rows { display: none; }
 .filter-subgroup-rows { overflow: hidden; }
 .filter-subgroup.collapsed .filter-subgroup-rows { display: none; }
 

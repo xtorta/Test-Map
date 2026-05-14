@@ -853,8 +853,7 @@ function buildSidebar(layers) {
   document.body.appendChild(toggle);
 
   function positionToggle() {
-    const rect = sidebar.getBoundingClientRect();
-    toggle.style.right = (window.innerWidth - rect.left) + 'px';
+    toggle.style.right = sidebarOpen ? sidebar.offsetWidth + 'px' : '0px';
   }
 
   // ── Floating search (sidebar closed) ────────────────────────────
@@ -909,12 +908,8 @@ function buildSidebar(layers) {
     sidebar.style.transform = sidebarOpen ? '' : `translateX(${sbW()}px)`;
     toggle.innerHTML = sidebarOpen ? '▶' : '◀';
     floatWrap.style.display = sidebarOpen ? 'none' : 'flex';
-    if (!animate) {
-      requestAnimationFrame(() => { sidebar.style.transition = ''; positionToggle(); });
-    } else {
-      sidebar.addEventListener('transitionend', positionToggle, {once:true});
-    }
     positionToggle();
+    if (!animate) requestAnimationFrame(() => { sidebar.style.transition = ''; });
   }
   toggle.addEventListener('click',()=>{sidebarOpen=!sidebarOpen;saveView();applyLayout(true);});
   btnTV.addEventListener('click',()=>{

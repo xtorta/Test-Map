@@ -618,6 +618,17 @@ function initMap(data) {
     if (!faction || faction === '__skip__' || faction === '__Critters__') return;
     categoryRegistry[faction].total++;
     categoryRegistry[faction].markerIds.push(getMarkerId(item,idx));
+    // Also count in extra factions detected from label
+    const lbl = item.label || '';
+    const extras = [];
+    if (/\bboar/i.test(lbl)    && faction !== 'Boars')   extras.push('Boars');
+    if (/\bcoyote/i.test(lbl)  && faction !== 'Coyotes') extras.push('Coyotes');
+    if (/\bwolf\b|\bwolves\b/i.test(lbl) && faction !== 'Wolves') extras.push('Wolves');
+    if (/\bsparkle\b/i.test(lbl) && !/\bsparkling\b/i.test(lbl) && faction !== 'Sparkles') extras.push('Sparkles');
+    if (/\bgolem/i.test(lbl)   && faction !== 'Golems')  extras.push('Golems');
+    extras.forEach(f => {
+      if (categoryRegistry[f]) { categoryRegistry[f].total++; categoryRegistry[f].markerIds.push(getMarkerId(item,idx)); }
+    });
   });
 
   data.forEach((item,idx)=>{
@@ -676,7 +687,21 @@ function initMap(data) {
     m.on('contextmenu',e=>{ L.DomEvent.preventDefault(e); L.DomEvent.stopPropagation(e); m.closePopup(); toggleComplete(mid,m,cat); });
     m.on('click',e=>{ if (!isMobile()||routeDrawing) return; toggleComplete(mid,m,cat); });
     m.on('add',()=>setTimeout(()=>applyCompletedStyle(m,completedMarkers.has(mid)),0));
+    // Detect additional factions from label (multi-species spawn points)
+    const extraFactions = [];
+    if (cat === 'Mobs' && mobFaction) {
+      const lbl = item.label || '';
+      if (/\bboar/i.test(lbl)    && mobFaction !== 'Boars')   extraFactions.push('Boars');
+      if (/\bcoyote/i.test(lbl)  && mobFaction !== 'Coyotes') extraFactions.push('Coyotes');
+      if (/\bwolf\b|\bwolves\b/i.test(lbl) && mobFaction !== 'Wolves') extraFactions.push('Wolves');
+      if (/\bsparkle\b/i.test(lbl) && !/\bsparkling\b/i.test(lbl) && mobFaction !== 'Sparkles') extraFactions.push('Sparkles');
+      if (/\bgolem/i.test(lbl)   && mobFaction !== 'Golems')  extraFactions.push('Golems');
+    }
+
     m.addTo(layers[effectiveCat]);
+    extraFactions.forEach(f => {
+      if (layers[f]) m.addTo(layers[f]);
+    });
   });
 
   // Map mouse/touch events for route drawing and marker placement

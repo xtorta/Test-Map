@@ -30,9 +30,10 @@ html, body {
   position: fixed; top: 0; right: 0; height: 100%;
   background-color: var(--parchment);
   background-image:
-    radial-gradient(ellipse at 20% 30%, rgba(200,149,46,0.09) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 70%, rgba(180,120,20,0.07) 0%, transparent 55%),
-    radial-gradient(ellipse at 50% 10%, rgba(220,170,60,0.06) 0%, transparent 50%);
+    radial-gradient(ellipse at 15% 25%, rgba(200,140,30,0.22) 0%, rgba(200,140,30,0.08) 35%, transparent 65%),
+    radial-gradient(ellipse at 85% 65%, rgba(170,110,15,0.18) 0%, rgba(170,110,15,0.06) 35%, transparent 65%),
+    radial-gradient(ellipse at 50% 90%, rgba(210,160,50,0.15) 0%, rgba(210,160,50,0.05) 40%, transparent 70%),
+    radial-gradient(ellipse at 60% 20%, rgba(190,130,20,0.12) 0%, transparent 50%);
   border-left: 2px solid var(--gold-dark);
   display: flex; flex-direction: column; z-index: 1000;
   transition: transform 0.25s ease, width 0.25s ease;
@@ -61,7 +62,7 @@ html, body {
 
 /* Header — rich purple gradient banner */
 #sb-header {
-  background: linear-gradient(160deg, #4a22a0 0%, #2e1270 45%, #1a0840 100%);
+  background: linear-gradient(160deg, #5a2888 0%, #3a1468 45%, #1e0840 100%);
   border-bottom: 2px solid var(--gold);
   box-shadow: 0 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(232,184,74,0.3);
   color: white; padding: 0.6em 0.75em;
@@ -153,7 +154,7 @@ html, body {
 /* Tabs */
 #sb-tabs {
   display: flex; flex-shrink: 0;
-  background: linear-gradient(180deg, #3a1888 0%, #1e0a48 100%);
+  background: linear-gradient(180deg, #4a1e70 0%, #2c0e50 100%);
   border-bottom: 2px solid var(--gold);
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }

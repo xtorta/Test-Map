@@ -860,7 +860,13 @@ function buildSidebar(layers) {
   });
   sidebar.appendChild(tabBar);
 
-  // ── Panel: Filter (tools + zones + filters all inside) ───────────
+  // ── Search — below tabs, always visible ─────────────────────────────
+  const searchRow=mk('div',{id:'sb-search-row',style:'flex-shrink:0;'});
+  searchRow.innerHTML=`<input id="sb-search" type="text" placeholder="🔍 Search markers & regions…" autocomplete="off"><button id="sb-search-clear" style="display:none">✕</button>`;
+  sidebar.appendChild(searchRow);
+  sidebar.appendChild(sep());
+
+  // ── Panel: Filter ───────────────────────────────────────────────────
   const filterPanel=mk('div',{id:'sb-panel-filter',class:'sb-panel active'});
 
   // Tool row inside filter panel
@@ -895,12 +901,6 @@ function buildSidebar(layers) {
   filterPanel.appendChild(sep());
 
   const catList=mk('div',{id:'sb-cat-list'});
-
-  // ── Search (scrolls with filter content) ──────────────────────────
-  const searchRow=mk('div',{id:'sb-search-row',style:'flex-shrink:0;'});
-  searchRow.innerHTML=`<input id="sb-search" type="text" placeholder="🔍 Search markers & regions…" autocomplete="off"><button id="sb-search-clear" style="display:none">✕</button>`;
-  catList.appendChild(searchRow);
-  catList.appendChild(sep());
 
   // ── About (scrolls with filter content) ───────────────────────────
   const aboutRow=mk('div',{id:'sb-about-row',style:'flex-shrink:0;'});

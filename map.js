@@ -843,10 +843,6 @@ function buildSidebar(layers) {
   viewBtns.appendChild(btnTV);
   hdr.appendChild(title); hdr.appendChild(viewBtns);
   sidebar.appendChild(hdr);
-  sidebar.appendChild(sep({id:'sb-sep-first'}));
-
-  // ── About ─────────────────────────────── moved inside filter panel ──
-  // ── Search ────────────────────────────── moved inside filter panel ──
 
   // ── Tabs: Filter / Custom / Routes ──────────────────────────────────
   const tabBar=mk('div',{id:'sb-tabs'});
@@ -865,7 +861,6 @@ function buildSidebar(layers) {
   const searchRow=mk('div',{id:'sb-search-row',style:'flex-shrink:0;'});
   searchRow.innerHTML=`<input id="sb-search" type="text" placeholder="🔍 Search markers & regions…" autocomplete="off"><button id="sb-search-clear" style="display:none">✕</button>`;
   sidebar.appendChild(searchRow);
-  sidebar.appendChild(sep());
 
   // ── Panel: Filter ───────────────────────────────────────────────────
   const filterPanel=mk('div',{id:'sb-panel-filter',class:'sb-panel active'});
@@ -882,8 +877,6 @@ function buildSidebar(layers) {
   iconTools.appendChild(searchToolBtn); iconTools.appendChild(completedRow); iconTools.appendChild(shareBtn);
   sidebar.appendChild(iconTools);
   sidebar.appendChild(sep());
-
-  filterPanel.appendChild(sep());
 
   // Zone toggles inside filter panel
   const zoneTogs=mk('div',{id:'sb-zone-toggles'});

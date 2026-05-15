@@ -613,6 +613,7 @@ function initMap(data) {
     const cat=item.categories?.[0]||'Misc';
     if (cat !== 'Mobs') return;
     const faction = /\bsparkle\b/i.test(item.label||'') && !/\bsparkling\b/i.test(item.label||'') ? 'Sparkles'
+      : /\bslime\b/i.test(item.label||'') ? 'Slimes'
       : item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction
       : (MOB_UNIT_FACTION[item.unit||''] || null);
     if (!faction || faction === '__skip__' || faction === '__Critters__') return;
@@ -638,6 +639,7 @@ function initMap(data) {
     // Mob faction routing
     const mobFaction = (cat==='Mobs')
       ? (/\bsparkle\b/i.test(item.label||'') && !/\bsparkling\b/i.test(item.label||'') ? 'Sparkles'
+         : /\bslime\b/i.test(item.label||'') ? 'Slimes'
          : item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction
          : MOB_UNIT_FACTION[item.unit||''] || null)
       : null;
@@ -699,33 +701,32 @@ function initMap(data) {
     }
     const allFactions = mobFaction && MOB_FACTIONS[mobFaction] ? [mobFaction, ...extraFactions] : null;
 
-    // For multi-faction markers, use a divIcon that adapts to visible factions
+    // For multi-faction markers: add to map directly, control visibility via updateMultiFactionIcons
     if (allFactions && allFactions.length > 1) {
-      function makeMultiIcon(visibleFactions) {
-        const show = visibleFactions.length > 0 ? visibleFactions : allFactions;
-        const sz = 32; // always same size as single faction icons
-        const overlap = 14; // pixels of overlap between icons
+      const sz = 32;
+      const overlap = 14;
+      function makeMultiIcon(show) {
+        if (show.length === 1) {
+          return L.icon({iconUrl:MOB_FACTIONS[show[0]].icon, iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2]});
+        }
         const totalW = sz + (show.length - 1) * (sz - overlap);
-        const imgs = show.map((f, i) =>
+        const imgs = show.map((f,i) =>
           `<img src="${MOB_FACTIONS[f].icon}" width="${sz}" height="${sz}" style="position:absolute;left:${i*(sz-overlap)}px;top:0;">`
         ).join('');
         return L.divIcon({
-          html: `<div style="position:relative;width:${totalW}px;height:${sz}px;">${imgs}</div>`,
-          className: '',
-          iconSize: [totalW, sz],
-          iconAnchor: [totalW / 2, sz / 2],
-          popupAnchor: [0, -sz / 2],
+          html:`<div style="position:relative;width:${totalW}px;height:${sz}px;">${imgs}</div>`,
+          className:'', iconSize:[totalW,sz], iconAnchor:[totalW/2,sz/2], popupAnchor:[0,-sz/2]
         });
       }
       m.setIcon(makeMultiIcon(allFactions));
       m._allFactions = allFactions;
       m._makeMultiIcon = makeMultiIcon;
+      // Add directly to map — visibility controlled by updateMultiFactionIcons
+      m.addTo(map);
+    } else {
+      m.addTo(layers[effectiveCat]);
+      extraFactions.forEach(f => { if (layers[f]) m.addTo(layers[f]); });
     }
-
-    m.addTo(layers[effectiveCat]);
-    extraFactions.forEach(f => {
-      if (layers[f]) m.addTo(layers[f]);
-    });
   });
 
   // Map mouse/touch events for route drawing and marker placement
@@ -1500,24 +1501,21 @@ function wireSearch(input, clearBtn, container, layers, onResultClick) {
 
 // ─── Counts, storage, clear ───────────────────────────────────────────────────
 function updateMultiFactionIcons() {
-  const visibleFactions = new Set(
+  const checkedFactions = new Set(
     [...document.querySelectorAll('#sb-cat-list input[type="checkbox"].category')]
       .filter(cb => cb.checked && MOB_FACTIONS[cb.dataset.layer])
       .map(cb => cb.dataset.layer)
   );
   allMarkers.forEach(({marker}) => {
     if (!marker._allFactions || !marker._makeMultiIcon) return;
-    const visible = marker._allFactions.filter(f => visibleFactions.has(f));
-    const show = visible.length > 0 ? visible : marker._allFactions;
-    if (show.length === 1) {
-      // Single faction visible — use normal L.icon at standard size
-      const sz = 32;
-      marker.setIcon(L.icon({
-        iconUrl: MOB_FACTIONS[show[0]].icon,
-        iconSize: [sz, sz], iconAnchor: [sz/2, sz/2], popupAnchor: [0, -sz/2]
-      }));
+    const visible = marker._allFactions.filter(f => checkedFactions.has(f));
+    if (visible.length === 0) {
+      // No faction selected — hide marker
+      if (map.hasLayer(marker)) map.removeLayer(marker);
     } else {
-      marker.setIcon(marker._makeMultiIcon(show));
+      // Show marker with icon of visible factions only
+      marker.setIcon(marker._makeMultiIcon(visible));
+      if (!map.hasLayer(marker)) marker.addTo(map);
     }
   });
 }

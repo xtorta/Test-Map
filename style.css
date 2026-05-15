@@ -15,24 +15,25 @@ html, body {
 /* ── Sidebar shell ── */
 :root {
   --sb-full: 350px; --sb-compact: 52px;
-  --parchment:   #f7f0e0;
-  --parchment-2: #efe6cc;
-  --parchment-3: #ddd0aa;
-  --ink:         #3a2810;
-  --ink-mid:     #5a4020;
-  --gold:        #c8901a;
-  --gold-light:  #e0aa30;
-  --gold-dark:   #a07010;
-  --purple-deep: #5a3888;
-  --purple-mid:  #8050b8;
+  --parchment:   #eddece;
+  --parchment-2: #e4d0be;
+  --parchment-3: #d4bca8;
+  --ink:         #3a2010;
+  --ink-mid:     #5a3820;
+  --gold:        #b89848;
+  --gold-light:  #ceb060;
+  --gold-dark:   #987828;
+  --purple:      #7a58b0;
+  --purple-light:#9878c8;
 }
 #sidebar {
   position: fixed; top: 0; right: 0; height: 100%;
-  background-color: #f7f0e0;
+  background-color: #eddece;
   background-image:
-    radial-gradient(ellipse at 15% 20%, rgba(220,170,80,0.18) 0%, transparent 55%),
-    radial-gradient(ellipse at 80% 60%, rgba(190,140,60,0.14) 0%, transparent 55%),
-    radial-gradient(ellipse at 45% 85%, rgba(210,160,70,0.12) 0%, transparent 50%);
+    radial-gradient(ellipse at 10% 15%, rgba(180,120,60,0.30) 0%, rgba(180,120,60,0.12) 30%, transparent 60%),
+    radial-gradient(ellipse at 85% 55%, rgba(160,100,50,0.25) 0%, rgba(160,100,50,0.10) 30%, transparent 60%),
+    radial-gradient(ellipse at 40% 90%, rgba(170,110,55,0.22) 0%, rgba(170,110,55,0.08) 35%, transparent 65%),
+    radial-gradient(ellipse at 70% 10%, rgba(150,100,40,0.18) 0%, transparent 50%);
   border-left: 2px solid var(--gold-dark);
   display: flex; flex-direction: column; z-index: 1000;
   transition: transform 0.25s ease, width 0.25s ease;
@@ -61,16 +62,16 @@ html, body {
 
 /* Header — rich purple gradient banner */
 #sb-header {
-  background: linear-gradient(160deg, #9b72c8 0%, #7a50a8 50%, #6038a0 100%);
-  border-bottom: 2px solid var(--gold);
-  box-shadow: 0 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(232,184,74,0.3);
+  background: linear-gradient(160deg, #c8a870 0%, #b09050 50%, #987830 100%);
+  border-bottom: 2px solid #987828;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.35);
   color: white; padding: 0.6em 0.75em;
   display: flex; align-items: center; gap: 0.5em; flex-shrink: 0; min-height: 2.9em;
 }
 #sb-title {
   font-weight: 900; font-size: 1em; letter-spacing: 0.08em; flex: 1; text-align: center;
-  color: var(--gold-light);
-  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  color: #fff8ee;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 #sb-view-btns { display: flex; gap: 0.25em; flex-shrink: 0; }
 .sb-view-btn {
@@ -96,9 +97,9 @@ html, body {
 .sb-sep {
   display: block; width: 100%; flex-shrink: 0; height: 8px;
   background: linear-gradient(90deg,
-    transparent 0%, var(--parchment-3) 15%,
-    var(--gold-dark) 35%, var(--gold-light) 50%,
-    var(--gold-dark) 65%, var(--parchment-3) 85%, transparent 100%);
+    transparent 0%, #d4bca8 15%,
+    #987828 35%, #ceb060 50%,
+    #987828 65%, #d4bca8 85%, transparent 100%);
   background-size: 100% 1px; background-repeat: no-repeat; background-position: center;
   margin: 1px 0;
 }
@@ -107,7 +108,7 @@ html, body {
 #sb-about-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0.48em 0.85em; cursor: pointer; flex-shrink: 0; user-select: none;
-  background: linear-gradient(90deg, #7a5030, #9a6840 50%, #7a5030);
+  background: linear-gradient(90deg, #a08050, #b89868 50%, #a08050);
   border-top: 1px solid var(--gold-dark); border-bottom: 1px solid var(--gold-dark); color: var(--gold-light);
 }
 #sb-about-row:hover { filter: brightness(1.1); }
@@ -124,12 +125,12 @@ html, body {
 #sb-search-row {
   display: flex; align-items: center; gap: 0.35em;
   padding: 0.5em 0.75em; flex-shrink: 0; position: relative;
-  background: var(--parchment);
+  background: transparent;
 }
 #sb-search {
   flex: 1; padding: 0.4em 0.65em; border: 1.5px solid var(--gold-dark); border-radius: 5px;
   font-family: Noto, sans-serif; font-size: 0.88em;
-  background: var(--parchment-2); color: var(--ink); outline: none;
+  background: #f2e4d4; color: var(--ink); outline: none;
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
 }
 #sb-search:focus { border-color: var(--gold); box-shadow: inset 0 1px 3px rgba(0,0,0,0.1), 0 0 0 2px rgba(184,136,42,0.2); }
@@ -154,7 +155,7 @@ html, body {
 #sb-tabs {
   display: flex; flex-shrink: 0;
   background: transparent;
-  border-bottom: 2px solid var(--gold);
+  border-bottom: 2px solid #987828;
 }
 /* Each tab gets its own chalky pastel colour */
 .sb-tab {
@@ -173,15 +174,15 @@ html, body {
   background: linear-gradient(180deg, var(--parchment-2) 0%, var(--parchment) 100%);
   border-bottom-color: var(--gold); text-shadow: none;
 }
-/* Filter — soft violet */
-.sb-tab[data-tab="filter"]  { background: linear-gradient(180deg, #9b72c8, #7a50a8); }
-.sb-tab[data-tab="filter"].active  { background: linear-gradient(180deg, var(--parchment-2), var(--parchment)); }
-/* Add Icons — chalky teal-green */
-.sb-tab[data-tab="custom"]  { background: linear-gradient(180deg, #5aaa88, #3a8868); }
-.sb-tab[data-tab="custom"].active  { background: linear-gradient(180deg, var(--parchment-2), var(--parchment)); }
-/* Routes — warm dusty amber */
-.sb-tab[data-tab="routes"]  { background: linear-gradient(180deg, #c8843a, #a86020); }
-.sb-tab[data-tab="routes"].active  { background: linear-gradient(180deg, var(--parchment-2), var(--parchment)); }
+/* Filter — muted soft purple matching game accent */
+.sb-tab[data-tab="filter"]  { background: linear-gradient(180deg, #9878c8, #7a58a8); }
+.sb-tab[data-tab="filter"].active  { background: linear-gradient(180deg, #e4d0be, #eddece); color: var(--ink); }
+/* Add Icons — soft sage green */
+.sb-tab[data-tab="custom"]  { background: linear-gradient(180deg, #72a87a, #508858); }
+.sb-tab[data-tab="custom"].active  { background: linear-gradient(180deg, #e4d0be, #eddece); color: var(--ink); }
+/* Routes — warm terracotta */
+.sb-tab[data-tab="routes"]  { background: linear-gradient(180deg, #c07848, #a05828); }
+.sb-tab[data-tab="routes"].active  { background: linear-gradient(180deg, #e4d0be, #eddece); color: var(--ink); }
 
 /* Hide first sep in compact (redundant double sep) */
 #sidebar.compact #sb-sep-first { display: none !important; }
@@ -303,11 +304,11 @@ html, body {
 .fgh-eye.hidden-state { color: rgba(255,255,255,0.5); }
 
 /* Per-group gradient colours */
-.filter-group-header[data-group="npcs"]        { background: linear-gradient(90deg, #4ab888, #60cc9a 40%, #4ab888); }
-.filter-group-header[data-group="poi"]         { background: linear-gradient(90deg, #8050b8, #9868cc 40%, #8050b8); }
-.filter-group-header[data-group="collectables"]{ background: linear-gradient(90deg, #c89030, #dda840 40%, #c89030); }
-.filter-group-header[data-group="gatherables"] { background: linear-gradient(90deg, #4a9aaa, #60b0c0 40%, #4a9aaa); }
-.filter-group-header[data-group="enemies"]     { background: linear-gradient(90deg, #b86860, #cc8070 40%, #b86860); }
+.filter-group-header[data-group="npcs"]        { background: linear-gradient(90deg, #52a878, #6abf8e 40%, #52a878); }
+.filter-group-header[data-group="poi"]         { background: linear-gradient(90deg, #7858a8, #9070c0 40%, #7858a8); }
+.filter-group-header[data-group="collectables"]{ background: linear-gradient(90deg, #b88028, #d09838 40%, #b88028); }
+.filter-group-header[data-group="gatherables"] { background: linear-gradient(90deg, #4090a0, #58a8b8 40%, #4090a0); }
+.filter-group-header[data-group="enemies"]     { background: linear-gradient(90deg, #a85850, #c07060 40%, #a85850); }
 
 /* Plants / Ores subgroup headers — solid colour, white text */
 .filter-subgroup-header {

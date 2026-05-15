@@ -271,7 +271,18 @@ html, body {
 .fsh-chevron { font-size: 0.62em; color: rgba(255,255,255,0.8); transition: transform 0.2s; }
 .filter-subgroup.collapsed .fsh-chevron { transform: rotate(-90deg); }
 
-/* Subgroup */
+/* Mob faction 2-col grid — compact rows */
+.filter-subgroup-rows.mob-grid .sb-cat-row,
+div[style*="grid-template-columns:1fr 1fr"] .sb-cat-row {
+  padding: 0.28em 0.5em;
+}
+div[style*="grid-template-columns:1fr 1fr"] .sb-cat-name {
+  font-size: 0.78em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+div[style*="grid-template-columns:1fr 1fr"] .sb-cat-count {
+  font-size: 0.72em;
+}
 .filter-subgroup { flex-shrink: 0; }
 .filter-group-rows { overflow: hidden; }
 .filter-group.collapsed .filter-group-rows { display: none; }

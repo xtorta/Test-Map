@@ -791,24 +791,10 @@ function buildSidebar(layers) {
   sidebar.appendChild(hdr);
   sidebar.appendChild(sep({id:'sb-sep-first'}));
 
-  // ── About ────────────────────────────────────────────────────────
-  const aboutRow=mk('div',{id:'sb-about-row'});
-  aboutRow.innerHTML=`<span>ℹ️ About</span><span id="sb-about-chevron">${aboutOpen?'▲':'▼'}</span>`;
-  const aboutPanel=mk('div',{id:'sb-about-panel'});
-  aboutPanel.style.display=aboutOpen?'block':'none';
-  aboutPanel.innerHTML=`Welcome to the Farever interactive map, built by the <a href="https://farever.wiki" target="_blank">Farever Wiki</a> team.<br><br>This map pulls data directly from the game. You can use the buttons to filter what is displayed. Note that some items have had their locations slightly obscured to avoid spoiling the fun of exploration! You will find them within the indicated area.<br><br>Please send any feedback about this map or the wiki to <strong>@IceCaveBear</strong> on Discord.`;
-  aboutRow.addEventListener('click',()=>{ const o=aboutPanel.style.display==='block'; aboutPanel.style.display=o?'none':'block'; document.getElementById('sb-about-chevron').textContent=o?'▼':'▲'; localStorage.setItem('sbAboutOpen',o?'0':'1'); });
-  sidebar.appendChild(aboutRow);
-  sidebar.appendChild(aboutPanel);
-  sidebar.appendChild(sep({id:'sb-sep-about'}));
+  // ── About ─────────────────────────────── moved inside filter panel ──
+  // ── Search ────────────────────────────── moved inside filter panel ──
 
-  // ── Search (above tabs) ──────────────────────────────────────────
-  const searchRow=mk('div',{id:'sb-search-row'});
-  searchRow.innerHTML=`<input id="sb-search" type="text" placeholder="🔍 Search markers & regions…" autocomplete="off"><button id="sb-search-clear" style="display:none">✕</button>`;
-  sidebar.appendChild(searchRow);
-  sidebar.appendChild(sep());
-
-  // ── Tabs: Filter / Custom ────────────────────────────────────────
+  // ── Tabs: Filter / Custom / Routes ──────────────────────────────────
   const tabBar=mk('div',{id:'sb-tabs'});
   [{key:'filter',label:'Filter'},{key:'custom',label:'Add Icons'},{key:'routes',label:'Routes'}].forEach((t,i)=>{
     const btn=mk('button',{class:'sb-tab'+(i===0?' active':'')}); btn.dataset.tab=t.key; btn.textContent=t.label;
@@ -856,6 +842,23 @@ function buildSidebar(layers) {
   filterPanel.appendChild(sep());
 
   const catList=mk('div',{id:'sb-cat-list'});
+
+  // ── Search (scrolls with filter content) ──────────────────────────
+  const searchRow=mk('div',{id:'sb-search-row',style:'flex-shrink:0;'});
+  searchRow.innerHTML=`<input id="sb-search" type="text" placeholder="🔍 Search markers & regions…" autocomplete="off"><button id="sb-search-clear" style="display:none">✕</button>`;
+  catList.appendChild(searchRow);
+  catList.appendChild(sep());
+
+  // ── About (scrolls with filter content) ───────────────────────────
+  const aboutRow=mk('div',{id:'sb-about-row',style:'flex-shrink:0;'});
+  aboutRow.innerHTML=`<span>ℹ️ About</span><span id="sb-about-chevron">${aboutOpen?'▲':'▼'}</span>`;
+  const aboutPanel=mk('div',{id:'sb-about-panel'});
+  aboutPanel.style.display=aboutOpen?'block':'none';
+  aboutPanel.innerHTML=`Welcome to the Farever interactive map, built by the <a href="https://farever.wiki" target="_blank">Farever Wiki</a> team.<br><br>This map pulls data directly from the game. You can use the buttons to filter what is displayed. Note that some items have had their locations slightly obscured to avoid spoiling the fun of exploration! You will find them within the indicated area.<br><br>Please send any feedback about this map or the wiki to <strong>@IceCaveBear</strong> on Discord.`;
+  aboutRow.addEventListener('click',()=>{ const o=aboutPanel.style.display==='block'; aboutPanel.style.display=o?'none':'block'; document.getElementById('sb-about-chevron').textContent=o?'▼':'▲'; localStorage.setItem('sbAboutOpen',o?'0':'1'); });
+  catList.appendChild(aboutRow);
+  catList.appendChild(aboutPanel);
+  catList.appendChild(sep({id:'sb-sep-about'}));
   FILTER_GROUPS.forEach(group => {
     const groupDiv=mk('div',{class:'filter-group'});
     const groupCollapsed=localStorage.getItem(`fg_${group.key}`)==='1';

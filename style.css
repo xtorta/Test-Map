@@ -58,13 +58,13 @@ html, body {
 #sidebar.compact #sb-about-panel   { display: none !important; }
 #sidebar.compact #sb-hint,
 #sidebar.compact #sb-sep-hint      { display: none !important; }
-#sidebar.compact #sb-search-row    { display: none !important; }
+/* search row stays visible in compact */
 /* In compact: show the compact cat list */
 #sidebar.compact #sb-compact-list  { display: flex !important; }
 
 /* Header — rich purple gradient banner */
 #sb-header {
-  background: linear-gradient(160deg, #d4b87a 0%, #c0a060 50%, #a88840 100%);
+  background: linear-gradient(160deg, #e0c888 0%, #cca860 50%, #b89040 100%);
   border-bottom: 2px solid #987828;
   box-shadow: 0 3px 10px rgba(0,0,0,0.35);
   color: white; padding: 0.6em 0.75em;
@@ -72,8 +72,8 @@ html, body {
 }
 #sb-title {
   font-weight: 900; font-size: 1em; letter-spacing: 0.08em; flex: 1; text-align: center;
-  color: var(--ink);
-  text-shadow: 0 1px 2px rgba(255,255,255,0.3);
+  color: #3a2010;
+  text-shadow: 0 1px 2px rgba(255,255,255,0.4);
 }
 #sb-view-btns { display: flex; gap: 0.25em; flex-shrink: 0; }
 .sb-view-btn {
@@ -97,13 +97,11 @@ html, body {
 
 /* Separator */
 .sb-sep {
-  display: block; width: 100%; flex-shrink: 0; height: 8px;
-  background: linear-gradient(90deg,
-    transparent 0%, #d4bca8 15%,
-    #987828 35%, #ceb060 50%,
-    #987828 65%, #d4bca8 85%, transparent 100%);
-  background-size: 100% 1px; background-repeat: no-repeat; background-position: center;
-  margin: 1px 0;
+  display: block; width: 100%; flex-shrink: 0;
+  height: 12px;
+  background: url("separator.png") center/contain no-repeat;
+  opacity: 0.55;
+  margin: 0;
 }
 
 /* About */
@@ -224,7 +222,8 @@ html, body {
 #sb-reset-btn { color: #a02020; }
 #sb-reset-btn:hover { background: rgba(160,32,32,0.08) !important; }
 .sb-tool-label { flex: 1; }
-/* Compact icon-only tools */
+/* Compact icon-only tools — visible even in compact since outside panels */
+#sb-icon-tools { display: flex; flex-direction: column; flex-shrink: 0; }
 #sidebar.compact #sb-icon-tools { display: flex; }
 #sidebar.compact .sb-tool-btn { justify-content: center; padding: 0.6em 0; }
 #sidebar.compact .sb-tool-label { display: none; }

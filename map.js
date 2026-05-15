@@ -908,11 +908,10 @@ function buildSidebar(layers) {
       mobHdr.appendChild(mobTitle); mobHdr.appendChild(mobChev);
       mobHdr.addEventListener('click',()=>{ mobDiv.classList.toggle('collapsed'); localStorage.setItem('fsg_Mobs',mobDiv.classList.contains('collapsed')?'1':'0'); });
       mobDiv.appendChild(mobHdr);
-      const mobRows = mk('div',{class:'filter-subgroup-rows'});
+      const mobRows = mk('div',{style:'display:grid;grid-template-columns:1fr 1fr;gap:0;'});
       Object.entries(MOB_FACTIONS).forEach(([faction,{icon}]) => {
         mobRows.appendChild(buildCatRow(faction, layers, icon));
       });
-      // Unfactioned mobs row (empty faction)
       if (categoryRegistry['Mobs']) mobRows.appendChild(buildCatRow('Mobs', layers));
       mobDiv.appendChild(mobRows);
       groupRows.appendChild(mobDiv);

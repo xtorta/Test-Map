@@ -350,7 +350,7 @@ function buildCustPopup(cm, i) {
   noteEl.addEventListener('change', () => { cm.note=noteEl.value; saveCustom(); });
   const delBtn = document.createElement('button');
   delBtn.className='cust-popup-del'; delBtn.textContent='🗑 Delete Marker';
-  delBtn.addEventListener('click', () => { customMarkers.splice(i,1); saveCustom(); renderCustomMarkers(); map.closePopup(); });
+  delBtn.addEventListener('click', () => { customMarkers.splice(i,1); saveCustom(); renderCustomMarkers(); window._refreshMyIcons?.(); map.closePopup(); });
   div.appendChild(noteEl); div.appendChild(delBtn);
   return div;
 }
@@ -789,6 +789,7 @@ function initMap(data) {
       customMarkers.push(cm);
       saveCustom();
       renderCustomMarkers();
+      window._refreshMyIcons?.();
       document.querySelectorAll('.cust-icon-btn.selected').forEach(b=>b.classList.remove('selected'));
       pendingCustPlace = false;
       updateCustModeStatus('Click an icon to select it');
@@ -1444,6 +1445,58 @@ function buildCustomPanel(panel) {
 
   panel.appendChild(statusEl);
   panel.appendChild(iconGrid);
+  panel.appendChild(sep());
+
+  // ── My Icons list ────────────────────────────────────────────────
+  const myTitle = mk('div',{class:'cust-section-title',id:'my-icons-title'});
+  myTitle.textContent = `My Icons (${customMarkers.length})`;
+  const myList = mk('div',{id:'my-icons-list',style:'display:flex;flex-direction:column;gap:0.3em;'});
+
+  function refreshMyIcons() {
+    myTitle.textContent = `My Icons (${customMarkers.length})`;
+    myList.innerHTML = '';
+    if (!customMarkers.length) {
+      const empty = mk('div',{style:'font-size:0.78em;color:#888;padding:0.3em 0;'});
+      empty.textContent = 'No icons placed yet'; myList.appendChild(empty); return;
+    }
+    customMarkers.forEach((cm, i) => {
+      const row = mk('div',{style:'background:rgb(225,220,210);border-radius:5px;padding:0.4em 0.6em;border:1px solid #c0b898;'});
+      const topRow = mk('div',{style:'display:flex;align-items:center;gap:0.35em;'});
+
+      // Icon preview (coloured)
+      const iconPrev = mk('span',{style:`font-size:1.2em;color:${cm.colour||'#e74c3c'};text-shadow:0 1px 3px rgba(0,0,0,0.4);flex-shrink:0;line-height:1;`});
+      iconPrev.textContent = cm.icon || '⚔️';
+
+      // Editable note/name
+      const nameInp = mk('input'); Object.assign(nameInp,{type:'text',value:cm.note||'',placeholder:'Add a name…',style:'flex:1;padding:0.2em 0.4em;border:1px solid #a09880;border-radius:3px;font-size:0.79em;background:transparent;color:#3a2e1e;outline:none;min-width:0;cursor:text;'});
+      nameInp.addEventListener('change',()=>{ cm.note=nameInp.value.trim(); saveCustom(); refreshMyIcons(); });
+
+      // Up/down sort
+      const upBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#555;font-size:0.8em;padding:0.1em;line-height:1;'}); upBtn.textContent='↑';
+      upBtn.addEventListener('click',()=>{ if(i>0){[customMarkers[i-1],customMarkers[i]]=[customMarkers[i],customMarkers[i-1]]; saveCustom(); renderCustomMarkers(); refreshMyIcons();} });
+      const dnBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#555;font-size:0.8em;padding:0.1em;line-height:1;'}); dnBtn.textContent='↓';
+      dnBtn.addEventListener('click',()=>{ if(i<customMarkers.length-1){[customMarkers[i],customMarkers[i+1]]=[customMarkers[i+1],customMarkers[i]]; saveCustom(); renderCustomMarkers(); refreshMyIcons();} });
+
+      // Fly to
+      const flyBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#388e9f;font-size:0.85em;padding:0.1em 0.2em;'}); flyBtn.title='Go to marker'; flyBtn.textContent='🎯';
+      flyBtn.addEventListener('click',()=>{ map.flyTo([cm.lat,cm.lng],1,{animate:true,duration:0.7}); });
+
+      // Delete
+      const delBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#c0392b;font-size:0.8em;padding:0.1em 0.2em;'}); delBtn.innerHTML=SVG.trash;
+      delBtn.addEventListener('click',()=>{ customMarkers.splice(i,1); saveCustom(); renderCustomMarkers(); refreshMyIcons(); });
+
+      topRow.appendChild(iconPrev); topRow.appendChild(nameInp); topRow.appendChild(upBtn); topRow.appendChild(dnBtn); topRow.appendChild(flyBtn); topRow.appendChild(delBtn);
+      row.appendChild(topRow);
+      myList.appendChild(row);
+    });
+  }
+
+  // Keep list in sync when markers are placed from map
+  window._refreshMyIcons = refreshMyIcons;
+
+  panel.appendChild(myTitle);
+  panel.appendChild(myList);
+  refreshMyIcons();
 }
 
 // ─── Build category row ───────────────────────────────────────────────────────

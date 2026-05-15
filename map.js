@@ -866,6 +866,8 @@ function buildSidebar(layers) {
   searchRow.innerHTML=`<input id="sb-search" type="text" placeholder="🔍 Search markers & regions…" autocomplete="off"><button id="sb-search-clear" style="display:none">✕</button>`;
   sidebar.appendChild(searchRow);
   sidebar.appendChild(sep());
+  sidebar.appendChild(iconTools);
+  sidebar.appendChild(sep());
 
   // ── Panel: Filter ───────────────────────────────────────────────────
   const filterPanel=mk('div',{id:'sb-panel-filter',class:'sb-panel active'});
@@ -880,7 +882,6 @@ function buildSidebar(layers) {
   const shareBtn=mkToolBtn('sb-share-btn',`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="12" cy="13" r="2"/><line x1="6" y1="9" x2="10" y2="12"/><line x1="10" y1="4" x2="6" y2="7"/></svg>`,'Share Location');
   shareBtn.addEventListener('click', copyPermalink);
   iconTools.appendChild(searchToolBtn); iconTools.appendChild(completedRow); iconTools.appendChild(shareBtn);
-  filterPanel.appendChild(iconTools);
   filterPanel.appendChild(sep());
 
   // Zone toggles inside filter panel

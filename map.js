@@ -703,17 +703,18 @@ function initMap(data) {
     if (allFactions && allFactions.length > 1) {
       function makeMultiIcon(visibleFactions) {
         const show = visibleFactions.length > 0 ? visibleFactions : allFactions;
-        const sz = Math.floor(36 / show.length);
-        const imgs = show.map(f =>
-          `<img src="${MOB_FACTIONS[f].icon}" width="${sz}" height="${sz}" style="border-radius:3px;">`
+        const sz = 32; // always same size as single faction icons
+        const overlap = 14; // pixels of overlap between icons
+        const totalW = sz + (show.length - 1) * (sz - overlap);
+        const imgs = show.map((f, i) =>
+          `<img src="${MOB_FACTIONS[f].icon}" width="${sz}" height="${sz}" style="position:absolute;left:${i*(sz-overlap)}px;top:0;">`
         ).join('');
-        const totalW = sz * show.length;
         return L.divIcon({
-          html: `<div style="display:flex;gap:1px;background:rgba(255,255,255,0.7);border-radius:4px;padding:1px;">${imgs}</div>`,
+          html: `<div style="position:relative;width:${totalW}px;height:${sz}px;">${imgs}</div>`,
           className: '',
-          iconSize: [totalW + 4, sz + 4],
-          iconAnchor: [(totalW + 4) / 2, (sz + 4) / 2],
-          popupAnchor: [0, -(sz / 2 + 4)],
+          iconSize: [totalW, sz],
+          iconAnchor: [totalW / 2, sz / 2],
+          popupAnchor: [0, -sz / 2],
         });
       }
       m.setIcon(makeMultiIcon(allFactions));
@@ -797,6 +798,7 @@ function initMap(data) {
   buildSidebar(layers);
   loadChecked(layers);
   updateCounts();
+  updateMultiFactionIcons();
   loadRegions().then(() => refreshRegionVisibility());
   renderCustomMarkers();
   renderRoutes();
@@ -1498,7 +1500,6 @@ function wireSearch(input, clearBtn, container, layers, onResultClick) {
 
 // ─── Counts, storage, clear ───────────────────────────────────────────────────
 function updateMultiFactionIcons() {
-  // Get which mob factions are currently checked
   const visibleFactions = new Set(
     [...document.querySelectorAll('#sb-cat-list input[type="checkbox"].category')]
       .filter(cb => cb.checked && MOB_FACTIONS[cb.dataset.layer])
@@ -1507,7 +1508,17 @@ function updateMultiFactionIcons() {
   allMarkers.forEach(({marker}) => {
     if (!marker._allFactions || !marker._makeMultiIcon) return;
     const visible = marker._allFactions.filter(f => visibleFactions.has(f));
-    marker.setIcon(marker._makeMultiIcon(visible.length ? visible : marker._allFactions));
+    const show = visible.length > 0 ? visible : marker._allFactions;
+    if (show.length === 1) {
+      // Single faction visible — use normal L.icon at standard size
+      const sz = 32;
+      marker.setIcon(L.icon({
+        iconUrl: MOB_FACTIONS[show[0]].icon,
+        iconSize: [sz, sz], iconAnchor: [sz/2, sz/2], popupAnchor: [0, -sz/2]
+      }));
+    } else {
+      marker.setIcon(marker._makeMultiIcon(show));
+    }
   });
 }
 function updateCounts() {

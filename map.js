@@ -119,7 +119,7 @@ const MOB_UNIT_FACTION = {
   'Elemental_Z2W_Underwater_U':'Sparkles', // Aquamarine Sparkle
   // Spirits (non-sparkle elementals + herald)
   'Elemental_Z2W':'Spirits','Elemental_Z2W_2':'Spirits',
-  'Elemental_Z2W_Underwater_2':'Spirits','TODO_Z1W_HeraldSpirit':'Spirits',
+  'Elemental_Z2W_Underwater_2':'Sparkles','TODO_Z1W_HeraldSpirit':'Spirits',
   // Kobolds
   'Z1_Kobold_Mines_2':'Kobolds','Z1_Kobold_Patrol_Unique':'Kobolds',
   'Z2_Kobold_Eksod':'Kobolds','Z2_Kobold_Eksod_Ogre':'Kobolds',
@@ -612,7 +612,8 @@ function initMap(data) {
   data.forEach((item,idx)=>{
     const cat=item.categories?.[0]||'Misc';
     if (cat !== 'Mobs') return;
-    const faction = /\bsparkle\b/i.test(item.label||'') && !/\bsparkling\b/i.test(item.label||'') ? 'Sparkles'
+    const faction = /^sparkling\b/i.test(item.label||'') ? 'Sparkling mobs'
+      : /\bsparkle\b/i.test(item.label||'') ? 'Sparkles'
       : /\bslime\b/i.test(item.label||'') ? 'Slimes'
       : item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction
       : (MOB_UNIT_FACTION[item.unit||''] || null);
@@ -638,7 +639,8 @@ function initMap(data) {
     const subInfo = subTypeMap[item.label.toLowerCase()];
     // Mob faction routing
     const mobFaction = (cat==='Mobs')
-      ? (/\bsparkle\b/i.test(item.label||'') && !/\bsparkling\b/i.test(item.label||'') ? 'Sparkles'
+      ? (/^sparkling\b/i.test(item.label||'') ? 'Sparkling mobs'
+         : /\bsparkle\b/i.test(item.label||'') ? 'Sparkles'
          : /\bslime\b/i.test(item.label||'') ? 'Slimes'
          : item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction
          : MOB_UNIT_FACTION[item.unit||''] || null)

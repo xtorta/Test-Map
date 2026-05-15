@@ -64,7 +64,7 @@ html, body {
 
 /* Header — rich purple gradient banner */
 #sb-header {
-  background: linear-gradient(160deg, #e0c888 0%, #cca860 50%, #b89040 100%);
+  background: linear-gradient(108deg, #b89040 55%, #d4b060 55%);
   border-bottom: 2px solid #987828;
   box-shadow: 0 3px 10px rgba(0,0,0,0.35);
   color: white; padding: 0.6em 0.75em;
@@ -72,8 +72,8 @@ html, body {
 }
 #sb-title {
   font-weight: 900; font-size: 1em; letter-spacing: 0.08em; flex: 1; text-align: center;
-  color: #3a2010;
-  text-shadow: 0 1px 2px rgba(255,255,255,0.4);
+  color: #5c3410;
+  text-shadow: 0 1px 1px rgba(255,255,255,0.5);
 }
 #sb-view-btns { display: flex; gap: 0.25em; flex-shrink: 0; }
 .sb-view-btn {
@@ -98,9 +98,9 @@ html, body {
 /* Separator */
 .sb-sep {
   display: block; width: 100%; flex-shrink: 0;
-  height: 12px;
-  background: url("separator.png") center/contain no-repeat;
-  opacity: 0.55;
+  height: 9px;
+  background: url("separator.png") center / auto 9px no-repeat;
+  opacity: 0.45;
   margin: 0;
 }
 
@@ -108,13 +108,13 @@ html, body {
 #sb-about-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0.48em 0.85em; cursor: pointer; flex-shrink: 0; user-select: none;
-  background: linear-gradient(105deg, #a88040 55%, #c8a860 55%);
-  border-top: 1px solid #a08030; border-bottom: 1px solid #a08030;
-  color: var(--ink);
+  background: linear-gradient(105deg, #8a6830 55%, #c09848 55%);
+  border-top: 1px solid #8a6020; border-bottom: 1px solid #8a6020;
+  color: white;
 }
-#sb-about-row:hover { filter: brightness(1.06); }
-#sb-about-row span:first-child { font-size: 0.82em; font-weight: 700; letter-spacing: 0.04em; color: var(--ink); }
-#sb-about-chevron { font-size: 0.72em; color: var(--ink-mid); }
+#sb-about-row:hover { filter: brightness(1.08); }
+#sb-about-row span:first-child { font-size: 0.82em; font-weight: 700; letter-spacing: 0.04em; color: white; }
+#sb-about-chevron { font-size: 0.72em; color: rgba(255,255,255,0.8); }
 #sb-about-panel {
   padding: 0.65em 0.9em; font-size: 0.78em; color: var(--ink); line-height: 1.7;
   font-weight: 500; flex-shrink: 0; background: rgba(237,222,206,0.6);
@@ -187,8 +187,6 @@ html, body {
 .sb-tab[data-tab="routes"].active  { background: linear-gradient(180deg, #e4d0be, #eddece); color: var(--ink); }
 
 /* Hide first sep in compact (redundant double sep) */
-#sidebar.compact #sb-sep-first { display: none !important; }
-
 /* Tab panels */
 .sb-panel { display: none; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
 .sb-panel.active { display: flex; }

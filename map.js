@@ -697,6 +697,29 @@ function initMap(data) {
       if (/\bsparkle\b/i.test(lbl) && !/\bsparkling\b/i.test(lbl) && mobFaction !== 'Sparkles') extraFactions.push('Sparkles');
       if (/\bgolem/i.test(lbl)   && mobFaction !== 'Golems')  extraFactions.push('Golems');
     }
+    const allFactions = mobFaction && MOB_FACTIONS[mobFaction] ? [mobFaction, ...extraFactions] : null;
+
+    // For multi-faction markers, use a divIcon that adapts to visible factions
+    if (allFactions && allFactions.length > 1) {
+      function makeMultiIcon(visibleFactions) {
+        const show = visibleFactions.length > 0 ? visibleFactions : allFactions;
+        const sz = Math.floor(36 / show.length);
+        const imgs = show.map(f =>
+          `<img src="${MOB_FACTIONS[f].icon}" width="${sz}" height="${sz}" style="border-radius:3px;">`
+        ).join('');
+        const totalW = sz * show.length;
+        return L.divIcon({
+          html: `<div style="display:flex;gap:1px;background:rgba(255,255,255,0.7);border-radius:4px;padding:1px;">${imgs}</div>`,
+          className: '',
+          iconSize: [totalW + 4, sz + 4],
+          iconAnchor: [(totalW + 4) / 2, (sz + 4) / 2],
+          popupAnchor: [0, -(sz / 2 + 4)],
+        });
+      }
+      m.setIcon(makeMultiIcon(allFactions));
+      m._allFactions = allFactions;
+      m._makeMultiIcon = makeMultiIcon;
+    }
 
     m.addTo(layers[effectiveCat]);
     extraFactions.forEach(f => {
@@ -1080,7 +1103,12 @@ function buildSidebar(layers) {
 
   // ── Checkboxes (full filter panel) ──────────────────────────────
   document.querySelectorAll('#sb-cat-list input[type="checkbox"]').forEach(cb=>{
-    cb.addEventListener('change',e=>{ const n=e.target.dataset.layer; if(!hiddenGroups.has(n)){e.target.checked?map.addLayer(layers[n]):map.removeLayer(layers[n]);} updateLocalStorage(); });
+    cb.addEventListener('change',e=>{
+      const n=e.target.dataset.layer;
+      if(!hiddenGroups.has(n)){e.target.checked?map.addLayer(layers[n]):map.removeLayer(layers[n]);}
+      updateLocalStorage();
+      updateMultiFactionIcons();
+    });
   });
 
   // ── Search ───────────────────────────────────────────────────────
@@ -1469,6 +1497,19 @@ function wireSearch(input, clearBtn, container, layers, onResultClick) {
 }
 
 // ─── Counts, storage, clear ───────────────────────────────────────────────────
+function updateMultiFactionIcons() {
+  // Get which mob factions are currently checked
+  const visibleFactions = new Set(
+    [...document.querySelectorAll('#sb-cat-list input[type="checkbox"].category')]
+      .filter(cb => cb.checked && MOB_FACTIONS[cb.dataset.layer])
+      .map(cb => cb.dataset.layer)
+  );
+  allMarkers.forEach(({marker}) => {
+    if (!marker._allFactions || !marker._makeMultiIcon) return;
+    const visible = marker._allFactions.filter(f => visibleFactions.has(f));
+    marker.setIcon(marker._makeMultiIcon(visible.length ? visible : marker._allFactions));
+  });
+}
 function updateCounts() {
   Object.keys(categoryRegistry).forEach(cat => {
     const reg = categoryRegistry[cat];

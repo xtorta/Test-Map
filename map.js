@@ -941,6 +941,7 @@ function buildSidebar(layers) {
       });
       updateLocalStorage();
       updateSelAllIcon();
+      updateMultiFactionIcons();
     });
     // Update icon after sidebar is built
     requestAnimationFrame(updateSelAllIcon);
@@ -1188,6 +1189,7 @@ function toggleGroupVisibility(group, layers, eyeBtn) {
     }
   });
   updateLocalStorage();
+  if (group.hasMobSub) updateMultiFactionIcons();
 }
 
 // ─── Route share codes ────────────────────────────────────────────────────────
@@ -1588,12 +1590,11 @@ function updateMultiFactionIcons() {
   );
   allMarkers.forEach(({marker}) => {
     if (!marker._allFactions || !marker._makeMultiIcon) return;
-    const visible = marker._allFactions.filter(f => checkedFactions.has(f));
+    // Visible = checked AND not hidden by eye toggle
+    const visible = marker._allFactions.filter(f => checkedFactions.has(f) && !hiddenGroups.has(f));
     if (visible.length === 0) {
-      // No faction selected — hide marker
       if (map.hasLayer(marker)) map.removeLayer(marker);
     } else {
-      // Show marker with icon of visible factions only
       marker.setIcon(marker._makeMultiIcon(visible));
       if (!map.hasLayer(marker)) marker.addTo(map);
     }

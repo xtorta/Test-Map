@@ -1606,7 +1606,7 @@ function updateCounts() {
     if (COMPLETABLE.has(cat)) {
       const done = reg.markerIds.filter(id => completedMarkers.has(id)).length;
       el.textContent = `${done}/${reg.total}`;
-      el.style.color = done===reg.total&&reg.total>0 ? '#27ae60' : done>0 ? '#e67e22' : '#777';
+      el.style.color = done===reg.total&&reg.total>0 ? '#1a7a40' : done>0 ? '#b05a10' : '#5a4a30';
       el.style.fontWeight = done>0 ? 'bold' : 'normal';
     } else {
       el.textContent = reg.total;

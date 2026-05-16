@@ -307,11 +307,11 @@ html, body {
 .fgh-sel-all:hover { background: rgba(255,255,255,0.32); border-color: white; }
 
 /* Per-group gradient colours */
-.filter-group-header[data-group="npcs"]        { background: linear-gradient(105deg, #3d8f68 55%, #5ab882 55%); }
-.filter-group-header[data-group="poi"]         { background: linear-gradient(105deg, #5e3e90 55%, #8060b8 55%); }
-.filter-group-header[data-group="collectables"]{ background: linear-gradient(105deg, #9a6a18 55%, #c08828 55%); }
-.filter-group-header[data-group="gatherables"] { background: linear-gradient(105deg, #2e7888 55%, #48a0b0 55%); }
-.filter-group-header[data-group="enemies"]     { background: linear-gradient(105deg, #8a3e38 55%, #b05850 55%); }
+.filter-group-header[data-group="npcs"]        { background: linear-gradient(105deg, #6abf90 55%, #84d4a8 55%); }
+.filter-group-header[data-group="poi"]         { background: linear-gradient(105deg, #9070c8 55%, #a888da 55%); }
+.filter-group-header[data-group="collectables"]{ background: linear-gradient(105deg, #c89840 55%, #ddb058 55%); }
+.filter-group-header[data-group="gatherables"] { background: linear-gradient(105deg, #58a8b8 55%, #74c0d0 55%); }
+.filter-group-header[data-group="enemies"]     { background: linear-gradient(105deg, #c07868 55%, #d49080 55%); }
 
 /* Plants / Ores subgroup headers — solid colour, white text */
 .filter-subgroup-header {
@@ -321,9 +321,9 @@ html, body {
   letter-spacing: 0.02em;
 }
 .filter-subgroup-header:hover { filter: brightness(1.1); }
-.filter-subgroup-header[data-sub="Plants"] { background: linear-gradient(105deg, #a86888 55%, #c888a8 55%); }
-.filter-subgroup-header[data-sub="Ores"]   { background: linear-gradient(105deg, #7058a8 55%, #9078c8 55%); }
-.filter-subgroup-header[data-sub="Mobs"]   { background: linear-gradient(105deg, #8a4848 55%, #b06060 55%); }
+.filter-subgroup-header[data-sub="Plants"] { background: linear-gradient(105deg, #c898b0 55%, #dab0c4 55%); }
+.filter-subgroup-header[data-sub="Ores"]   { background: linear-gradient(105deg, #9880c8 55%, #b098dc 55%); }
+.filter-subgroup-header[data-sub="Mobs"]   { background: linear-gradient(105deg, #b87878 55%, #cc9090 55%); }
 .fsh-title { font-size: 0.83em; font-weight: 700; flex: 1; color: white !important; text-shadow: 0 1px 2px rgba(0,0,0,0.3); white-space: nowrap; }
 .fsh-chevron { font-size: 0.62em; color: rgba(255,255,255,0.8); transition: transform 0.2s; }
 .filter-subgroup.collapsed .fsh-chevron { transform: rotate(-90deg); }

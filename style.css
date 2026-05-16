@@ -58,13 +58,13 @@ html, body {
 #sidebar.compact #sb-about-panel   { display: none !important; }
 #sidebar.compact #sb-hint,
 #sidebar.compact #sb-sep-hint      { display: none !important; }
-/* search row stays visible in compact */
+#sidebar.compact #sb-search-row { display: none !important; }
 /* In compact: show the compact cat list */
 #sidebar.compact #sb-compact-list  { display: flex !important; }
 
 /* Header — rich purple gradient banner */
 #sb-header {
-  background: linear-gradient(108deg, #b89040 55%, #d4b060 55%);
+  background: linear-gradient(108deg, #a07840 55%, #c09858 55%);
   border-bottom: 2px solid #987828;
   box-shadow: 0 3px 10px rgba(0,0,0,0.35);
   color: white; padding: 0.6em 0.75em;
@@ -72,8 +72,8 @@ html, body {
 }
 #sb-title {
   font-weight: 900; font-size: 1em; letter-spacing: 0.08em; flex: 1; text-align: center;
-  color: #5c3410;
-  text-shadow: 0 1px 1px rgba(255,255,255,0.5);
+  color: #7a3c08;
+  text-shadow: 0 1px 2px rgba(255,255,255,0.4);
 }
 #sb-view-btns { display: flex; gap: 0.25em; flex-shrink: 0; }
 .sb-view-btn {
@@ -98,9 +98,9 @@ html, body {
 /* Separator */
 .sb-sep {
   display: block; width: 100%; flex-shrink: 0;
-  height: 9px;
-  background: url("separator.png") center / auto 9px no-repeat;
-  opacity: 0.45;
+  height: 10px;
+  background: url("separator.png") center / 100% 100% no-repeat;
+  opacity: 0.5;
   margin: 0;
 }
 
@@ -108,8 +108,8 @@ html, body {
 #sb-about-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0.48em 0.85em; cursor: pointer; flex-shrink: 0; user-select: none;
-  background: linear-gradient(105deg, #8a6830 55%, #c09848 55%);
-  border-top: 1px solid #8a6020; border-bottom: 1px solid #8a6020;
+  background: linear-gradient(105deg, #4a8a9a 55%, #68a8b8 55%);
+  border-top: 1px solid #3a7888; border-bottom: 1px solid #3a7888;
   color: white;
 }
 #sb-about-row:hover { filter: brightness(1.08); }
@@ -242,17 +242,17 @@ html, body {
   flex-shrink: 0; background: transparent; border-bottom: 1px solid rgba(180,136,42,0.3);
 }
 .zone-tog-btn {
-  flex: 1; padding: 0.32em 0.25em; border-radius: 5px; cursor: pointer;
-  border: none; font-family: Noto, sans-serif; font-size: 0.7em; font-weight: 700;
-  color: rgba(255,255,255,0.85); transition: all 0.15s; text-align: center; white-space: nowrap;
-  display: flex; align-items: center; justify-content: center; gap: 0.25em;
-  opacity: 0.55;
+  flex: 1; padding: 0.4em 0.3em; border-radius: 5px; cursor: pointer;
+  border: none; font-family: Noto, sans-serif; font-size: 0.85em; font-weight: 800;
+  color: rgba(255,255,255,0.95); transition: all 0.15s; text-align: center; white-space: nowrap;
+  display: flex; align-items: center; justify-content: center; gap: 0.3em;
+  opacity: 0.6; letter-spacing: 0.02em;
 }
 .zone-tog-btn.active { opacity: 1; }
 /* Each tier gets its own colour */
-#ztog-region    { background: linear-gradient(135deg, #6e1ac7 50%, #8a35e0 50%); }
-#ztog-subregion { background: linear-gradient(135deg, #785a37 50%, #8e6a41 50%); }
-#ztog-zone      { background: linear-gradient(135deg, #388e9f 50%, #4aabbc 50%); }
+#ztog-region    { background: linear-gradient(105deg, #5e12b0 55%, #8030d8 55%); }
+#ztog-subregion { background: linear-gradient(105deg, #6a4828 55%, #9a7048 55%); }
+#ztog-zone      { background: linear-gradient(105deg, #287888 55%, #48a0b0 55%); }
 #sidebar.compact #sb-zone-toggles { flex-direction: column; padding: 0.3em 0; gap: 0.25em; }
 #sidebar.compact .zone-tog-btn { font-size: 0px; padding: 0.5em 0; }
 #sidebar.compact .zone-tog-btn svg { width: 14px; height: 14px; }
@@ -303,6 +303,8 @@ html, body {
 .fgh-eye { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.8); padding: 0.15em; border-radius: 3px; display: flex; align-items: center; font-size: 0.85em; transition: all 0.15s; }
 .fgh-eye:hover { color: white; background: rgba(255,255,255,0.15); }
 .fgh-eye.hidden-state { color: rgba(255,255,255,0.5); }
+.fgh-sel-all { background: none; border: 1px solid rgba(255,255,255,0.4); cursor: pointer; color: rgba(255,255,255,0.85); padding: 0.12em 0.22em; border-radius: 3px; display: flex; align-items: center; font-size: 0.78em; transition: all 0.15s; }
+.fgh-sel-all:hover { background: rgba(255,255,255,0.2); color: white; }
 
 /* Per-group gradient colours */
 .filter-group-header[data-group="npcs"]        { background: linear-gradient(105deg, #3d8f68 55%, #5ab882 55%); }

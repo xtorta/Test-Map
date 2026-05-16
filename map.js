@@ -876,7 +876,7 @@ function buildSidebar(layers) {
   shareBtn.addEventListener('click', copyPermalink);
   iconTools.appendChild(searchToolBtn); iconTools.appendChild(completedRow); iconTools.appendChild(shareBtn);
   sidebar.appendChild(iconTools);
-  sidebar.appendChild(sep());
+  // filterPanel follows directly — zone toggles have sep after them
 
   // Zone toggles inside filter panel
   const zoneTogs=mk('div',{id:'sb-zone-toggles'});

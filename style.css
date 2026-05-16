@@ -383,10 +383,6 @@ div[style*="grid-template-columns:1fr 1fr"] .sb-cat-count {
   background: transparent;
   transition: background 0.1s; min-height: 2.3em; position: relative;
 }
-.sb-cat-row::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(90deg, rgba(237,222,206,0.5) 0%, rgba(237,222,206,0.25) 60%, transparent 100%);
-}
 .sb-cat-row:hover { background: rgba(180,130,40,0.12); }
 .sb-cat-row input { display: none; }
 .sb-check-img { width: 1.05em; height: 1.05em; background-image: url("check0.png"); background-size: contain; background-repeat: no-repeat; flex-shrink: 0; }

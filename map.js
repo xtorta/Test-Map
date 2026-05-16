@@ -1534,7 +1534,7 @@ function buildCatRow(name, layers, iconOverride) {
     ? `<img src="${iconUrl}" class="sb-cat-icon" alt="">`
     : `<span class="sb-cat-dot-wrap"><span class="sb-cat-dot" style="background:${colour}"></span></span>`;
   const isCollectable = COMPLETABLE.has(name);
-  row.innerHTML=`<input type="checkbox" data-layer="${name}" class="category" style="display:none"><span class="sb-check-img"></span>${indicator}<span class="sb-cat-name" style="color:${colour}">${name}</span><span class="sb-cat-count" data-cat="${name}">${isCollectable?`0/${total}`:total}</span>`;
+  row.innerHTML=`<input type="checkbox" data-layer="${name}" class="category" style="display:none"><span class="sb-check-img"></span>${indicator}<span class="sb-cat-name">${name}</span><span class="sb-cat-count" data-cat="${name}">${isCollectable?`0/${total}`:total}</span>`;
   return row;
 }
 

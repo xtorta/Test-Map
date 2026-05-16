@@ -72,8 +72,8 @@ html, body {
 }
 #sb-title {
   font-weight: 900; font-size: 1em; letter-spacing: 0.08em; flex: 1; text-align: center;
-  color: #7a3c08;
-  text-shadow: 0 1px 2px rgba(255,255,255,0.4);
+  color: #ffffff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
 }
 #sb-view-btns { display: flex; gap: 0.25em; flex-shrink: 0; }
 .sb-view-btn {
@@ -210,7 +210,7 @@ html, body {
   display: flex; align-items: center; gap: 0.6em; padding: 0.55em 0.85em;
   cursor: pointer; border: none; background: transparent; width: 100%;
   font-family: Noto, sans-serif; font-size: 0.88em; font-weight: 600; color: var(--ink);
-  text-align: left; border-bottom: 1px solid rgba(180,136,42,0.2); transition: background 0.1s;
+  text-align: left; border-bottom: none; transition: background 0.1s;
   position: relative; white-space: nowrap;
 }
 .sb-tool-btn:hover { background: rgba(180,136,42,0.1); }
@@ -300,11 +300,11 @@ html, body {
 .fgh-title { font-size: 0.87em; font-weight: 700; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); white-space: nowrap; }
 .fgh-chevron { font-size: 0.65em; color: rgba(255,255,255,0.85); transition: transform 0.2s; }
 .filter-group.collapsed .fgh-chevron { transform: rotate(-90deg); }
-.fgh-eye { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.8); padding: 0.15em; border-radius: 3px; display: flex; align-items: center; font-size: 0.85em; transition: all 0.15s; }
-.fgh-eye:hover { color: white; background: rgba(255,255,255,0.15); }
-.fgh-eye.hidden-state { color: rgba(255,255,255,0.5); }
-.fgh-sel-all { background: none; border: 1px solid rgba(255,255,255,0.4); cursor: pointer; color: rgba(255,255,255,0.85); padding: 0.12em 0.22em; border-radius: 3px; display: flex; align-items: center; font-size: 0.78em; transition: all 0.15s; }
-.fgh-sel-all:hover { background: rgba(255,255,255,0.2); color: white; }
+.fgh-eye { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.35); cursor: pointer; color: white; padding: 0.18em 0.22em; border-radius: 4px; display: flex; align-items: center; font-size: 0.85em; transition: all 0.15s; }
+.fgh-eye:hover { background: rgba(255,255,255,0.3); }
+.fgh-eye.hidden-state { background: rgba(180,40,40,0.45); border-color: rgba(255,100,100,0.5); color: rgba(255,200,200,0.9); }
+.fgh-sel-all { background: rgba(255,255,255,0.18); border: 1.5px solid rgba(255,255,255,0.5); cursor: pointer; color: white; padding: 0.14em 0.26em; border-radius: 4px; display: flex; align-items: center; font-size: 0.82em; font-weight: 700; transition: all 0.15s; letter-spacing: 0.02em; }
+.fgh-sel-all:hover { background: rgba(255,255,255,0.32); border-color: white; }
 
 /* Per-group gradient colours */
 .filter-group-header[data-group="npcs"]        { background: linear-gradient(105deg, #3d8f68 55%, #5ab882 55%); }

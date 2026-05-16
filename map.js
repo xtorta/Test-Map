@@ -1546,17 +1546,30 @@ function wireSearch(input, clearBtn, container, layers, onResultClick) {
   function removeResults(){document.getElementById(resultsId)?.remove();}
   function doSearch(q) {
     removeResults(); if(!q){clearSearch(layers,savedVis);searchActive=false;return;}
-    if(!searchActive){document.querySelectorAll('#sb-cat-list input[type="checkbox"]').forEach(cb=>savedVis[cb.dataset.layer]=cb.checked);searchActive=true;}
+    if(!searchActive){
+      // Save current visibility state
+      document.querySelectorAll('#sb-cat-list input[type="checkbox"]').forEach(cb=>savedVis[cb.dataset.layer]=cb.checked);
+      searchActive=true;
+    }
 
     const regionMatches=regionLabels.filter(({name})=>name.toLowerCase().includes(q));
     const markerMatches=allMarkers.filter(({label})=>label.toLowerCase().includes(q));
 
-    // Only filter marker visibility if there are marker results — region results don't affect markers
     if(markerMatches.length>0){
+      // Show ALL layers regardless of checked/hidden state
       Object.keys(layers).forEach(n=>map.addLayer(layers[n]));
-      allMarkers.forEach(({label,marker})=>{ const el=getMarkerEl(marker); if(!el) return; const hit=label.toLowerCase().includes(q); el.style.display=hit?'':'none'; el.style.outline=hit?'2px solid #f39c12':''; });
+      // Show multi-faction markers too
+      allMarkers.forEach(({marker})=>{
+        if(marker._allFactions && !map.hasLayer(marker)) marker.addTo(map);
+      });
+      // Then hide/highlight based on match
+      allMarkers.forEach(({label,marker})=>{
+        const el=getMarkerEl(marker); if(!el) return;
+        const hit=label.toLowerCase().includes(q);
+        el.style.display=hit?'':'none';
+        el.style.outline=hit?'2px solid #f39c12':'';
+      });
     } else {
-      // Region-only results: restore all markers to saved visibility, don't hide anything
       clearSearch(layers, savedVis);
     }
 
@@ -1633,7 +1646,12 @@ function clearSearch(layers, savedVis) {
     const n=cb.dataset.layer, was=savedVis[n]!==undefined?savedVis[n]:cb.checked;
     (was&&!hiddenGroups.has(n)&&layers[n])?map.addLayer(layers[n]):(layers[n]&&map.removeLayer(layers[n]));
   });
-  allMarkers.forEach(({markerId,marker})=>{ const el=getMarkerEl(marker); if(!el) return; el.style.outline=''; el.style.display=''; el.style.opacity=''; applyCompletedStyle(marker,completedMarkers.has(markerId)); });
+  allMarkers.forEach(({markerId,marker})=>{
+    const el=getMarkerEl(marker); if(!el) return; el.style.outline=''; el.style.display=''; el.style.opacity='';
+    applyCompletedStyle(marker,completedMarkers.has(markerId));
+  });
+  // Restore multi-faction markers to correct visibility
+  updateMultiFactionIcons();
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────

@@ -300,11 +300,21 @@ html, body {
 .fgh-title { font-size: 0.87em; font-weight: 700; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); white-space: nowrap; }
 .fgh-chevron { font-size: 0.65em; color: rgba(255,255,255,0.85); transition: transform 0.2s; }
 .filter-group.collapsed .fgh-chevron { transform: rotate(-90deg); }
-.fgh-eye { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.35); cursor: pointer; color: white; padding: 0.18em 0.22em; border-radius: 4px; display: flex; align-items: center; font-size: 0.85em; transition: all 0.15s; }
-.fgh-eye:hover { background: rgba(255,255,255,0.3); }
-.fgh-eye.hidden-state { background: rgba(180,40,40,0.45); border-color: rgba(255,100,100,0.5); color: rgba(255,200,200,0.9); }
-.fgh-sel-all { background: rgba(255,255,255,0.18); border: 1.5px solid rgba(255,255,255,0.5); cursor: pointer; color: white; padding: 0.14em 0.26em; border-radius: 4px; display: flex; align-items: center; font-size: 0.82em; font-weight: 700; transition: all 0.15s; letter-spacing: 0.02em; }
-.fgh-sel-all:hover { background: rgba(255,255,255,0.32); border-color: white; }
+.fgh-eye {
+  background: rgba(0,0,0,0.18); border: none; cursor: pointer;
+  color: white; padding: 0.2em 0.28em; border-radius: 4px;
+  display: flex; align-items: center; font-size: 0.85em; transition: all 0.15s;
+  flex-shrink: 0;
+}
+.fgh-eye:hover { background: rgba(0,0,0,0.30); }
+.fgh-eye.hidden-state { background: rgba(0,0,0,0.40); color: rgba(255,180,180,1); }
+.fgh-sel-all {
+  background: rgba(0,0,0,0.18); border: none; cursor: pointer;
+  color: white; padding: 0.2em 0.28em; border-radius: 4px;
+  display: flex; align-items: center; font-size: 0.82em; font-weight: 700;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.fgh-sel-all:hover { background: rgba(0,0,0,0.30); }
 
 /* Per-group gradient colours */
 .filter-group-header[data-group="npcs"]        { background: linear-gradient(105deg, #6abf90 55%, #84d4a8 55%); }

@@ -369,8 +369,7 @@ div[style*="grid-template-columns:1fr 1fr"] .sb-cat-count {
 .sublabel-row:hover { background: rgba(0,0,0,0.05); }
 .sublabel-row.active { background: rgba(120,90,55,0.1); }
 .sublabel-icon { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; }
-.sublabel-name { font-size: 0.86em; font-weight: 600; flex: 1; color: #3a2e1e; white-space: nowrap;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+.sublabel-name { font-size: 0.86em; font-weight: 600; flex: 1; color: #1a1008; white-space: nowrap; }
 
 /* Category rows */
 .sb-cat-row {
@@ -386,8 +385,7 @@ div[style*="grid-template-columns:1fr 1fr"] .sb-cat-count {
 .sb-cat-icon { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; }
 .sb-cat-dot-wrap { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .sb-cat-dot { width: 22px; height: 22px; border-radius: 4px; border: 1.5px solid rgba(0,0,0,0.15); display: block; }
-.sb-cat-name { flex: 1; font-size: 0.9em; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.18), 0 0 8px rgba(0,0,0,0.1); }
+.sb-cat-name { flex: 1; font-size: 0.9em; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #1a1008; }
 .sb-cat-count { font-size: 0.82em; color: #5a4a30; flex-shrink: 0; white-space: nowrap; font-weight: 600; }
 
 /* CSS fade at bottom of cat list - pure CSS, no JS scroll events */

@@ -375,10 +375,10 @@ div[style*="grid-template-columns:1fr 1fr"] .sb-cat-count {
 .sb-cat-row {
   display: flex; align-items: center; gap: 0.5em; padding: 0.38em 0.75em;
   cursor: pointer; border-bottom: 1px solid rgba(160,110,40,0.12);
-  background: rgba(250,242,228,0.82);
+  background: transparent;
   transition: background 0.1s; min-height: 2.3em; position: relative;
 }
-.sb-cat-row:hover { background: rgba(240,220,180,0.55); }
+.sb-cat-row:hover { background: rgba(180,130,40,0.12); }
 .sb-cat-row input { display: none; }
 .sb-check-img { width: 1.05em; height: 1.05em; background-image: url("check0.png"); background-size: contain; background-repeat: no-repeat; flex-shrink: 0; }
 .sb-cat-row input:checked ~ .sb-check-img { background-image: url("check1.png"); }

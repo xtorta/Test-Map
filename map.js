@@ -1235,7 +1235,7 @@ function buildRoutesPanel(panel) {
   panel.innerHTML = '';
 
   // ── Hint ──────────────────────────────────────────────────────────
-  const hint = mk('div',{class:'cust-mode-status',style:'font-size:0.74em;font-weight:700;color:#f0a040;padding:0.2em 0;flex-shrink:0;'});
+  const hint = mk('div',{class:'cust-mode-status',style:'font-size:0.74em;font-weight:700;color:#1a1008;padding:0.2em 0;flex-shrink:0;'});
   hint.textContent = 'Hold & drag on the map to draw a route';
 
   // ── Name input ────────────────────────────────────────────────────
@@ -1436,7 +1436,7 @@ function buildCustomPanel(panel) {
 
   // Status hint — always on top, never behind grid
   const statusEl=mk('div',{class:'cust-mode-status',id:'cust-mode-status'});
-  statusEl.style.cssText='font-size:0.74em;font-weight:700;color:#f0a040;min-height:1.6em;padding:0.2em 0;flex-shrink:0;';
+  statusEl.style.cssText='font-size:0.74em;font-weight:700;color:#1a1008;min-height:1.6em;padding:0.2em 0;flex-shrink:0;';
   statusEl.textContent='Select an icon then click the map to place it';
 
   // Icon grid

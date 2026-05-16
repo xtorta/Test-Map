@@ -918,11 +918,30 @@ function buildSidebar(layers) {
     ghdr.setAttribute('data-group', group.key);
     const eyeBtn=mk('button',{class:'fgh-eye'}); eyeBtn.innerHTML=SVG.eye;
     eyeBtn.addEventListener('click',e=>{ e.stopPropagation(); toggleGroupVisibility(group, layers, eyeBtn); });
+
+    // Select-all / deselect-all button
+    const selAllBtn=mk('button',{class:'fgh-sel-all'}); selAllBtn.title='Select/deselect all';
+    selAllBtn.innerHTML='<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="1,6 4,9 11,2"/></svg>';
+    let allSelected = true;
+    selAllBtn.addEventListener('click',e=>{
+      e.stopPropagation();
+      // Get all cat inputs in this group
+      const inputs=[...groupRows.querySelectorAll('input[type="checkbox"][data-layer]')];
+      const anyUnchecked=inputs.some(cb=>!cb.checked);
+      inputs.forEach(cb=>{
+        const n=cb.dataset.layer;
+        if(anyUnchecked){ cb.checked=true; if(!hiddenGroups.has(n)&&layers[n]) map.addLayer(layers[n]); }
+        else { cb.checked=false; if(layers[n]) map.removeLayer(layers[n]); }
+      });
+      updateLocalStorage();
+    });
+
     ghdr.innerHTML=`<div class="fgh-left"><span>${group.icon}</span><span class="fgh-title">${group.title}</span></div><div style="display:flex;align-items:center;gap:0.4em"></div>`;
+    ghdr.querySelector('div:last-child').prepend(selAllBtn);
     ghdr.querySelector('div:last-child').prepend(eyeBtn);
     const chev=mk('span',{class:'fgh-chevron'}); chev.textContent='▼';
     ghdr.querySelector('div:last-child').appendChild(chev);
-    ghdr.addEventListener('click',e=>{ if(e.target.closest('.fgh-eye')) return; groupDiv.classList.toggle('collapsed'); localStorage.setItem(`fg_${group.key}`,groupDiv.classList.contains('collapsed')?'1':'0'); });
+    ghdr.addEventListener('click',e=>{ if(e.target.closest('.fgh-eye')||e.target.closest('.fgh-sel-all')) return; groupDiv.classList.toggle('collapsed'); localStorage.setItem(`fg_${group.key}`,groupDiv.classList.contains('collapsed')?'1':'0'); });
 
     const groupRows=mk('div',{class:'filter-group-rows'});
 
@@ -1150,11 +1169,13 @@ function toggleGroupVisibility(group, layers, eyeBtn) {
     if (nowHiding) {
       hiddenGroups.add(cat);
       if (layers[cat]) map.removeLayer(layers[cat]);
-      document.querySelectorAll(`input[data-layer="${cat}"]`).forEach(cb=>{ cb.checked=false; cb.closest('.compact-cat-row')?.classList.remove('checked'); });
+      // DON'T uncheck — eye only hides visually
     } else {
       hiddenGroups.delete(cat);
-      document.querySelectorAll(`input[data-layer="${cat}"]`).forEach(cb=>{ cb.checked=true; cb.closest('.compact-cat-row')?.classList.add('checked'); });
-      if (layers[cat]) map.addLayer(layers[cat]);
+      // Only re-add layer if checkbox is currently checked
+      document.querySelectorAll(`input[data-layer="${cat}"]`).forEach(cb=>{
+        if (cb.checked && layers[cat]) map.addLayer(layers[cat]);
+      });
     }
   });
   updateLocalStorage();

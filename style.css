@@ -331,9 +331,14 @@ html, body {
   display: flex; align-items: center; gap: 0.5em;
   padding: 0.28em 0.85em 0.28em 1.1em;
   border-bottom: 1px solid rgba(0,0,0,0.18); cursor: pointer; user-select: none;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.02em; position: relative; overflow: hidden;
 }
-.filter-subgroup-header:hover { filter: brightness(1.1); }
+.filter-subgroup-header::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.14) 0%, transparent 60%);
+  pointer-events: none;
+}
+.filter-subgroup-header:hover { filter: brightness(1.08); }
 .filter-subgroup-header[data-sub="Plants"] { background: linear-gradient(105deg, #c898b0 55%, #dab0c4 55%); }
 .filter-subgroup-header[data-sub="Ores"]   { background: linear-gradient(105deg, #9880c8 55%, #b098dc 55%); }
 .filter-subgroup-header[data-sub="Mobs"]   { background: linear-gradient(105deg, #b87878 55%, #cc9090 55%); }
@@ -377,6 +382,10 @@ div[style*="grid-template-columns:1fr 1fr"] .sb-cat-count {
   cursor: pointer; border-bottom: 1px solid rgba(160,110,40,0.12);
   background: transparent;
   transition: background 0.1s; min-height: 2.3em; position: relative;
+}
+.sb-cat-row::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, rgba(237,222,206,0.5) 0%, rgba(237,222,206,0.25) 60%, transparent 100%);
 }
 .sb-cat-row:hover { background: rgba(180,130,40,0.12); }
 .sb-cat-row input { display: none; }
@@ -491,7 +500,7 @@ div[style*="grid-template-columns:1fr 1fr"] .sb-cat-count {
   border: 2px solid transparent; transition: border-color 0.12s;
 }
 .color-swatch:hover, .color-swatch.selected { border-color: #1a1a1a; }
-.cust-mode-status { font-size: 0.74em; font-weight: 700; color: #f0a040; min-height: 1.2em; }
+.cust-mode-status { font-size: 0.74em; font-weight: 700; color: #2a1808; min-height: 1.2em; }
 .cust-route-instructions { font-size: 0.74em; color: #5a4a2a; line-height: 1.5; background: rgb(225,220,210); border-radius: 5px; padding: 0.4em 0.6em; }
 
 /* Marker done */

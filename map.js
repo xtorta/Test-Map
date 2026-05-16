@@ -926,7 +926,7 @@ function buildSidebar(layers) {
     function updateSelAllIcon() {
       const inputs=[...groupRows.querySelectorAll('input[type="checkbox"][data-layer]')];
       const allChecked=inputs.length>0&&inputs.every(cb=>cb.checked);
-      selAllBtn.innerHTML=allChecked?svgDash:svgCheck;
+      selAllBtn.innerHTML=allChecked?svgCheck:svgDash;
       selAllBtn.title=allChecked?'Deselect all':'Select all';
       selAllBtn.style.opacity=allChecked?'1':'0.7';
     }

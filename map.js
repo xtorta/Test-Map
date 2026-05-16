@@ -919,13 +919,19 @@ function buildSidebar(layers) {
     const eyeBtn=mk('button',{class:'fgh-eye'}); eyeBtn.innerHTML=SVG.eye;
     eyeBtn.addEventListener('click',e=>{ e.stopPropagation(); toggleGroupVisibility(group, layers, eyeBtn); });
 
-    // Select-all / deselect-all button
+    // Select-all / deselect-all button — icon reflects current state
     const selAllBtn=mk('button',{class:'fgh-sel-all'}); selAllBtn.title='Select/deselect all';
-    selAllBtn.innerHTML='<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="1,6 4,9 11,2"/></svg>';
-    let allSelected = true;
+    const svgCheck='<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="1,6 4,9 11,2"/></svg>';
+    const svgDash='<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="2" y1="6" x2="10" y2="6"/></svg>';
+    function updateSelAllIcon() {
+      const inputs=[...groupRows.querySelectorAll('input[type="checkbox"][data-layer]')];
+      const allChecked=inputs.length>0&&inputs.every(cb=>cb.checked);
+      selAllBtn.innerHTML=allChecked?svgDash:svgCheck;
+      selAllBtn.title=allChecked?'Deselect all':'Select all';
+      selAllBtn.style.opacity=allChecked?'1':'0.7';
+    }
     selAllBtn.addEventListener('click',e=>{
       e.stopPropagation();
-      // Get all cat inputs in this group
       const inputs=[...groupRows.querySelectorAll('input[type="checkbox"][data-layer]')];
       const anyUnchecked=inputs.some(cb=>!cb.checked);
       inputs.forEach(cb=>{
@@ -934,7 +940,10 @@ function buildSidebar(layers) {
         else { cb.checked=false; if(layers[n]) map.removeLayer(layers[n]); }
       });
       updateLocalStorage();
+      updateSelAllIcon();
     });
+    // Update icon after sidebar is built
+    requestAnimationFrame(updateSelAllIcon);
 
     ghdr.innerHTML=`<div class="fgh-left"><span>${group.icon}</span><span class="fgh-title">${group.title}</span></div><div style="display:flex;align-items:center;gap:0.4em"></div>`;
     ghdr.querySelector('div:last-child').prepend(selAllBtn);

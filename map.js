@@ -449,15 +449,20 @@ function finishRoute() {
 // ─── Permalink: read URL hash on load ────────────────────────────────────────
 (function readPermalink() {
   const hash = window.location.hash.replace('#','');
-  const m = hash.match(/^@(-?\d+\.?\d*),(-?\d+\.?\d*),([-\d.]+)(?:,(.+))?$/);
+  const m = hash.match(/^@(-?\d+\.?\d*),(-?\d+\.?\d*),([-\d.]+)(?:,([^&]*))?(?:&r=(.+))?$/);
   if (m) {
     map.setView([parseFloat(m[1]), parseFloat(m[2])], parseFloat(m[3]));
     window._permalinkApplied = true;
-    // m[4] = base64-encoded filter state if present
     if (m[4]) {
       try {
         const filterStr = atob(m[4].replace(/-/g,'+').replace(/_/g,'/'));
         window._permalinkFilters = filterStr ? new Set(filterStr.split(',')) : null;
+      } catch(e) {}
+    }
+    if (m[5]) {
+      try {
+        const routeStr = atob(m[5].replace(/-/g,'+').replace(/_/g,'/'));
+        window._permalinkRoutes = routeStr.split('~').map(code => decodeRouteCode(code)).filter(Boolean);
       } catch(e) {}
     }
     return;
@@ -497,15 +502,23 @@ map.on('moveend', () => {
 function copyPermalink() {
   const c = map.getCenter();
   const z = map.getZoom();
-  // Encode checked layers as base64
+  // Encode checked layers
   const checked = [...document.querySelectorAll('#sb-cat-list input[type="checkbox"][data-layer]')]
     .filter(cb => cb.checked).map(cb => cb.dataset.layer).join(',');
   const filterCode = btoa(checked).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-  const hash = `#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)},${filterCode}`;
+  // Encode routes (each already a short base64 code)
+  const routeCodes = customRoutes.length
+    ? customRoutes.map(rt => encodeRouteCode(rt)).join('~')
+    : '';
+  const routeParam = routeCodes
+    ? '&r=' + btoa(routeCodes).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_')
+    : '';
+  const hash = `#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)},${filterCode}${routeParam}`;
   const url  = window.location.origin + window.location.pathname + hash;
   window.history.replaceState(null, '', hash);
+  const len = url.length;
   navigator.clipboard?.writeText(url).then(() => {
-    showToast('📋 Link copied!');
+    showToast(len > 2000 ? `📋 Copied! (${Math.round(len/1000)}KB — ${customRoutes.length} routes)` : '📋 Link copied!');
   }).catch(() => {
     prompt('Copy this link:', url);
   });
@@ -828,7 +841,15 @@ function initMap(data) {
   loadChecked(layers);
   updateCounts();
   updateMultiFactionIcons();
-  applyPermalinkFilters(layers); // override filters if shared link has filter state
+  applyPermalinkFilters(layers);
+  // Apply shared routes from permalink (merge — don't replace existing)
+  if (window._permalinkRoutes?.length) {
+    const count = window._permalinkRoutes.length;
+    window._permalinkRoutes.forEach(rt => customRoutes.push(rt));
+    window._permalinkRoutes = null;
+    saveCustom(); renderRoutes();
+    setTimeout(() => showToast(`🗺️ ${count} route${count>1?'s':''} imported from link`), 500);
+  }
   loadRegions().then(() => refreshRegionVisibility());
   renderCustomMarkers();
   renderRoutes();

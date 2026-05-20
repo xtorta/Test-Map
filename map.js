@@ -449,7 +449,7 @@ function finishRoute() {
 // ─── Permalink: read URL hash on load ────────────────────────────────────────
 (function readPermalink() {
   const hash = window.location.hash.replace('#','');
-  const m = hash.match(/^@(-?\d+\.?\d*),(-?\d+\.?\d*),([-\d.]+)(?:,([^&]*))?(?:&r=(.+))?$/);
+  const m = hash.match(/^@(-?\d+\.?\d*),(-?\d+\.?\d*),([-\d.]+)(?:,([^&]*))?(?:&r=([A-Za-z0-9~=+/_-]+))?$/);
   if (m) {
     map.setView([parseFloat(m[1]), parseFloat(m[2])], parseFloat(m[3]));
     window._permalinkApplied = true;
@@ -461,9 +461,17 @@ function finishRoute() {
     }
     if (m[5]) {
       try {
-        const routeStr = atob(m[5].replace(/-/g,'+').replace(/_/g,'/'));
-        window._permalinkRoutes = routeStr.split('~').map(code => decodeRouteCode(code)).filter(Boolean);
-      } catch(e) {}
+        let routeStr = m[5];
+        // New format: only uppercase + digits + tilde
+        if (!/^[0-9A-Z~]+$/.test(routeStr)) {
+          // Old format: could be base64-wrapped dashed codes, or text-delta base64
+          try {
+            const dec = atob(routeStr.replace(/-/g,'+').replace(/_/g,'/') + '=='.slice(0,(4-routeStr.length%4)%4));
+            routeStr = dec; // use decoded value (dashed grouped or text-delta format)
+          } catch(e2) { /* not base64 – use as-is (dashed grouped direct in URL) */ }
+        }
+        window._permalinkRoutes = routeStr.split('~').map(code => decodeRouteCode(code.trim())).filter(Boolean);
+      } catch(e) { console.warn('Route decode error:', e); }
     }
     return;
   }
@@ -499,29 +507,35 @@ map.on('moveend', () => {
   localStorage.setItem('mapLastPos', JSON.stringify({lat:+c.lat.toFixed(2),lng:+c.lng.toFixed(2),zoom:+z.toFixed(2)}));
 });
 
-function copyPermalink() {
-  const c = map.getCenter();
-  const z = map.getZoom();
-  // Encode checked layers
+function _buildFilterCode() {
   const checked = [...document.querySelectorAll('#sb-cat-list input[type="checkbox"][data-layer]')]
     .filter(cb => cb.checked).map(cb => cb.dataset.layer).join(',');
-  const filterCode = btoa(checked).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-  // Encode routes (each already a short base64 code)
-  const routeCodes = customRoutes.length
-    ? customRoutes.map(rt => encodeRouteCode(rt)).join('~')
-    : '';
-  const routeParam = routeCodes
-    ? '&r=' + btoa(routeCodes).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_')
-    : '';
-  const hash = `#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)},${filterCode}${routeParam}`;
-  const url  = window.location.origin + window.location.pathname + hash;
+  return btoa(checked).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+}
+function _buildRouteParam() {
+  if (!customRoutes.length) return '';
+  // Route codes are already compact - join with ~ directly, no extra encoding
+  return '&r=' + customRoutes.map(rt => encodeRouteCode(rt)).join('~');
+}
+function _copyUrl(hash, toastMsg) {
+  const url = window.location.origin + window.location.pathname + hash;
   window.history.replaceState(null, '', hash);
-  const len = url.length;
-  navigator.clipboard?.writeText(url).then(() => {
-    showToast(len > 2000 ? `📋 Copied! (${Math.round(len/1000)}KB — ${customRoutes.length} routes)` : '📋 Link copied!');
-  }).catch(() => {
-    prompt('Copy this link:', url);
-  });
+  navigator.clipboard?.writeText(url).then(() => showToast(toastMsg))
+    .catch(() => prompt('Copy this link:', url));
+}
+function copyPermalink() {
+  const c = map.getCenter(), z = map.getZoom();
+  const hash = `#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)},${_buildFilterCode()}`;
+  _copyUrl(hash, '📋 Location & filters copied!');
+}
+function copyPermalinkWithRoutes() {
+  const c = map.getCenter(), z = map.getZoom();
+  const routeParam = _buildRouteParam();
+  const hash = `#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)},${_buildFilterCode()}${routeParam}`;
+  const label = customRoutes.length
+    ? `📋 Location, filters & ${customRoutes.length} route${customRoutes.length>1?'s':''} copied!`
+    : '📋 Location & filters copied! (no routes drawn)';
+  _copyUrl(hash, label);
 }
 function showToast(msg) {
   let t = document.getElementById('map-toast');
@@ -921,7 +935,9 @@ function buildSidebar(layers) {
   completedRow.appendChild(hideBtn); completedRow.appendChild(resetBtn);
   const shareBtn=mkToolBtn('sb-share-btn',`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="12" cy="13" r="2"/><line x1="6" y1="9" x2="10" y2="12"/><line x1="10" y1="4" x2="6" y2="7"/></svg>`,'Share Location');
   shareBtn.addEventListener('click', copyPermalink);
-  iconTools.appendChild(searchToolBtn); iconTools.appendChild(completedRow); iconTools.appendChild(shareBtn);
+  const shareRouteBtn=mkToolBtn('sb-share-route-btn',`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="12" cy="13" r="2"/><line x1="6" y1="9" x2="10" y2="12"/><line x1="10" y1="4" x2="6" y2="7"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="14" y1="6" x2="16" y2="8"/><line x1="14" y1="10" x2="16" y2="8"/></svg>`,'Share Route');
+  shareRouteBtn.addEventListener('click', copyPermalinkWithRoutes);
+  iconTools.appendChild(searchToolBtn); iconTools.appendChild(completedRow); iconTools.appendChild(shareBtn); iconTools.appendChild(shareRouteBtn);
   sidebar.appendChild(iconTools);
   // filterPanel follows directly — zone toggles have sep after them
 
@@ -1261,14 +1277,11 @@ function _routeBytesToInt(bytes, i) {
 }
 const _B36 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 function _bytesToB36Groups(bytes) {
-  // Convert bytes to big-int, then to base36
   let n = 0n;
   for (const b of bytes) n = (n << 8n) | BigInt(b);
   let s = n === 0n ? '0' : '';
   while (n > 0n) { s = _B36[Number(n % 36n)] + s; n = n / 36n; }
-  // Pad to multiple of 5 and group with dashes
-  while (s.length % 5) s = '0' + s;
-  return s.match(/.{5}/g).join('-');
+  return s || '0'; // no dashes, plain alphanumeric
 }
 function _b36GroupsToBytes(str) {
   const s = str.replace(/-/g,'');

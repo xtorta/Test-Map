@@ -470,7 +470,12 @@ function finishRoute() {
             routeStr = dec; // use decoded value (dashed grouped or text-delta format)
           } catch(e2) { /* not base64 – use as-is (dashed grouped direct in URL) */ }
         }
-        window._permalinkRoutes = routeStr.split('~').map(code => decodeRouteCode(code.trim())).filter(Boolean);
+        window._permalinkRoutes = routeStr.split('~').map(code => {
+          const rt = decodeRouteCode(code.trim());
+          if (!rt) console.warn('[permalink] failed to decode route code:', code.slice(0,40));
+          else console.log('[permalink] decoded route:', rt.points.length, 'pts, colour:', rt.colour);
+          return rt;
+        }).filter(Boolean);
       } catch(e) { console.warn('Route decode error:', e); }
     }
     return;
@@ -859,9 +864,14 @@ function initMap(data) {
   // Apply shared routes from permalink (merge — don't replace existing)
   if (window._permalinkRoutes?.length) {
     const count = window._permalinkRoutes.length;
-    window._permalinkRoutes.forEach(rt => customRoutes.push(rt));
+    window._permalinkRoutes.forEach(rt => customRoutes.push({
+      points: rt.points,
+      colour: rt.colour || '#e74c3c',
+      note: rt.note || '',
+      opacity: rt.opacity ?? 0.88
+    }));
     window._permalinkRoutes = null;
-    saveCustom(); renderRoutes();
+    saveCustom();
     setTimeout(() => showToast(`🗺️ ${count} route${count>1?'s':''} imported from link`), 500);
   }
   loadRegions().then(() => refreshRegionVisibility());

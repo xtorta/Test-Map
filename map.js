@@ -446,6 +446,92 @@ function finishRoute() {
   if (routePreviewLayer) { map.removeLayer(routePreviewLayer); routePreviewLayer=null; }
 }
 
+// ─── Route encode/decode (must be before readPermalink) ──────────────────────
+const _B36 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function _routeIntToBytes(v) {
+  if (v >= -62 && v <= 62) { return [v < 0 ? 0x80 | (-v) : v]; }
+  const s = v < 0 ? 1 : 0, a = Math.abs(v);
+  return [0xC0 | (s << 5) | (a >> 8), a & 0xFF];
+}
+function _routeBytesToInt(bytes, i) {
+  const b = bytes[i];
+  if (!(b & 0x40)) return { v: (b & 0x80) ? -(b & 0x3F) : b, len: 1 };
+  const b2 = bytes[i+1];
+  const neg = (b >> 5) & 1, mag = ((b & 0x1F) << 8) | b2;
+  return { v: neg ? -mag : mag, len: 2 };
+}
+function _bytesToB36(bytes) {
+  let n = 0n;
+  for (const b of bytes) n = (n << 8n) | BigInt(b);
+  let s = '';
+  while (n > 0n) { s = _B36[Number(n % 36n)] + s; n = n / 36n; }
+  return s || '0';
+}
+function _b36ToBytes(str) {
+  const s = str.replace(/-/g,'');
+  let n = 0n;
+  for (const c of s) { const i = _B36.indexOf(c.toUpperCase()); if (i<0) continue; n = n * 36n + BigInt(i); }
+  const bytes = [];
+  while (n > 0n) { bytes.unshift(Number(n & 0xFFn)); n >>= 8n; }
+  return bytes;
+}
+function encodeRouteCode(route) {
+  const pts = route.points;
+  const c = (route.colour||'#e74c3c').replace('#','');
+  const bytes = [
+    parseInt(c.slice(0,2),16), parseInt(c.slice(2,4),16), parseInt(c.slice(4,6),16),
+    (pts.length >> 8) & 0xFF, pts.length & 0xFF,
+  ];
+  const ax = Math.round(pts[0][0]/4), ay = Math.round(pts[0][1]/4);
+  bytes.push((ax >> 8) & 0xFF, ax & 0xFF, (ay >> 8) & 0xFF, ay & 0xFF);
+  for (let i=1; i<pts.length; i++) {
+    const dx = Math.round(pts[i][0]/4) - Math.round(pts[i-1][0]/4);
+    const dy = Math.round(pts[i][1]/4) - Math.round(pts[i-1][1]/4);
+    bytes.push(..._routeIntToBytes(dx), ..._routeIntToBytes(dy));
+  }
+  return _bytesToB36(bytes);
+}
+function decodeRouteCode(code) {
+  if (!code) return null;
+  try {
+    // Legacy text-delta base64 format (has | separator or lowercase)
+    if (code.includes('|') || /[a-z]/.test(code.replace(/-/g,''))) {
+      const padded = code.replace(/-/g,'+').replace(/_/g,'/');
+      const raw = atob(padded + '=='.slice(0,(4-padded.length%4)%4));
+      const pipe = raw.indexOf('|');
+      if (pipe < 0) return null;
+      const colCode = raw.slice(0,pipe), ptsStr = raw.slice(pipe+1);
+      const r=parseInt(colCode[0],16)*17, g=parseInt(colCode[1],16)*17, b=parseInt(colCode[2],16)*17;
+      const colour = '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+      const deltas = ptsStr.split(';').map(s=>s.split(',').map(Number));
+      if (!deltas.length) return null;
+      const points = [[deltas[0][0]*2, deltas[0][1]*2]];
+      for (let i=1;i<deltas.length;i++) {
+        const prev = [Math.round(points[i-1][0]/2), Math.round(points[i-1][1]/2)];
+        points.push([(prev[0]+deltas[i][0])*2, (prev[1]+deltas[i][1])*2]);
+      }
+      return points.length>=2 ? {colour, points, note:''} : null;
+    }
+    // New compact binary base36 format
+    const bytes = _b36ToBytes(code);
+    if (bytes.length < 9) return null;
+    const colour = '#'+bytes.slice(0,3).map(v=>v.toString(16).padStart(2,'0')).join('');
+    const count = (bytes[3]<<8)|bytes[4];
+    const ax = (bytes[5]<<8|bytes[6]); const axS = ax>32767?ax-65536:ax;
+    const ay = (bytes[7]<<8|bytes[8]); const ayS = ay>32767?ay-65536:ay;
+    const points = [[axS*4, ayS*4]];
+    let i=9;
+    while (points.length<count && i<bytes.length) {
+      const dx=_routeBytesToInt(bytes,i); i+=dx.len;
+      if (i>=bytes.length) break;
+      const dy=_routeBytesToInt(bytes,i); i+=dy.len;
+      const prev=points[points.length-1];
+      points.push([(Math.round(prev[0]/4)+dx.v)*4, (Math.round(prev[1]/4)+dy.v)*4]);
+    }
+    return points.length>=2 ? {colour, points, note:''} : null;
+  } catch(e) { console.warn('decodeRouteCode error:', e); return null; }
+}
+
 // ─── Permalink: read URL hash on load ────────────────────────────────────────
 (function readPermalink() {
   const hash = window.location.hash.replace('#','');
@@ -872,11 +958,12 @@ function initMap(data) {
     }));
     window._permalinkRoutes = null;
     saveCustom();
-    setTimeout(() => showToast(`🗺️ ${count} route${count>1?'s':''} imported from link`), 500);
+    setTimeout(() => showToast(`🗺️ ${count} route${count>1?'s':''} imported from link`), 600);
   }
   loadRegions().then(() => refreshRegionVisibility());
   renderCustomMarkers();
   renderRoutes();
+  window._refreshRouteList?.();
   // Fit full map now that sidebar is rendered, unless a permalink set the view
   if (!window._permalinkApplied) {
     setTimeout(() => { map.invalidateSize(); map.fitBounds(bounds, {animate:false}); refreshRegionVisibility(); }, 150);
@@ -1265,104 +1352,6 @@ function toggleGroupVisibility(group, layers, eyeBtn) {
   if (group.hasMobSub) updateMultiFactionIcons();
 }
 
-// ─── Route share codes ────────────────────────────────────────────────────────
-// ─── Route code: compact binary encoding ─────────────────────────────────────
-// Format: XXXXX-XXXXX-XXXXX (base36 groups of 5, separated by dashes)
-// Binary layout: 3 bytes colour + variable-length signed ints for point deltas
-// Each int: if |v| <= 62 → 1 byte (sign bit + 6-bit magnitude)
-//           else          → 2 bytes (flag + 13-bit signed)
-function _routeIntToBytes(v) {
-  if (v >= -62 && v <= 62) {
-    return [v < 0 ? 0x80 | (-v) : v];
-  }
-  const s = v < 0 ? 1 : 0, a = Math.abs(v);
-  return [0xC0 | (s << 5) | (a >> 8), a & 0xFF];
-}
-function _routeBytesToInt(bytes, i) {
-  const b = bytes[i];
-  if (!(b & 0x40)) return { v: (b & 0x80) ? -(b & 0x3F) : b, len: 1 };
-  const b2 = bytes[i+1];
-  const neg = (b >> 5) & 1, mag = ((b & 0x1F) << 8) | b2;
-  return { v: neg ? -mag : mag, len: 2 };
-}
-const _B36 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-function _bytesToB36Groups(bytes) {
-  let n = 0n;
-  for (const b of bytes) n = (n << 8n) | BigInt(b);
-  let s = n === 0n ? '0' : '';
-  while (n > 0n) { s = _B36[Number(n % 36n)] + s; n = n / 36n; }
-  return s || '0'; // no dashes, plain alphanumeric
-}
-function _b36GroupsToBytes(str) {
-  const s = str.replace(/-/g,'');
-  let n = 0n;
-  for (const c of s) n = n * 36n + BigInt(_B36.indexOf(c.toUpperCase()));
-  const bytes = [];
-  while (n > 0n) { bytes.unshift(Number(n & 0xFFn)); n >>= 8n; }
-  return bytes;
-}
-function encodeRouteCode(route) {
-  const pts = route.points;
-  const c = (route.colour||'#e74c3c').replace('#','');
-  const bytes = [
-    parseInt(c.slice(0,2),16),
-    parseInt(c.slice(2,4),16),
-    parseInt(c.slice(4,6),16),
-    // Point count (2 bytes)
-    (pts.length >> 8) & 0xFF, pts.length & 0xFF,
-  ];
-  // First point (absolute, /4 for precision)
-  const ax = Math.round(pts[0][0]/4), ay = Math.round(pts[0][1]/4);
-  // First point as 2-byte signed each (-8192..8191)
-  bytes.push((ax >> 8) & 0xFF, ax & 0xFF, (ay >> 8) & 0xFF, ay & 0xFF);
-  // Delta encode remaining points
-  for (let i=1;i<pts.length;i++) {
-    const dx = Math.round(pts[i][0]/4) - Math.round(pts[i-1][0]/4);
-    const dy = Math.round(pts[i][1]/4) - Math.round(pts[i-1][1]/4);
-    bytes.push(..._routeIntToBytes(dx), ..._routeIntToBytes(dy));
-  }
-  return _bytesToB36Groups(bytes);
-}
-function decodeRouteCode(code) {
-  try {
-    // Legacy base64 format (contains | or lowercase)
-    if (code.includes('|') || /[a-z]/.test(code.replace(/-/g,''))) {
-      const padded = code.replace(/-/g,'+').replace(/_/g,'/');
-      const raw = atob(padded + '=='.slice(0,(4-padded.length%4)%4));
-      const pipe = raw.indexOf('|');
-      if (pipe < 0) return null;
-      const colCode = raw.slice(0,pipe), ptsStr = raw.slice(pipe+1);
-      const r=parseInt(colCode[0],16)*17, g=parseInt(colCode[1],16)*17, b=parseInt(colCode[2],16)*17;
-      const colour = '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
-      const deltas = ptsStr.split(';').map(s=>s.split(',').map(Number));
-      if (!deltas.length) return null;
-      const points = [[deltas[0][0]*2, deltas[0][1]*2]];
-      for (let i=1;i<deltas.length;i++) {
-        const prev = [Math.round(points[i-1][0]/2), Math.round(points[i-1][1]/2)];
-        points.push([(prev[0]+deltas[i][0])*2, (prev[1]+deltas[i][1])*2]);
-      }
-      return points.length>=2 ? {colour, points, note:''} : null;
-    }
-    // New compact format
-    const bytes = _b36GroupsToBytes(code);
-    const r=bytes[0],g=bytes[1],b=bytes[2];
-    const colour='#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
-    const count = (bytes[3]<<8)|bytes[4];
-    // First point
-    const ax = (bytes[5]<<8|bytes[6]); const axS = ax>32767?ax-65536:ax;
-    const ay = (bytes[7]<<8|bytes[8]); const ayS = ay>32767?ay-65536:ay;
-    const points = [[axS*4, ayS*4]];
-    let i=9;
-    while (points.length<count && i<bytes.length) {
-      const dx=_routeBytesToInt(bytes,i); i+=dx.len;
-      const dy=_routeBytesToInt(bytes,i); i+=dy.len;
-      const prev=points[points.length-1];
-      points.push([(Math.round(prev[0]/4)+dx.v)*4, (Math.round(prev[1]/4)+dy.v)*4]);
-    }
-    return points.length>=2 ? {colour, points, note:''} : null;
-  } catch { return null; }
-}
-
 // ─── Routes Panel ─────────────────────────────────────────────────────────────
 function buildRoutesPanel(panel) {
   panel.innerHTML = '';
@@ -1458,6 +1447,7 @@ function buildRoutesPanel(panel) {
   function refreshRouteList() {
     listTitle.textContent=`My Routes (${customRoutes.length})`;
     routeList.innerHTML='';
+    window._refreshRouteList = refreshRouteList; // expose for external callers
     if(!customRoutes.length){ const e=mk('div',{style:'font-size:0.78em;color:#888;padding:0.4em 0;'}); e.textContent='No routes yet — draw one above'; routeList.appendChild(e); return; }
     customRoutes.forEach((rt,i)=>{
       const row=mk('div',{style:'background:rgb(225,220,210);border-radius:5px;padding:0.45em 0.6em;border:1px solid #c0b898;margin-bottom:0.3em;'});

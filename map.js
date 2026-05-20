@@ -446,123 +446,19 @@ function finishRoute() {
   if (routePreviewLayer) { map.removeLayer(routePreviewLayer); routePreviewLayer=null; }
 }
 
-// ─── Route encode/decode (must be before readPermalink) ──────────────────────
-const _B36 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-function _routeIntToBytes(v) {
-  if (v >= -62 && v <= 62) { return [v < 0 ? 0x80 | (-v) : v]; }
-  const s = v < 0 ? 1 : 0, a = Math.abs(v);
-  return [0xC0 | (s << 5) | (a >> 8), a & 0xFF];
-}
-function _routeBytesToInt(bytes, i) {
-  const b = bytes[i];
-  if (!(b & 0x40)) return { v: (b & 0x80) ? -(b & 0x3F) : b, len: 1 };
-  const b2 = bytes[i+1];
-  const neg = (b >> 5) & 1, mag = ((b & 0x1F) << 8) | b2;
-  return { v: neg ? -mag : mag, len: 2 };
-}
-function _bytesToB36(bytes) {
-  let n = 0n;
-  for (const b of bytes) n = (n << 8n) | BigInt(b);
-  let s = '';
-  while (n > 0n) { s = _B36[Number(n % 36n)] + s; n = n / 36n; }
-  return s || '0';
-}
-function _b36ToBytes(str) {
-  const s = str.replace(/-/g,'');
-  let n = 0n;
-  for (const c of s) { const i = _B36.indexOf(c.toUpperCase()); if (i<0) continue; n = n * 36n + BigInt(i); }
-  const bytes = [];
-  while (n > 0n) { bytes.unshift(Number(n & 0xFFn)); n >>= 8n; }
-  return bytes;
-}
-function encodeRouteCode(route) {
-  const pts = route.points;
-  const c = (route.colour||'#e74c3c').replace('#','');
-  const bytes = [
-    parseInt(c.slice(0,2),16), parseInt(c.slice(2,4),16), parseInt(c.slice(4,6),16),
-    (pts.length >> 8) & 0xFF, pts.length & 0xFF,
-  ];
-  const ax = Math.round(pts[0][0]/4), ay = Math.round(pts[0][1]/4);
-  bytes.push((ax >> 8) & 0xFF, ax & 0xFF, (ay >> 8) & 0xFF, ay & 0xFF);
-  for (let i=1; i<pts.length; i++) {
-    const dx = Math.round(pts[i][0]/4) - Math.round(pts[i-1][0]/4);
-    const dy = Math.round(pts[i][1]/4) - Math.round(pts[i-1][1]/4);
-    bytes.push(..._routeIntToBytes(dx), ..._routeIntToBytes(dy));
-  }
-  return _bytesToB36(bytes);
-}
-function decodeRouteCode(code) {
-  if (!code) return null;
-  try {
-    // Legacy text-delta base64 format (has | separator or lowercase)
-    if (code.includes('|') || /[a-z]/.test(code.replace(/-/g,''))) {
-      const padded = code.replace(/-/g,'+').replace(/_/g,'/');
-      const raw = atob(padded + '=='.slice(0,(4-padded.length%4)%4));
-      const pipe = raw.indexOf('|');
-      if (pipe < 0) return null;
-      const colCode = raw.slice(0,pipe), ptsStr = raw.slice(pipe+1);
-      const r=parseInt(colCode[0],16)*17, g=parseInt(colCode[1],16)*17, b=parseInt(colCode[2],16)*17;
-      const colour = '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
-      const deltas = ptsStr.split(';').map(s=>s.split(',').map(Number));
-      if (!deltas.length) return null;
-      const points = [[deltas[0][0]*2, deltas[0][1]*2]];
-      for (let i=1;i<deltas.length;i++) {
-        const prev = [Math.round(points[i-1][0]/2), Math.round(points[i-1][1]/2)];
-        points.push([(prev[0]+deltas[i][0])*2, (prev[1]+deltas[i][1])*2]);
-      }
-      return points.length>=2 ? {colour, points, note:''} : null;
-    }
-    // New compact binary base36 format
-    const bytes = _b36ToBytes(code);
-    if (bytes.length < 9) return null;
-    const colour = '#'+bytes.slice(0,3).map(v=>v.toString(16).padStart(2,'0')).join('');
-    const count = (bytes[3]<<8)|bytes[4];
-    const ax = (bytes[5]<<8|bytes[6]); const axS = ax>32767?ax-65536:ax;
-    const ay = (bytes[7]<<8|bytes[8]); const ayS = ay>32767?ay-65536:ay;
-    const points = [[axS*4, ayS*4]];
-    let i=9;
-    while (points.length<count && i<bytes.length) {
-      const dx=_routeBytesToInt(bytes,i); i+=dx.len;
-      if (i>=bytes.length) break;
-      const dy=_routeBytesToInt(bytes,i); i+=dy.len;
-      const prev=points[points.length-1];
-      points.push([(Math.round(prev[0]/4)+dx.v)*4, (Math.round(prev[1]/4)+dy.v)*4]);
-    }
-    return points.length>=2 ? {colour, points, note:''} : null;
-  } catch(e) { console.warn('decodeRouteCode error:', e); return null; }
-}
-
 // ─── Permalink: read URL hash on load ────────────────────────────────────────
 (function readPermalink() {
   const hash = window.location.hash.replace('#','');
-  const m = hash.match(/^@(-?\d+\.?\d*),(-?\d+\.?\d*),([-\d.]+)(?:,([^&]*))?(?:&r=([A-Za-z0-9~=+/_-]+))?$/);
+  const m = hash.match(/^@(-?\d+\.?\d*),(-?\d+\.?\d*),([-\d.]+)(?:,(.+))?$/);
   if (m) {
     map.setView([parseFloat(m[1]), parseFloat(m[2])], parseFloat(m[3]));
     window._permalinkApplied = true;
+    // m[4] = base64-encoded filter state if present
     if (m[4]) {
       try {
         const filterStr = atob(m[4].replace(/-/g,'+').replace(/_/g,'/'));
         window._permalinkFilters = filterStr ? new Set(filterStr.split(',')) : null;
       } catch(e) {}
-    }
-    if (m[5]) {
-      try {
-        let routeStr = m[5];
-        // New format: only uppercase + digits + tilde
-        if (!/^[0-9A-Z~]+$/.test(routeStr)) {
-          // Old format: could be base64-wrapped dashed codes, or text-delta base64
-          try {
-            const dec = atob(routeStr.replace(/-/g,'+').replace(/_/g,'/') + '=='.slice(0,(4-routeStr.length%4)%4));
-            routeStr = dec; // use decoded value (dashed grouped or text-delta format)
-          } catch(e2) { /* not base64 – use as-is (dashed grouped direct in URL) */ }
-        }
-        window._permalinkRoutes = routeStr.split('~').map(code => {
-          const rt = decodeRouteCode(code.trim());
-          if (!rt) console.warn('[permalink] failed to decode route code:', code.slice(0,40));
-          else console.log('[permalink] decoded route:', rt.points.length, 'pts, colour:', rt.colour);
-          return rt;
-        }).filter(Boolean);
-      } catch(e) { console.warn('Route decode error:', e); }
     }
     return;
   }
@@ -598,35 +494,21 @@ map.on('moveend', () => {
   localStorage.setItem('mapLastPos', JSON.stringify({lat:+c.lat.toFixed(2),lng:+c.lng.toFixed(2),zoom:+z.toFixed(2)}));
 });
 
-function _buildFilterCode() {
+function copyPermalink() {
+  const c = map.getCenter();
+  const z = map.getZoom();
+  // Encode checked layers as base64
   const checked = [...document.querySelectorAll('#sb-cat-list input[type="checkbox"][data-layer]')]
     .filter(cb => cb.checked).map(cb => cb.dataset.layer).join(',');
-  return btoa(checked).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-}
-function _buildRouteParam() {
-  if (!customRoutes.length) return '';
-  // Route codes are already compact - join with ~ directly, no extra encoding
-  return '&r=' + customRoutes.map(rt => encodeRouteCode(rt)).join('~');
-}
-function _copyUrl(hash, toastMsg) {
-  const url = window.location.origin + window.location.pathname + hash;
+  const filterCode = btoa(checked).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  const hash = `#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)},${filterCode}`;
+  const url  = window.location.origin + window.location.pathname + hash;
   window.history.replaceState(null, '', hash);
-  navigator.clipboard?.writeText(url).then(() => showToast(toastMsg))
-    .catch(() => prompt('Copy this link:', url));
-}
-function copyPermalink() {
-  const c = map.getCenter(), z = map.getZoom();
-  const hash = `#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)},${_buildFilterCode()}`;
-  _copyUrl(hash, '📋 Location & filters copied!');
-}
-function copyPermalinkWithRoutes() {
-  const c = map.getCenter(), z = map.getZoom();
-  const routeParam = _buildRouteParam();
-  const hash = `#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)},${_buildFilterCode()}${routeParam}`;
-  const label = customRoutes.length
-    ? `📋 Location, filters & ${customRoutes.length} route${customRoutes.length>1?'s':''} copied!`
-    : '📋 Location & filters copied! (no routes drawn)';
-  _copyUrl(hash, label);
+  navigator.clipboard?.writeText(url).then(() => {
+    showToast('📋 Link copied!');
+  }).catch(() => {
+    prompt('Copy this link:', url);
+  });
 }
 function showToast(msg) {
   let t = document.getElementById('map-toast');
@@ -946,24 +828,10 @@ function initMap(data) {
   loadChecked(layers);
   updateCounts();
   updateMultiFactionIcons();
-  applyPermalinkFilters(layers);
-  // Apply shared routes from permalink (merge — don't replace existing)
-  if (window._permalinkRoutes?.length) {
-    const count = window._permalinkRoutes.length;
-    window._permalinkRoutes.forEach(rt => customRoutes.push({
-      points: rt.points,
-      colour: rt.colour || '#e74c3c',
-      note: rt.note || '',
-      opacity: rt.opacity ?? 0.88
-    }));
-    window._permalinkRoutes = null;
-    saveCustom();
-    setTimeout(() => showToast(`🗺️ ${count} route${count>1?'s':''} imported from link`), 600);
-  }
+  applyPermalinkFilters(layers); // override filters if shared link has filter state
   loadRegions().then(() => refreshRegionVisibility());
   renderCustomMarkers();
   renderRoutes();
-  window._refreshRouteList?.();
   // Fit full map now that sidebar is rendered, unless a permalink set the view
   if (!window._permalinkApplied) {
     setTimeout(() => { map.invalidateSize(); map.fitBounds(bounds, {animate:false}); refreshRegionVisibility(); }, 150);
@@ -1032,9 +900,7 @@ function buildSidebar(layers) {
   completedRow.appendChild(hideBtn); completedRow.appendChild(resetBtn);
   const shareBtn=mkToolBtn('sb-share-btn',`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="12" cy="13" r="2"/><line x1="6" y1="9" x2="10" y2="12"/><line x1="10" y1="4" x2="6" y2="7"/></svg>`,'Share Location');
   shareBtn.addEventListener('click', copyPermalink);
-  const shareRouteBtn=mkToolBtn('sb-share-route-btn',`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="12" cy="13" r="2"/><line x1="6" y1="9" x2="10" y2="12"/><line x1="10" y1="4" x2="6" y2="7"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="14" y1="6" x2="16" y2="8"/><line x1="14" y1="10" x2="16" y2="8"/></svg>`,'Share Route');
-  shareRouteBtn.addEventListener('click', copyPermalinkWithRoutes);
-  iconTools.appendChild(searchToolBtn); iconTools.appendChild(completedRow); iconTools.appendChild(shareBtn); iconTools.appendChild(shareRouteBtn);
+  iconTools.appendChild(searchToolBtn); iconTools.appendChild(completedRow); iconTools.appendChild(shareBtn);
   sidebar.appendChild(iconTools);
   // filterPanel follows directly — zone toggles have sep after them
 
@@ -1352,6 +1218,46 @@ function toggleGroupVisibility(group, layers, eyeBtn) {
   if (group.hasMobSub) updateMultiFactionIcons();
 }
 
+// ─── Route share codes ────────────────────────────────────────────────────────
+function encodeRouteCode(route) {
+  const c = (route.colour||'#e74c3c').replace('#','');
+  const r3 = Math.round(parseInt(c.slice(0,2),16)/17).toString(16);
+  const g3 = Math.round(parseInt(c.slice(2,4),16)/17).toString(16);
+  const b3 = Math.round(parseInt(c.slice(4,6),16)/17).toString(16);
+  const colCode = r3+g3+b3;
+  // Delta encode: store first point then differences, rounded to nearest 2 units
+  const pts = route.points;
+  const first = [Math.round(pts[0][0]/2), Math.round(pts[0][1]/2)];
+  const deltas = [first[0]+','+first[1]];
+  for (let i=1;i<pts.length;i++) {
+    const da = Math.round(pts[i][0]/2) - Math.round(pts[i-1][0]/2);
+    const db = Math.round(pts[i][1]/2) - Math.round(pts[i-1][1]/2);
+    deltas.push(da+','+db);
+  }
+  const raw = colCode+'|'+deltas.join(';');
+  return btoa(raw).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+}
+function decodeRouteCode(code) {
+  try {
+    const padded = code.replace(/-/g,'+').replace(/_/g,'/');
+    const raw = atob(padded + '=='.slice(0,(4-padded.length%4)%4));
+    const pipe = raw.indexOf('|');
+    const colCode = raw.slice(0,pipe), ptsStr = raw.slice(pipe+1);
+    const r=parseInt(colCode[0],16)*17, g=parseInt(colCode[1],16)*17, b=parseInt(colCode[2],16)*17;
+    const colour = '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+    const deltas = ptsStr.split(';').map(s=>s.split(',').map(Number));
+    if (!deltas.length) return null;
+    const points = [[deltas[0][0]*2, deltas[0][1]*2]];
+    for (let i=1;i<deltas.length;i++) {
+      const prev = [Math.round(points[i-1][0]/2), Math.round(points[i-1][1]/2)];
+      points.push([(prev[0]+deltas[i][0])*2, (prev[1]+deltas[i][1])*2]);
+    }
+    if (points.length<2) return null;
+    // Try legacy format (flat coords, no delta) if points look wrong
+    return {colour, points, note:''};
+  } catch { return null; }
+}
+
 // ─── Routes Panel ─────────────────────────────────────────────────────────────
 function buildRoutesPanel(panel) {
   panel.innerHTML = '';
@@ -1447,7 +1353,6 @@ function buildRoutesPanel(panel) {
   function refreshRouteList() {
     listTitle.textContent=`My Routes (${customRoutes.length})`;
     routeList.innerHTML='';
-    window._refreshRouteList = refreshRouteList; // expose for external callers
     if(!customRoutes.length){ const e=mk('div',{style:'font-size:0.78em;color:#888;padding:0.4em 0;'}); e.textContent='No routes yet — draw one above'; routeList.appendChild(e); return; }
     customRoutes.forEach((rt,i)=>{
       const row=mk('div',{style:'background:rgb(225,220,210);border-radius:5px;padding:0.45em 0.6em;border:1px solid #c0b898;margin-bottom:0.3em;'});

@@ -373,18 +373,11 @@ function makeCustMarkerIcon(icon, ringColour, ringThick, ringStyle) {
     const t = ringThick || 3;
     const r = 19;
     let strokeDash = '';
-    let filter = '';
     if (ringStyle === 'dashed') strokeDash = `stroke-dasharray="${t*2.5} ${t*1.5}"`;
     else if (ringStyle === 'dotted') strokeDash = `stroke-dasharray="${t*0.5} ${t*2}"`;
-    else if (ringStyle === 'glow') filter = `filter="url(#glow${i})"`;
-    const glowDef = ringStyle==='glow' ? `<defs><filter id="glow${Math.random().toString(36).slice(2,7)}"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>` : '';
-    const glowId = `glow_${Math.random().toString(36).slice(2,6)}`;
-    const glowDef2 = ringStyle==='glow' ? `<defs><filter id="${glowId}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>` : '';
-    const glowAttr = ringStyle==='glow' ? `filter="url(#${glowId})"` : '';
     ring = `<svg width="44" height="44" style="position:absolute;top:-6px;left:-6px;pointer-events:none;" viewBox="0 0 44 44">
-      ${glowDef2}
-      <circle cx="22" cy="22" r="${r}" fill="none" stroke="${ringColour}" stroke-width="${t}" ${strokeDash} ${glowAttr} opacity="0.95"/>
-      ${ringStyle!=='glow'?`<circle cx="22" cy="22" r="${r}" fill="none" stroke="rgba(0,0,0,0.25)" stroke-width="1" opacity="0.4"/>`:''}
+      <circle cx="22" cy="22" r="${r}" fill="none" stroke="${ringColour}" stroke-width="${t}" ${strokeDash} opacity="0.95"/>
+      <circle cx="22" cy="22" r="${r}" fill="none" stroke="rgba(0,0,0,0.25)" stroke-width="1" opacity="0.4"/>
     </svg>`;
   }
   return L.divIcon({
@@ -1996,7 +1989,7 @@ function buildCustomPanel(panel) {
   // Style buttons
   const rsLbl=mk('div',{style:'font-size:0.75em;font-weight:700;color:#7a6050;'}); rsLbl.textContent='Ring Style';
   const rsRow=mk('div',{style:'display:flex;gap:0.3em;flex-wrap:wrap;'});
-  const RING_STYLES=[['solid','━━━'],['dashed','╌╌╌'],['dotted','┄┄┄'],['glow','✦ Glow']];
+  const RING_STYLES=[['solid','━━━'],['dashed','╌╌╌'],['dotted','┄┄┄']];
   RING_STYLES.forEach(([val,label])=>{
     const b=mk('button',{style:`padding:0.2em 0.5em;border-radius:4px;border:1.5px solid ${val===selectedRingStyle?'#785a37':'#b09878'};background:${val===selectedRingStyle?'rgba(120,90,55,0.15)':'transparent'};font-size:0.78em;color:#3a2e1e;cursor:pointer;font-family:monospace;`});
     b.textContent=label;
@@ -2096,7 +2089,7 @@ function buildCustomPanel(panel) {
       const rsRow2=mk('div',{style:'display:flex;gap:0.25em;flex-wrap:wrap;'});
       const rsLbl2=mk('span',{style:'font-size:0.7em;font-weight:700;color:#7a6050;width:100%;margin-bottom:0.1em;'}); rsLbl2.textContent='Style';
       rsRow2.appendChild(rsLbl2);
-      const RING_STYLES2=[['solid','━━'],['dashed','╌╌'],['dotted','┄┄'],['glow','✦']];
+      const RING_STYLES2=[['solid','━━'],['dashed','╌╌'],['dotted','┄┄']];
       RING_STYLES2.forEach(([val,label])=>{
         const b=mk('button',{style:`padding:0.15em 0.4em;border-radius:3px;border:1.5px solid ${val===(cm.ringStyle||'solid')?'#785a37':'#b09878'};background:${val===(cm.ringStyle||'solid')?'rgba(120,90,55,0.15)':'transparent'};font-size:0.75em;color:#3a2e1e;cursor:pointer;font-family:monospace;`});
         b.textContent=label; b.title=val;

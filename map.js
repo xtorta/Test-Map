@@ -531,8 +531,10 @@ function finishRoute() {
 })();
 
 // Apply permalink filters after sidebar is built (called from initMap)
+// Skipped for route-share links — those should never touch the viewer's filters
 function applyPermalinkFilters(layers) {
   if (!window._permalinkFilters) return;
+  if (window._permalinkRoute) return; // route-share link — leave filters alone
   const active = window._permalinkFilters;
   document.querySelectorAll('#sb-cat-list input[type="checkbox"][data-layer]').forEach(cb => {
     const n = cb.dataset.layer;
@@ -611,7 +613,7 @@ function openShareRouteModal() {
     row.addEventListener('click', () => {
       const c = map.getCenter(), z = map.getZoom();
       const routeCode = encodeRouteCode(rt);
-      const hash = `#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)},${_buildFilterCode()}&r=${routeCode}`;
+      const hash = `#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)}&r=${routeCode}`;
       _copyUrl(location.origin + location.pathname + hash, `📋 Route "${rt.note||`Route ${i+1}`}" link copied!`);
       overlay.remove();
     });

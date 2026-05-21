@@ -557,7 +557,6 @@ function _buildFilterCode() {
   return btoa(checked).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
 }
 function _copyUrl(url, toast) {
-  window.history.replaceState(null, '', new URL(url).hash);
   navigator.clipboard?.writeText(url).then(() => showToast(toast)).catch(() => prompt('Copy this link:', url));
 }
 function copyPermalink() {

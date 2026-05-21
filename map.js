@@ -905,7 +905,33 @@ function initMap(data) {
     L.polyline(rt.points.map(p=>[p[0],p[1]]), {
       color: rt.colour||'#e74c3c', weight:4, opacity:0.85, smoothFactor:1.5
     }).addTo(tempLayer);
-    setTimeout(() => showToast('🗺️ Shared route shown — not saved to My Routes'), 600);
+    setTimeout(() => showToast('🗺️ Shared route — not saved to My Routes'), 600);
+    // Floating "Save to My Routes" button — only shown for shared route links
+    const saveBar = document.createElement('div');
+    saveBar.id = 'shared-route-bar';
+    saveBar.style.cssText = 'position:fixed;bottom:1.2em;left:50%;transform:translateX(-50%);z-index:2000;display:flex;align-items:center;gap:0.6em;background:rgba(28,18,8,0.88);backdrop-filter:blur(4px);padding:0.5em 0.9em 0.5em 0.7em;border-radius:30px;box-shadow:0 4px 18px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);font-family:Noto,sans-serif;';
+    const dot = document.createElement('div');
+    dot.style.cssText = `width:12px;height:12px;border-radius:50%;background:${rt.colour||'#e74c3c'};flex-shrink:0;box-shadow:0 0 6px ${rt.colour||'#e74c3c'};`;
+    const label = document.createElement('span');
+    label.textContent = 'Shared route (temporary)';
+    label.style.cssText = 'color:rgba(255,255,255,0.75);font-size:0.8em;white-space:nowrap;';
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = '＋ Save to My Routes';
+    saveBtn.style.cssText = 'background:linear-gradient(135deg,#785a37,#9e7a50);border:none;color:#f5e8d0;font-family:Noto,sans-serif;font-size:0.8em;font-weight:700;padding:0.35em 0.8em;border-radius:20px;cursor:pointer;white-space:nowrap;';
+    saveBtn.addEventListener('click', () => {
+      customRoutes.push({ points: rt.points, colour: rt.colour||'#e74c3c', note: 'Shared route', opacity: 0.88 });
+      saveCustom();
+      renderRoutes();
+      window._routeRenderHook?.();
+      saveBar.remove();
+      showToast('✅ Route saved to My Routes!');
+    });
+    const dismissBtn = document.createElement('button');
+    dismissBtn.textContent = '✕';
+    dismissBtn.style.cssText = 'background:none;border:none;color:rgba(255,255,255,0.4);font-size:0.9em;cursor:pointer;padding:0 0.2em;';
+    dismissBtn.addEventListener('click', () => saveBar.remove());
+    saveBar.append(dot, label, saveBtn, dismissBtn);
+    document.body.appendChild(saveBar);
   }
   loadRegions().then(() => refreshRegionVisibility());
   renderCustomMarkers();

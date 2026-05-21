@@ -528,10 +528,11 @@ function finishRoute() {
     // m[5] = shared icons
     if (m[5]) {
       try {
-        const decoded = decodeURIComponent(escape(atob(m[5].replace(/-/g,'+').replace(/_/g,'/'))));
-        const icons = JSON.parse(decoded);
+        const bin = atob(m[5].replace(/-/g,'+').replace(/_/g,'/'));
+        const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+        const icons = JSON.parse(new TextDecoder().decode(bytes));
         if (Array.isArray(icons)) window._permalinkIcons = icons;
-      } catch(e) {}
+      } catch(e) { console.warn('icon decode error:', e); }
     }
     // m[6] = route code(s) separated by ~
     if (m[6]) {
@@ -696,11 +697,12 @@ function openShareModal() {
     const selIcons=customMarkers.filter((_,i)=>iconChecks[i]?.checked);
     if (cbIco.checked && selIcons.length) {
       try {
-        // Use encodeURIComponent to safely handle emoji in icon field
         const json = JSON.stringify(selIcons.map(({lat,lng,icon,colour,note,comment})=>({lat,lng,icon,colour,note,comment})));
-        const d = btoa(unescape(encodeURIComponent(json))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-        hash+=`&i=${d}`;
-      } catch(e) {}
+        // TextEncoder handles emoji and all Unicode correctly
+        const bytes = new TextEncoder().encode(json);
+        let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b));
+        hash += `&i=${btoa(bin).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_')}`;
+      } catch(e) { console.warn('icon encode error:', e); }
     }
     // Selected route (single)
     if (cbRte.checked && selectedRouteIdx>=0) {

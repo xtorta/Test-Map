@@ -449,7 +449,7 @@ function finishRoute() {
 // ─── Permalink: read URL hash on load ────────────────────────────────────────
 (function readPermalink() {
   const hash = window.location.hash.replace('#','');
-  const m = hash.match(/^@(-?\d+\.?\d*),(-?\d+\.?\d*),([-\d.]+)(?:,(.+))?$/);
+  const m = hash.match(/^@(-?\d+\.?\d*),(-?\d+\.?\d*),([-\d.]+)(?:,([^&]*))?(?:&r=([A-Za-z0-9+/=_-]+))?$/);
   if (m) {
     map.setView([parseFloat(m[1]), parseFloat(m[2])], parseFloat(m[3]));
     window._permalinkApplied = true;
@@ -458,6 +458,13 @@ function finishRoute() {
       try {
         const filterStr = atob(m[4].replace(/-/g,'+').replace(/_/g,'/'));
         window._permalinkFilters = filterStr ? new Set(filterStr.split(',')) : null;
+      } catch(e) {}
+    }
+    // m[5] = route code — decode and queue for import after map loads
+    if (m[5]) {
+      try {
+        const rt = decodeRouteCode(m[5]);
+        if (rt) window._permalinkRoute = rt;
       } catch(e) {}
     }
     return;
@@ -494,21 +501,78 @@ map.on('moveend', () => {
   localStorage.setItem('mapLastPos', JSON.stringify({lat:+c.lat.toFixed(2),lng:+c.lng.toFixed(2),zoom:+z.toFixed(2)}));
 });
 
-function copyPermalink() {
-  const c = map.getCenter();
-  const z = map.getZoom();
-  // Encode checked layers as base64
+function _buildFilterCode() {
   const checked = [...document.querySelectorAll('#sb-cat-list input[type="checkbox"][data-layer]')]
     .filter(cb => cb.checked).map(cb => cb.dataset.layer).join(',');
-  const filterCode = btoa(checked).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-  const hash = `#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)},${filterCode}`;
-  const url  = window.location.origin + window.location.pathname + hash;
-  window.history.replaceState(null, '', hash);
-  navigator.clipboard?.writeText(url).then(() => {
-    showToast('📋 Link copied!');
-  }).catch(() => {
-    prompt('Copy this link:', url);
+  return btoa(checked).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+}
+function _copyUrl(url, toast) {
+  window.history.replaceState(null, '', new URL(url).hash);
+  navigator.clipboard?.writeText(url).then(() => showToast(toast)).catch(() => prompt('Copy this link:', url));
+}
+function copyPermalink() {
+  const c = map.getCenter(), z = map.getZoom();
+  const hash = `#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)},${_buildFilterCode()}`;
+  _copyUrl(location.origin + location.pathname + hash, '📋 Location & filter copied!');
+}
+function openShareRouteModal() {
+  if (!customRoutes.length) { showToast('⚠️ No routes to share — draw one first'); return; }
+  document.getElementById('share-route-modal')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'share-route-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(20,12,4,0.72);backdrop-filter:blur(3px);padding:1em;';
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:#eddece;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,0.55);width:min(380px,100%);overflow:hidden;border:2px solid #b89060;font-family:Noto,sans-serif;';
+
+  const header = document.createElement('div');
+  header.style.cssText = 'background:linear-gradient(108deg,#785a37 55%,#9e7a50 55%);padding:0.65em 1em;display:flex;align-items:center;';
+  const htitle = document.createElement('span');
+  htitle.textContent = 'Share Route';
+  htitle.style.cssText = 'color:#f5e8d0;font-weight:800;font-size:1em;flex:1;';
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = 'background:rgba(0,0,0,0.3);border:none;color:#f5e8d0;font-size:1em;width:1.8em;height:1.8em;border-radius:5px;cursor:pointer;';
+  closeBtn.onclick = () => overlay.remove();
+  header.append(htitle, closeBtn);
+
+  const body = document.createElement('div');
+  body.style.cssText = 'padding:0.9em 1em;display:flex;flex-direction:column;gap:0.5em;';
+
+  const hint = document.createElement('div');
+  hint.textContent = 'Select a route to share:';
+  hint.style.cssText = 'font-size:0.82em;font-weight:700;color:#5a3a1a;';
+  body.appendChild(hint);
+
+  customRoutes.forEach((rt, i) => {
+    const row = document.createElement('button');
+    row.style.cssText = `display:flex;align-items:center;gap:0.6em;width:100%;padding:0.5em 0.7em;border-radius:6px;border:2px solid transparent;background:rgb(225,220,210);cursor:pointer;font-family:Noto,sans-serif;text-align:left;transition:border-color 0.15s;`;
+    const dot = document.createElement('div');
+    dot.style.cssText = `width:14px;height:14px;border-radius:50%;background:${rt.colour||'#e74c3c'};flex-shrink:0;border:2px solid rgba(0,0,0,0.2);`;
+    const name = document.createElement('span');
+    name.textContent = rt.note || `Route ${i+1}`;
+    name.style.cssText = 'font-size:0.88em;font-weight:700;color:#3a2e1e;flex:1;';
+    const pts = document.createElement('span');
+    pts.textContent = `${rt.points.length} pts`;
+    pts.style.cssText = 'font-size:0.74em;color:#7a6a50;';
+    row.append(dot, name, pts);
+    row.addEventListener('mouseenter', () => row.style.borderColor = '#9e7a50');
+    row.addEventListener('mouseleave', () => row.style.borderColor = 'transparent');
+    row.addEventListener('click', () => {
+      const c = map.getCenter(), z = map.getZoom();
+      const routeCode = encodeRouteCode(rt);
+      const hash = `#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)},${_buildFilterCode()}&r=${routeCode}`;
+      _copyUrl(location.origin + location.pathname + hash, `📋 Route "${rt.note||`Route ${i+1}`}" link copied!`);
+      overlay.remove();
+    });
+    body.appendChild(row);
   });
+
+  modal.append(header, body);
+  overlay.append(modal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
 }
 function showToast(msg) {
   let t = document.getElementById('map-toast');
@@ -833,9 +897,24 @@ function initMap(data) {
   updateCounts();
   updateMultiFactionIcons();
   applyPermalinkFilters(layers); // override filters if shared link has filter state
+  // Auto-import route from shared link
+  let routeImported = false;
+  if (window._permalinkRoute) {
+    const rt = window._permalinkRoute;
+    window._permalinkRoute = null;
+    const incoming = encodeRouteCode(rt);
+    const alreadyHave = customRoutes.some(r => encodeRouteCode(r) === incoming);
+    if (!alreadyHave) {
+      customRoutes.push({ points: rt.points, colour: rt.colour||'#e74c3c', note: rt.note||'Shared route', opacity: 0.88 });
+      saveCustom();
+      routeImported = true;
+    }
+  }
   loadRegions().then(() => refreshRegionVisibility());
   renderCustomMarkers();
   renderRoutes();
+  window._routeRenderHook?.();
+  if (routeImported) setTimeout(() => showToast('🗺️ Route loaded into My Routes'), 600);
   // Fit full map now that sidebar is rendered, unless a permalink set the view
   if (!window._permalinkApplied) {
     setTimeout(() => { map.invalidateSize(); map.fitBounds(bounds, {animate:false}); refreshRegionVisibility(); }, 150);
@@ -904,7 +983,9 @@ function buildSidebar(layers) {
   completedRow.appendChild(hideBtn); completedRow.appendChild(resetBtn);
   const shareBtn=mkToolBtn('sb-share-btn',`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="12" cy="13" r="2"/><line x1="6" y1="9" x2="10" y2="12"/><line x1="10" y1="4" x2="6" y2="7"/></svg>`,'Share Location & Filter');
   shareBtn.addEventListener('click', copyPermalink);
-  iconTools.appendChild(searchToolBtn); iconTools.appendChild(completedRow); iconTools.appendChild(shareBtn);
+  const shareRouteBtn=mkToolBtn('sb-share-route-btn',`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="12" cy="13" r="2"/><line x1="6" y1="9" x2="10" y2="12"/><line x1="10" y1="4" x2="6" y2="7"/><polyline points="9,0 12,3 9,6" fill="none"/></svg>`,'Share Route');
+  shareRouteBtn.addEventListener('click', openShareRouteModal);
+  iconTools.appendChild(searchToolBtn); iconTools.appendChild(completedRow); iconTools.appendChild(shareBtn); iconTools.appendChild(shareRouteBtn);
   sidebar.appendChild(iconTools);
   // filterPanel follows directly — zone toggles have sep after them
 

@@ -374,49 +374,70 @@ map.on('popupopen', () => {
   sb.style.transform = `translateX(${sb.offsetWidth||310}px)`;
   map.once('popupclose', () => { sb.style.transform = ''; });
 });
+// ─── Shared route drawing helper (used by renderRoutes + temp shared route) ───
+function drawRouteOnLayer(points, colour, opacity, layer) {
+  if (points.length < 2) return;
+  const c = colour || '#e74c3c';
+
+  // Main line
+  L.polyline(points, { color:c, weight:3.5, opacity, smoothFactor:1 }).addTo(layer);
+
+  // Directional arrows along path
+  const total = points.length;
+  const interval = Math.max(8, Math.floor(total * 0.18));
+  for (let i = Math.floor(interval/2); i < total - 2; i += interval) {
+    const a = points[i], b = points[Math.min(i+5, total-1)];
+    const dX = b[1]-a[1], dY = b[0]-a[0];
+    const angle = Math.atan2(dX, dY) * 180 / Math.PI;
+    L.marker([a[0],a[1]], { interactive:false, icon: L.divIcon({
+      className:'',
+      iconAnchor:[8,10], iconSize:[16,20],
+      html:`<div style="transform:rotate(${angle}deg);transform-origin:50% 50%;filter:drop-shadow(0 0 2px rgba(0,0,0,0.8));">
+        <svg width="16" height="20" viewBox="0 0 16 20" fill="none">
+          <line x1="8" y1="19" x2="8" y2="1" stroke="${c}" stroke-width="2.5" stroke-linecap="round"/>
+          <polyline points="2,9 8,1 14,9" stroke="${c}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <polyline points="4,14 8,7 12,14" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.65"/>
+        </svg></div>`
+    })}).addTo(layer);
+  }
+
+  // Start marker — green circle with S
+  const start = points[0];
+  L.marker([start[0],start[1]], { interactive:false, icon: L.divIcon({
+    className:'',
+    iconAnchor:[11,11], iconSize:[22,22],
+    html:`<div style="width:22px;height:22px;border-radius:50%;background:#27ae60;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;">
+      <svg width="10" height="12" viewBox="0 0 10 12" fill="none">
+        <text x="5" y="10" text-anchor="middle" font-size="9" font-weight="800" fill="white" font-family="sans-serif">S</text>
+      </svg></div>`
+  })}).addTo(layer);
+
+  // End marker — red circle with E
+  const end = points[points.length-1];
+  L.marker([end[0],end[1]], { interactive:false, icon: L.divIcon({
+    className:'',
+    iconAnchor:[11,11], iconSize:[22,22],
+    html:`<div style="width:22px;height:22px;border-radius:50%;background:#c0392b;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;">
+      <svg width="10" height="12" viewBox="0 0 10 12" fill="none">
+        <text x="5" y="10" text-anchor="middle" font-size="9" font-weight="800" fill="white" font-family="sans-serif">E</text>
+      </svg></div>`
+  })}).addTo(layer);
+}
+
 function renderRoutes() {
   custRouteLayer.clearLayers();
   if (!routesVisible) { window._routeRenderHook?.(); return; }
   customRoutes.forEach((route, ri) => {
     if (route.points.length < 2) return;
-    const raw = route.points.map(p=>[p[0],p[1]]);
-    const smooth = raw;
+    const points = route.points.map(p=>[p[0],p[1]]);
     const colour = route.colour||'#e74c3c';
-    const opacity = (route.hidden ? 0 : globalRouteOpacity);
-    if (route.hidden) return; // skip hidden routes
-    const line = L.polyline(smooth, { color:colour, weight:3.5, opacity:opacity, smoothFactor:1 });
-    line.addTo(custRouteLayer);
+    if (route.hidden) return;
+    const opacity = globalRouteOpacity;
 
-    // Place directional arrows along path
-    const total = smooth.length;
-    const interval = Math.max(8, Math.floor(total * 0.18));
-    for (let i = Math.floor(interval/2); i < total - 2; i += interval) {
-      const a = smooth[i];
-      const b = smooth[Math.min(i + 5, total - 1)];
-      // In CRS.Simple: lat=Y(up), lng=X(right)
-      // Direction vector: dX = b.lng-a.lng, dY = b.lat-a.lat (but screen Y is inverted)
-      // CSS rotate(0deg) = pointing up (north). We want arrow pointing toward b.
-      // angle = atan2(dX, dY) gives clockwise rotation from north
-      const dX = b[1] - a[1]; // lng diff = horizontal
-      const dY = b[0] - a[0]; // lat diff = vertical (in map coords, positive = up)
-      const angle = Math.atan2(dX, dY) * 180 / Math.PI;
-      const arrowIcon = L.divIcon({
-        html: `<div style="transform:rotate(${angle}deg);transform-origin:50% 50%;filter:drop-shadow(0 0 2px rgba(0,0,0,0.8));">
-          <svg width="16" height="20" viewBox="0 0 16 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <line x1="8" y1="19" x2="8" y2="1" stroke="${colour}" stroke-width="2.5" stroke-linecap="round"/>
-            <polyline points="2,9 8,1 14,9" stroke="${colour}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            <polyline points="4,14 8,7 12,14" stroke="${colour}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.65"/>
-          </svg>
-        </div>`,
-        className: '',
-        iconAnchor: [8, 10],
-        iconSize: [16, 20]
-      });
-      L.marker([a[0], a[1]], { icon: arrowIcon, interactive: false }).addTo(custRouteLayer);
-    }
+    drawRouteOnLayer(points, colour, opacity, custRouteLayer);
 
     // Clickable hit line for popup
-    const hitLine = L.polyline(smooth, {color:'transparent', weight:14, opacity:0});
+    const hitLine = L.polyline(points, {color:'transparent', weight:14, opacity:0});
     hitLine.bindPopup(buildRoutePopup(route, ri), {maxWidth:200});
     hitLine.addTo(custRouteLayer);
   });
@@ -902,9 +923,7 @@ function initMap(data) {
     const rt = window._permalinkRoute;
     window._permalinkRoute = null;
     const tempLayer = L.layerGroup().addTo(map);
-    L.polyline(rt.points.map(p=>[p[0],p[1]]), {
-      color: rt.colour||'#e74c3c', weight:4, opacity:0.85, smoothFactor:1.5
-    }).addTo(tempLayer);
+    drawRouteOnLayer(rt.points.map(p=>[p[0],p[1]]), rt.colour||'#e74c3c', 0.85, tempLayer);
     setTimeout(() => showToast('🗺️ Shared route — not saved to My Routes'), 600);
     // Floating "Save to My Routes" button — only shown for shared route links
     const saveBar = document.createElement('div');

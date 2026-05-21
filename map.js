@@ -308,15 +308,54 @@ let routesVisible = localStorage.getItem('routesVisible') !== '0';
 let globalRouteOpacity = parseFloat(localStorage.getItem('routeOpacity')||'0.88');
 
 // Subsample raw points to avoid too many stored points
-function subsample(pts, minDist=15) {
-  if (!pts.length) return pts;
-  const out = [pts[0]];
-  for (let i=1;i<pts.length;i++) {
-    const last=out[out.length-1];
-    const dx=pts[i][1]-last[1], dy=pts[i][0]-last[0];
-    if (Math.sqrt(dx*dx+dy*dy)>=minDist) out.push(pts[i]);
+// Ramer-Douglas-Peucker: keep only points that deviate from straight line by > epsilon
+// Stores far fewer points than distance-based subsample, preserves shape better
+function rdpSimplify(pts, epsilon=6) {
+  if (pts.length <= 2) return pts;
+  // Find point with max distance from line between first and last
+  let maxDist = 0, maxIdx = 0;
+  const [ax,ay] = [pts[0][1], pts[0][0]];
+  const [bx,by] = [pts[pts.length-1][1], pts[pts.length-1][0]];
+  const len = Math.sqrt((bx-ax)**2+(by-ay)**2);
+  for (let i=1; i<pts.length-1; i++) {
+    const [px,py] = [pts[i][1], pts[i][0]];
+    const dist = len < 0.001
+      ? Math.sqrt((px-ax)**2+(py-ay)**2)
+      : Math.abs((by-ay)*px-(bx-ax)*py+bx*ay-by*ax) / len;
+    if (dist > maxDist) { maxDist=dist; maxIdx=i; }
   }
-  if (out[out.length-1]!==pts[pts.length-1]) out.push(pts[pts.length-1]);
+  if (maxDist > epsilon) {
+    const left  = rdpSimplify(pts.slice(0, maxIdx+1), epsilon);
+    const right = rdpSimplify(pts.slice(maxIdx), epsilon);
+    return [...left.slice(0,-1), ...right];
+  }
+  return [pts[0], pts[pts.length-1]];
+}
+
+// Catmull-Rom spline: given keypoints, generate smooth interpolated points
+// tension 0=loose, 0.5=standard, 1=tight
+function catmullRom(pts, tension=0.5, segments=8) {
+  if (pts.length < 2) return pts;
+  if (pts.length === 2) return pts;
+  const out = [];
+  // Pad ends so first and last points are included
+  const p = [pts[0], ...pts, pts[pts.length-1]];
+  for (let i=1; i<p.length-2; i++) {
+    const [p0,p1,p2,p3] = [p[i-1],p[i],p[i+1],p[i+2]];
+    for (let t=0; t<segments; t++) {
+      const s = t/segments;
+      const s2=s*s, s3=s2*s;
+      const h0 = -tension*s3 + 2*tension*s2 - tension*s;
+      const h1 = (2-tension)*s3 + (tension-3)*s2 + 1;
+      const h2 = (tension-2)*s3 + (3-2*tension)*s2 + tension*s;
+      const h3 = tension*s3 - tension*s2;
+      out.push([
+        h0*p0[0]+h1*p1[0]+h2*p2[0]+h3*p3[0],
+        h0*p0[1]+h1*p1[1]+h2*p2[1]+h3*p3[1]
+      ]);
+    }
+  }
+  out.push(pts[pts.length-1]);
   return out;
 }
 
@@ -379,14 +418,17 @@ function drawRouteOnLayer(points, colour, opacity, layer) {
   if (points.length < 2) return;
   const c = colour || '#e74c3c';
 
-  // Main line
-  L.polyline(points, { color:c, weight:3.5, opacity, smoothFactor:1 }).addTo(layer);
+  // Smooth the keypoints into a curve using Catmull-Rom spline
+  const smooth = catmullRom(points, 0.5, 10);
 
-  // Directional arrows along path
-  const total = points.length;
+  // Main line
+  L.polyline(smooth, { color:c, weight:3.5, opacity, smoothFactor:0 }).addTo(layer);
+
+  // Directional arrows along smoothed path
+  const total = smooth.length;
   const interval = Math.max(8, Math.floor(total * 0.18));
   for (let i = Math.floor(interval/2); i < total - 2; i += interval) {
-    const a = points[i], b = points[Math.min(i+5, total-1)];
+    const a = smooth[i], b = smooth[Math.min(i+5, total-1)];
     const dX = b[1]-a[1], dY = b[0]-a[0];
     const angle = Math.atan2(dX, dY) * 180 / Math.PI;
     L.marker([a[0],a[1]], { interactive:false, icon: L.divIcon({
@@ -401,26 +443,18 @@ function drawRouteOnLayer(points, colour, opacity, layer) {
     })}).addTo(layer);
   }
 
-  // Start marker — green circle with S
+  // Start marker — green circle with S (on original first keypoint)
   const start = points[0];
   L.marker([start[0],start[1]], { interactive:false, icon: L.divIcon({
-    className:'',
-    iconAnchor:[11,11], iconSize:[22,22],
-    html:`<div style="width:22px;height:22px;border-radius:50%;background:#27ae60;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;">
-      <svg width="10" height="12" viewBox="0 0 10 12" fill="none">
-        <text x="5" y="10" text-anchor="middle" font-size="9" font-weight="800" fill="white" font-family="sans-serif">S</text>
-      </svg></div>`
+    className:'', iconAnchor:[11,11], iconSize:[22,22],
+    html:`<div style="width:22px;height:22px;border-radius:50%;background:#27ae60;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:10px;font-weight:800;color:white;">S</div>`
   })}).addTo(layer);
 
-  // End marker — red circle with E
+  // End marker — red circle with E (on original last keypoint)
   const end = points[points.length-1];
   L.marker([end[0],end[1]], { interactive:false, icon: L.divIcon({
-    className:'',
-    iconAnchor:[11,11], iconSize:[22,22],
-    html:`<div style="width:22px;height:22px;border-radius:50%;background:#c0392b;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;">
-      <svg width="10" height="12" viewBox="0 0 10 12" fill="none">
-        <text x="5" y="10" text-anchor="middle" font-size="9" font-weight="800" fill="white" font-family="sans-serif">E</text>
-      </svg></div>`
+    className:'', iconAnchor:[11,11], iconSize:[22,22],
+    html:`<div style="width:22px;height:22px;border-radius:50%;background:#c0392b;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:10px;font-weight:800;color:white;">E</div>`
   })}).addTo(layer);
 }
 
@@ -456,12 +490,12 @@ function buildRoutePopup(route, ri) {
 function updateRoutePreview() {
   if (routePreviewLayer) map.removeLayer(routePreviewLayer);
   if (routePoints.length >= 2) {
-    const smooth = routePoints;
-    routePreviewLayer = L.polyline(smooth, {color:selectedCustColour, weight:3, dashArray:'5 4', opacity:0.8, smoothFactor:1}).addTo(map);
+    const smooth = catmullRom(routePoints, 0.5, 6);
+    routePreviewLayer = L.polyline(smooth, {color:selectedCustColour, weight:3, dashArray:'5 4', opacity:0.8, smoothFactor:0}).addTo(map);
   }
 }
 function finishRoute() {
-  const sub = subsample(routePoints, 30);
+  const sub = rdpSimplify(routePoints, 8); // keep shape-defining corners only
   if (sub.length >= 2) { customRoutes.push({points:sub, colour:selectedCustColour, note:''}); saveCustom(); renderRoutes(); }
   routePoints = []; routeDrawActive = false;
   if (routePreviewLayer) { map.removeLayer(routePreviewLayer); routePreviewLayer=null; }

@@ -376,19 +376,17 @@ function renderCustomMarkers() {
 }
 function buildCustPopup(cm, i) {
   const div = document.createElement('div');
-  div.style.cssText='font-family:Noto,sans-serif;min-width:160px;';
+  div.style.cssText='font-family:Noto,sans-serif;min-width:170px;';
 
-  // Name
-  const nameLabel=document.createElement('div'); nameLabel.style.cssText='font-size:0.72em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; nameLabel.textContent='Icon Name';
+  const nameLabel=document.createElement('div'); nameLabel.style.cssText='font-size:0.78em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; nameLabel.textContent='Name';
   const nameEl=document.createElement('input'); nameEl.type='text'; nameEl.value=cm.note||''; nameEl.placeholder='Icon name…';
-  nameEl.style.cssText='width:100%;padding:0.25em 0.4em;border:1px solid #a09880;border-radius:4px;font-size:0.85em;font-weight:600;color:#3a2e1e;background:rgb(235,228,215);outline:none;box-sizing:border-box;margin-bottom:0.5em;';
-  nameEl.addEventListener('change', () => { cm.note=nameEl.value; saveCustom(); window._refreshMyIcons?.(); });
+  nameEl.style.cssText='width:100%;padding:0.3em 0.5em;border:1px solid #a09880;border-radius:4px;font-size:0.95em;font-weight:600;color:#3a2e1e;background:rgb(235,228,215);outline:none;box-sizing:border-box;margin-bottom:0.5em;';
+  nameEl.addEventListener('input', () => { cm.note=nameEl.value; saveCustom(); window._refreshMyIcons?.(); });
 
-  // Comment
-  const commentLabel=document.createElement('div'); commentLabel.style.cssText='font-size:0.72em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; commentLabel.textContent='Comment';
-  const commentEl=document.createElement('textarea'); commentEl.rows=3; commentEl.value=cm.comment||''; commentEl.placeholder='Add a comment or description…';
-  commentEl.style.cssText='width:100%;padding:0.25em 0.4em;border:1px solid #a09880;border-radius:4px;font-size:0.8em;color:#3a2e1e;background:rgb(235,228,215);outline:none;resize:vertical;box-sizing:border-box;margin-bottom:0.5em;';
-  commentEl.addEventListener('change', () => { cm.comment=commentEl.value; saveCustom(); window._refreshMyIcons?.(); });
+  const commentLabel=document.createElement('div'); commentLabel.style.cssText='font-size:0.78em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; commentLabel.textContent='Comment';
+  const commentEl=document.createElement('textarea'); commentEl.rows=3; commentEl.value=cm.comment||''; commentEl.placeholder='Add a comment…';
+  commentEl.style.cssText='width:100%;padding:0.3em 0.5em;border:1px solid #a09880;border-radius:4px;font-size:0.9em;line-height:1.4;color:#3a2e1e;background:rgb(235,228,215);outline:none;resize:vertical;box-sizing:border-box;margin-bottom:0.5em;font-family:Noto,sans-serif;';
+  commentEl.addEventListener('input', () => { cm.comment=commentEl.value; saveCustom(); window._refreshMyIcons?.(); });
 
   const delBtn = document.createElement('button');
   delBtn.className='cust-popup-del'; delBtn.textContent='🗑 Delete Marker';
@@ -482,19 +480,17 @@ function renderRoutes() {
   window._routeRenderHook?.();
 }
 function buildRoutePopup(route, ri) {
-  const div=document.createElement('div'); div.style.cssText='font-family:Noto,sans-serif;min-width:160px;';
+  const div=document.createElement('div'); div.style.cssText='font-family:Noto,sans-serif;min-width:170px;';
 
-  // Name / rename
-  const nameLabel=document.createElement('div'); nameLabel.style.cssText='font-size:0.72em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; nameLabel.textContent='Route Name';
+  const nameLabel=document.createElement('div'); nameLabel.style.cssText='font-size:0.78em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; nameLabel.textContent='Route Name';
   const nameEl=document.createElement('input'); nameEl.type='text'; nameEl.value=route.note||`Route ${ri+1}`; nameEl.placeholder='Route name…';
-  nameEl.style.cssText='width:100%;padding:0.25em 0.4em;border:1px solid #a09880;border-radius:4px;font-size:0.85em;font-weight:600;color:#3a2e1e;background:rgb(235,228,215);outline:none;box-sizing:border-box;margin-bottom:0.5em;';
-  nameEl.addEventListener('change',()=>{ route.note=nameEl.value.trim()||`Route ${ri+1}`; saveCustom(); window._routeRenderHook?.(); });
+  nameEl.style.cssText='width:100%;padding:0.3em 0.5em;border:1px solid #a09880;border-radius:4px;font-size:0.95em;font-weight:600;color:#3a2e1e;background:rgb(235,228,215);outline:none;box-sizing:border-box;margin-bottom:0.5em;';
+  nameEl.addEventListener('input',()=>{ route.note=nameEl.value.trim()||`Route ${ri+1}`; saveCustom(); window._routeRenderHook?.(); });
 
-  // Comment
-  const commentLabel=document.createElement('div'); commentLabel.style.cssText='font-size:0.72em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; commentLabel.textContent='Comment';
-  const commentEl=document.createElement('textarea'); commentEl.rows=3; commentEl.value=route.comment||''; commentEl.placeholder='Add a comment or description…';
-  commentEl.style.cssText='width:100%;padding:0.25em 0.4em;border:1px solid #a09880;border-radius:4px;font-size:0.8em;color:#3a2e1e;background:rgb(235,228,215);outline:none;resize:vertical;box-sizing:border-box;margin-bottom:0.5em;';
-  commentEl.addEventListener('change',()=>{ route.comment=commentEl.value; saveCustom(); window._routeRenderHook?.(); });
+  const commentLabel=document.createElement('div'); commentLabel.style.cssText='font-size:0.78em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; commentLabel.textContent='Comment';
+  const commentEl=document.createElement('textarea'); commentEl.rows=3; commentEl.value=route.comment||''; commentEl.placeholder='Add a comment…';
+  commentEl.style.cssText='width:100%;padding:0.3em 0.5em;border:1px solid #a09880;border-radius:4px;font-size:0.9em;line-height:1.4;color:#3a2e1e;background:rgb(235,228,215);outline:none;resize:vertical;box-sizing:border-box;margin-bottom:0.5em;font-family:Noto,sans-serif;';
+  commentEl.addEventListener('input',()=>{ route.comment=commentEl.value; saveCustom(); window._routeRenderHook?.(); });
 
   const delBtn=document.createElement('button'); delBtn.className='cust-popup-del'; delBtn.textContent='🗑 Delete Route';
   delBtn.addEventListener('click',()=>{ customRoutes.splice(ri,1); saveCustom(); renderRoutes(); window._routeRenderHook?.(); map.closePopup(); });
@@ -532,7 +528,8 @@ function finishRoute() {
     // m[5] = shared icons
     if (m[5]) {
       try {
-        const icons = JSON.parse(atob(m[5].replace(/-/g,'+').replace(/_/g,'/')));
+        const decoded = decodeURIComponent(escape(atob(m[5].replace(/-/g,'+').replace(/_/g,'/'))));
+        const icons = JSON.parse(decoded);
         if (Array.isArray(icons)) window._permalinkIcons = icons;
       } catch(e) {}
     }
@@ -696,7 +693,9 @@ function openShareModal() {
     const selIcons=customMarkers.filter((_,i)=>iconChecks[i]?.checked);
     if (cbIco.checked && selIcons.length) {
       try {
-        const d=btoa(JSON.stringify(selIcons.map(({lat,lng,icon,colour,note,comment})=>({lat,lng,icon,colour,note,comment})))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+        // Use encodeURIComponent to safely handle emoji in icon field
+        const json = JSON.stringify(selIcons.map(({lat,lng,icon,colour,note,comment})=>({lat,lng,icon,colour,note,comment})));
+        const d = btoa(unescape(encodeURIComponent(json))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
         hash+=`&i=${d}`;
       } catch(e) {}
     }
@@ -1107,63 +1106,64 @@ function initMap(data) {
   loadChecked(layers);
   updateCounts();
   updateMultiFactionIcons();
-  applyPermalinkFilters(layers); // override filters if shared link has filter state
-  // Render temporary route(s) from shared link
+  applyPermalinkFilters(layers);
+
+  // ── Shared content bars ───────────────────────────────────────────────────
+  let sharedBarCount = 0;
+  function mkSharedBar(text, saveLabel, onSave) {
+    const bar = document.createElement('div');
+    const bottomEm = 1.2 + sharedBarCount * 3.4;
+    sharedBarCount++;
+    bar.style.cssText = `position:fixed;bottom:${bottomEm}em;left:50%;transform:translateX(-50%);z-index:2000;display:flex;align-items:center;gap:0.6em;background:rgba(28,18,8,0.9);backdrop-filter:blur(4px);padding:0.55em 0.9em 0.55em 0.8em;border-radius:30px;box-shadow:0 4px 18px rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.12);font-family:Noto,sans-serif;white-space:nowrap;`;
+    const lbl = document.createElement('span'); lbl.textContent = text;
+    lbl.style.cssText = 'color:rgba(255,255,255,0.72);font-size:0.82em;';
+    const saveBtn = document.createElement('button'); saveBtn.textContent = saveLabel;
+    saveBtn.style.cssText = 'background:linear-gradient(135deg,#785a37,#9e7a50);border:none;color:#f5e8d0;font-family:Noto,sans-serif;font-size:0.8em;font-weight:700;padding:0.35em 0.85em;border-radius:20px;cursor:pointer;';
+    saveBtn.addEventListener('click', () => { onSave(); bar.remove(); });
+    const x = document.createElement('button'); x.textContent = '✕';
+    x.style.cssText = 'background:none;border:none;color:rgba(255,255,255,0.35);font-size:0.95em;cursor:pointer;padding:0 0.15em;';
+    x.addEventListener('click', () => bar.remove());
+    bar.append(lbl, saveBtn, x);
+    document.body.appendChild(bar);
+    return bar;
+  }
+
   if (window._permalinkRoutes?.length) {
     const sharedRoutes = window._permalinkRoutes;
     window._permalinkRoutes = null;
     const tempLayer = L.layerGroup().addTo(map);
     sharedRoutes.forEach(rt => drawRouteOnLayer(rt.points.map(p=>[p[0],p[1]]), rt.colour||'#e74c3c', 0.85, tempLayer));
-
-    // Floating save bar
-    const saveBar=document.createElement('div');
-    saveBar.id='shared-route-bar';
-    saveBar.style.cssText='position:fixed;bottom:1.2em;left:50%;transform:translateX(-50%);z-index:2000;display:flex;align-items:center;gap:0.6em;background:rgba(28,18,8,0.88);backdrop-filter:blur(4px);padding:0.5em 0.9em 0.5em 0.7em;border-radius:30px;box-shadow:0 4px 18px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);font-family:Noto,sans-serif;';
-    const label=document.createElement('span'); label.textContent=`${sharedRoutes.length} shared route${sharedRoutes.length>1?'s':''} (temporary)`;
-    label.style.cssText='color:rgba(255,255,255,0.75);font-size:0.8em;white-space:nowrap;';
-    const saveBtn=document.createElement('button'); saveBtn.textContent='＋ Save to My Routes';
-    saveBtn.style.cssText='background:linear-gradient(135deg,#785a37,#9e7a50);border:none;color:#f5e8d0;font-family:Noto,sans-serif;font-size:0.8em;font-weight:700;padding:0.35em 0.8em;border-radius:20px;cursor:pointer;white-space:nowrap;';
-    saveBtn.addEventListener('click',()=>{
-      sharedRoutes.forEach(rt=>customRoutes.push({points:rt.points,colour:rt.colour||'#e74c3c',note:rt.note||'Shared route',opacity:0.88}));
-      saveCustom(); renderRoutes(); window._routeRenderHook?.(); saveBar.remove();
-      showToast(`✅ ${sharedRoutes.length} route${sharedRoutes.length>1?'s':''} saved to My Routes!`);
-    });
-    const dismissBtn=document.createElement('button'); dismissBtn.textContent='✕';
-    dismissBtn.style.cssText='background:none;border:none;color:rgba(255,255,255,0.4);font-size:0.9em;cursor:pointer;padding:0 0.2em;';
-    dismissBtn.addEventListener('click',()=>saveBar.remove());
-    saveBar.append(label,saveBtn,dismissBtn);
-    document.body.appendChild(saveBar);
-    setTimeout(()=>showToast(`🗺️ ${sharedRoutes.length} shared route${sharedRoutes.length>1?'s':''} — not saved`),600);
+    mkSharedBar(
+      `🗺️ ${sharedRoutes.length} shared route${sharedRoutes.length>1?'s':''} (temporary)`,
+      '＋ Save to My Routes',
+      () => {
+        sharedRoutes.forEach(rt => customRoutes.push({points:rt.points,colour:rt.colour||'#e74c3c',note:rt.note||'Shared route',comment:'',opacity:0.88}));
+        saveCustom(); renderRoutes(); window._routeRenderHook?.();
+        showToast(`✅ ${sharedRoutes.length} route${sharedRoutes.length>1?'s':''} saved!`);
+      }
+    );
   }
 
-  // Load shared icons (temporary — floating bar to save)
   if (window._permalinkIcons?.length) {
     const sharedIcons = window._permalinkIcons;
     window._permalinkIcons = null;
-    // Render as temporary markers
     const tempIconLayer = L.layerGroup().addTo(map);
     sharedIcons.forEach(cm => {
       const icon = makeCustMarkerIcon(cm.icon||'📍', cm.colour||'#e74c3c');
-      const m = L.marker([cm.lat,cm.lng], {icon, interactive:true});
-      if (cm.note||cm.comment) m.bindPopup(`<div style="font-family:Noto,sans-serif;min-width:120px;"><strong>${cm.note||''}</strong>${cm.comment?`<div style="font-size:0.82em;color:#5a4a2a;margin-top:0.3em;">${cm.comment}</div>`:''}</div>`);
-      m.addTo(tempIconLayer);
+      const mk2 = L.marker([cm.lat,cm.lng], {icon, interactive:true});
+      const hasInfo = cm.note || cm.comment;
+      if (hasInfo) mk2.bindPopup(`<div style="font-family:Noto,sans-serif;min-width:130px;font-size:1em;"><div style="font-weight:700;font-size:1em;color:#2a1e0e;margin-bottom:0.3em;">${cm.note||''}</div>${cm.comment?`<div style="font-size:0.9em;color:#5a4a2a;line-height:1.4;">${cm.comment}</div>`:''}</div>`);
+      mk2.addTo(tempIconLayer);
     });
-    const iconBar=document.createElement('div');
-    iconBar.style.cssText='position:fixed;bottom:'+(window._permalinkRoutes?.length?4.2:1.2)+'em;left:50%;transform:translateX(-50%);z-index:1999;display:flex;align-items:center;gap:0.6em;background:rgba(28,18,8,0.88);backdrop-filter:blur(4px);padding:0.5em 0.9em 0.5em 0.7em;border-radius:30px;box-shadow:0 4px 18px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);font-family:Noto,sans-serif;';
-    const ilabel=document.createElement('span'); ilabel.textContent=`${sharedIcons.length} shared icon${sharedIcons.length>1?'s':''} (temporary)`;
-    ilabel.style.cssText='color:rgba(255,255,255,0.75);font-size:0.8em;white-space:nowrap;';
-    const isaveBtn=document.createElement('button'); isaveBtn.textContent='＋ Save to My Icons';
-    isaveBtn.style.cssText='background:linear-gradient(135deg,#785a37,#9e7a50);border:none;color:#f5e8d0;font-family:Noto,sans-serif;font-size:0.8em;font-weight:700;padding:0.35em 0.8em;border-radius:20px;cursor:pointer;white-space:nowrap;';
-    isaveBtn.addEventListener('click',()=>{
-      sharedIcons.forEach(cm=>customMarkers.push({lat:cm.lat,lng:cm.lng,icon:cm.icon||'📍',colour:cm.colour||'#e74c3c',note:cm.note||'',comment:cm.comment||''}));
-      saveCustom(); renderCustomMarkers(); window._refreshMyIcons?.(); iconBar.remove();
-      showToast(`✅ ${sharedIcons.length} icon${sharedIcons.length>1?'s':''} saved to My Icons!`);
-    });
-    const idismiss=document.createElement('button'); idismiss.textContent='✕';
-    idismiss.style.cssText='background:none;border:none;color:rgba(255,255,255,0.4);font-size:0.9em;cursor:pointer;padding:0 0.2em;';
-    idismiss.addEventListener('click',()=>iconBar.remove());
-    iconBar.append(ilabel,isaveBtn,idismiss);
-    document.body.appendChild(iconBar);
+    mkSharedBar(
+      `📌 ${sharedIcons.length} shared icon${sharedIcons.length>1?'s':''} (temporary)`,
+      '＋ Save to My Icons',
+      () => {
+        sharedIcons.forEach(cm => customMarkers.push({lat:cm.lat,lng:cm.lng,icon:cm.icon||'📍',colour:cm.colour||'#e74c3c',note:cm.note||'',comment:cm.comment||''}));
+        saveCustom(); renderCustomMarkers(); window._refreshMyIcons?.();
+        showToast(`✅ ${sharedIcons.length} icon${sharedIcons.length>1?'s':''} saved!`);
+      }
+    );
   }
   loadRegions().then(() => refreshRegionVisibility());
   renderCustomMarkers();
@@ -1765,7 +1765,7 @@ function buildRoutesPanel(panel) {
       const commentArea=mk('div',{style:'display:none;margin-top:0.25em;'});
       const commentTa=mk('textarea'); Object.assign(commentTa,{rows:2,value:rt.comment||'',placeholder:'Add a comment…'});
       commentTa.style.cssText='width:100%;padding:0.25em 0.4em;border:1px solid #a09880;border-radius:4px;font-size:0.78em;color:#3a2e1e;background:rgb(225,220,208);outline:none;resize:vertical;box-sizing:border-box;font-family:Noto,sans-serif;';
-      commentTa.addEventListener('change',()=>{ rt.comment=commentTa.value; saveCustom(); updateCommentToggle(); });
+      commentTa.addEventListener('input',()=>{ rt.comment=commentTa.value; saveCustom(); updateCommentToggle(); });
       commentArea.appendChild(commentTa);
       function updateCommentToggle() {
         const has = rt.comment && rt.comment.trim();
@@ -1911,7 +1911,7 @@ function buildCustomPanel(panel) {
 
       // Editable note/name
       const nameInp = mk('input'); Object.assign(nameInp,{type:'text',value:cm.note||'',placeholder:'Add a name…',style:'flex:1;padding:0.2em 0.4em;border:1px solid #a09880;border-radius:3px;font-size:0.79em;background:transparent;color:#3a2e1e;outline:none;min-width:0;cursor:text;'});
-      nameInp.addEventListener('change',()=>{ cm.note=nameInp.value.trim(); saveCustom(); refreshMyIcons(); });
+      nameInp.addEventListener('input',()=>{ cm.note=nameInp.value.trim(); saveCustom(); });
 
       // Up/down sort
       const upBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#555;font-size:0.8em;padding:0.1em;line-height:1;'}); upBtn.textContent='↑';
@@ -1934,7 +1934,7 @@ function buildCustomPanel(panel) {
       const cmtArea=mk('div',{style:'display:none;margin-top:0.25em;'});
       const cmtTa=mk('textarea'); Object.assign(cmtTa,{rows:2,value:cm.comment||'',placeholder:'Add a comment…'});
       cmtTa.style.cssText='width:100%;padding:0.25em 0.4em;border:1px solid #a09880;border-radius:4px;font-size:0.78em;color:#3a2e1e;background:rgb(225,220,208);outline:none;resize:vertical;box-sizing:border-box;font-family:Noto,sans-serif;';
-      cmtTa.addEventListener('change',()=>{ cm.comment=cmtTa.value; saveCustom(); updateCmtToggle(); });
+      cmtTa.addEventListener('input',()=>{ cm.comment=cmtTa.value; saveCustom(); updateCmtToggle(); });
       cmtArea.appendChild(cmtTa);
       function updateCmtToggle() {
         const has=cm.comment&&cm.comment.trim();

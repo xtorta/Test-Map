@@ -375,25 +375,31 @@ function renderCustomMarkers() {
   });
 }
 function buildCustPopup(cm, i) {
-  const div = document.createElement('div');
-  div.style.cssText='font-family:Noto,sans-serif;min-width:170px;';
+  const div=document.createElement('div'); div.style.cssText='font-family:Noto,sans-serif;min-width:170px;';
 
   const nameLabel=document.createElement('div'); nameLabel.style.cssText='font-size:0.78em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; nameLabel.textContent='Name';
-  const nameEl=document.createElement('input'); nameEl.type='text'; nameEl.value=cm.note||''; nameEl.readOnly=true;
-  nameEl.style.cssText='width:100%;padding:0.3em 0.5em;border:1px solid #c0b090;border-radius:4px;font-size:0.95em;font-weight:600;color:#3a2e1e;background:rgb(225,218,205);outline:none;box-sizing:border-box;margin-bottom:0.5em;cursor:default;';
+  const nameEl=document.createElement('input'); nameEl.type='text'; nameEl.value=cm.note||''; nameEl.placeholder='Icon name…';
+  nameEl.style.cssText='width:100%;padding:0.3em 0.5em;border:1px solid #a09880;border-radius:4px;font-size:0.95em;font-weight:600;color:#3a2e1e;background:rgb(235,228,215);outline:none;box-sizing:border-box;margin-bottom:0.5em;';
   cm._popNameEl = nameEl;
+  nameEl.addEventListener('input',()=>{
+    cm.note = nameEl.value;
+    saveCustom();
+    if (cm._sbNameEl) cm._sbNameEl.value = cm.note;
+  });
 
   const commentLabel=document.createElement('div'); commentLabel.style.cssText='font-size:0.78em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; commentLabel.textContent='Comment';
-  const commentEl=document.createElement('textarea'); commentEl.rows=3; commentEl.value=cm.comment||''; commentEl.readOnly=true;
-  commentEl.style.cssText='width:100%;padding:0.3em 0.5em;border:1px solid #c0b090;border-radius:4px;font-size:0.9em;line-height:1.4;color:#3a2e1e;background:rgb(225,218,205);outline:none;resize:none;box-sizing:border-box;margin-bottom:0.15em;font-family:Noto,sans-serif;cursor:default;';
+  const commentEl=document.createElement('textarea'); commentEl.rows=3; commentEl.value=cm.comment||''; commentEl.placeholder='Add a comment…';
+  commentEl.style.cssText='width:100%;padding:0.3em 0.5em;border:1px solid #a09880;border-radius:4px;font-size:0.9em;line-height:1.4;color:#3a2e1e;background:rgb(235,228,215);outline:none;resize:vertical;box-sizing:border-box;margin-bottom:0.5em;font-family:Noto,sans-serif;';
   cm._popCommentEl = commentEl;
+  commentEl.addEventListener('input',()=>{
+    cm.comment = commentEl.value;
+    saveCustom();
+    if (cm._sbCommentEl) { cm._sbCommentEl.value = cm.comment; cm._sbCommentEl.dispatchEvent(new Event('_sync')); }
+  });
 
-  const editHint=document.createElement('div'); editHint.style.cssText='font-size:0.7em;color:#9a8a70;margin-bottom:0.5em;'; editHint.textContent='Edit name & comment in the Icons panel →';
-
-  const delBtn = document.createElement('button');
-  delBtn.className='cust-popup-del'; delBtn.textContent='🗑 Delete Marker';
-  delBtn.addEventListener('click', () => { customMarkers.splice(i,1); saveCustom(); renderCustomMarkers(); window._refreshMyIcons?.(); map.closePopup(); });
-  div.append(nameLabel, nameEl, commentLabel, commentEl, editHint, delBtn);
+  const delBtn=document.createElement('button'); delBtn.className='cust-popup-del'; delBtn.textContent='🗑 Delete Marker';
+  delBtn.addEventListener('click',()=>{ customMarkers.splice(i,1); saveCustom(); renderCustomMarkers(); window._refreshMyIcons?.(); map.closePopup(); });
+  div.append(nameLabel, nameEl, commentLabel, commentEl, delBtn);
   return div;
 }
 
@@ -485,20 +491,28 @@ function buildRoutePopup(route, ri) {
   const div=document.createElement('div'); div.style.cssText='font-family:Noto,sans-serif;min-width:170px;';
 
   const nameLabel=document.createElement('div'); nameLabel.style.cssText='font-size:0.78em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; nameLabel.textContent='Route Name';
-  const nameEl=document.createElement('input'); nameEl.type='text'; nameEl.value=route.note||`Route ${ri+1}`; nameEl.readOnly=true;
-  nameEl.style.cssText='width:100%;padding:0.3em 0.5em;border:1px solid #c0b090;border-radius:4px;font-size:0.95em;font-weight:600;color:#3a2e1e;background:rgb(225,218,205);outline:none;box-sizing:border-box;margin-bottom:0.5em;cursor:default;';
+  const nameEl=document.createElement('input'); nameEl.type='text'; nameEl.value=route.note||`Route ${ri+1}`; nameEl.placeholder='Route name…';
+  nameEl.style.cssText='width:100%;padding:0.3em 0.5em;border:1px solid #a09880;border-radius:4px;font-size:0.95em;font-weight:600;color:#3a2e1e;background:rgb(235,228,215);outline:none;box-sizing:border-box;margin-bottom:0.5em;';
   route._popNameEl = nameEl;
+  nameEl.addEventListener('input',()=>{
+    route.note = nameEl.value.trim()||`Route ${ri+1}`;
+    saveCustom();
+    if (route._sbNameEl) route._sbNameEl.value = route.note;
+  });
 
   const commentLabel=document.createElement('div'); commentLabel.style.cssText='font-size:0.78em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; commentLabel.textContent='Comment';
-  const commentEl=document.createElement('textarea'); commentEl.rows=3; commentEl.value=route.comment||''; commentEl.readOnly=true;
-  commentEl.style.cssText='width:100%;padding:0.3em 0.5em;border:1px solid #c0b090;border-radius:4px;font-size:0.9em;line-height:1.4;color:#3a2e1e;background:rgb(225,218,205);outline:none;resize:none;box-sizing:border-box;margin-bottom:0.15em;font-family:Noto,sans-serif;cursor:default;';
+  const commentEl=document.createElement('textarea'); commentEl.rows=3; commentEl.value=route.comment||''; commentEl.placeholder='Add a comment…';
+  commentEl.style.cssText='width:100%;padding:0.3em 0.5em;border:1px solid #a09880;border-radius:4px;font-size:0.9em;line-height:1.4;color:#3a2e1e;background:rgb(235,228,215);outline:none;resize:vertical;box-sizing:border-box;margin-bottom:0.5em;font-family:Noto,sans-serif;';
   route._popCommentEl = commentEl;
-
-  const editHint=document.createElement('div'); editHint.style.cssText='font-size:0.7em;color:#9a8a70;margin-bottom:0.5em;'; editHint.textContent='Edit name & comment in the Routes panel →';
+  commentEl.addEventListener('input',()=>{
+    route.comment = commentEl.value;
+    saveCustom();
+    if (route._sbCommentEl) { route._sbCommentEl.value = route.comment; route._sbCommentEl.dispatchEvent(new Event('_sync')); }
+  });
 
   const delBtn=document.createElement('button'); delBtn.className='cust-popup-del'; delBtn.textContent='🗑 Delete Route';
   delBtn.addEventListener('click',()=>{ customRoutes.splice(ri,1); saveCustom(); renderRoutes(); window._routeRenderHook?.(); map.closePopup(); });
-  div.append(nameLabel, nameEl, commentLabel, commentEl, editHint, delBtn);
+  div.append(nameLabel, nameEl, commentLabel, commentEl, delBtn);
   return div;
 }
 function updateRoutePreview() {

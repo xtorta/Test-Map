@@ -552,6 +552,65 @@ function finishRoute() {
   if (routePreviewLayer) { map.removeLayer(routePreviewLayer); routePreviewLayer=null; }
 }
 
+// ─── Binary icon encoding (compact share format) ─────────────────────────────
+// Magic byte 0xA1 distinguishes new binary format from old JSON (which starts with '[' = 0x5B)
+// Backwards compatible: old JSON links still decoded via TextDecoder+JSON.parse fallback
+function _encodeIconsBin(icons) {
+  const enc = new TextEncoder();
+  const bytes = [0xA1, Math.min(icons.length, 255)];
+  for (const ic of icons) {
+    // lat/lng: signed int16, precision /4 (~0.25 map unit)
+    const ax=Math.round(ic.lat*4), ay=Math.round(ic.lng*4);
+    bytes.push((ax>>8)&0xFF,ax&0xFF,(ay>>8)&0xFF,ay&0xFF);
+    // icon: UTF-8 length-prefixed
+    const iconB=enc.encode(ic.icon||'📍'); bytes.push(iconB.length,...iconB);
+    // ringColour: 0=none, 1-N=palette index, 255+3bytes=custom RGB
+    const ci=CUSTOM_COLOURS.indexOf(ic.ringColour||'');
+    if (!ic.ringColour) { bytes.push(0); }
+    else if (ci>=0) { bytes.push(ci+1); }
+    else { const c=(ic.ringColour).replace('#',''); bytes.push(255,parseInt(c.slice(0,2),16),parseInt(c.slice(2,4),16),parseInt(c.slice(4,6),16)); }
+    // ringThick * 10 as byte (covers 0.1–25.5px)
+    bytes.push(Math.round((ic.ringThick||3)*10)&0xFF);
+    // ringStyle: 0=solid,1=dashed,2=dotted
+    bytes.push(['solid','dashed','dotted'].indexOf(ic.ringStyle||'solid'));
+    // note: length-prefixed UTF-8 (1-byte len, max 255 chars)
+    const noteB=enc.encode((ic.note||'').slice(0,255)); bytes.push(noteB.length,...noteB);
+    // comment: 2-byte length-prefixed UTF-8
+    const cmtB=enc.encode(ic.comment||''); bytes.push((cmtB.length>>8)&0xFF,cmtB.length&0xFF,...cmtB);
+    // flags: bit0=hidden
+    bytes.push(ic.hidden?1:0);
+  }
+  const bin=String.fromCharCode(...bytes);
+  return btoa(bin).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+}
+function _decodeIconsBin(code) {
+  const bin=atob(code.replace(/-/g,'+').replace(/_/g,'/'));
+  const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
+  // Detect format by magic byte
+  if (bytes[0]===0xA1) {
+    // New binary format
+    const dec=new TextDecoder(); const count=bytes[1]; let i=2; const icons=[];
+    for(let n=0;n<count&&i<bytes.length;n++){
+      const ax=(bytes[i]<<8)|bytes[i+1]; const lat=(ax>32767?ax-65536:ax)/4; i+=2;
+      const ay=(bytes[i]<<8)|bytes[i+1]; const lng=(ay>32767?ay-65536:ay)/4; i+=2;
+      const iconLen=bytes[i++]; const icon=dec.decode(bytes.slice(i,i+iconLen)); i+=iconLen;
+      const ci=bytes[i++]; let ringColour=null;
+      if(ci===255){ringColour='#'+[bytes[i],bytes[i+1],bytes[i+2]].map(v=>v.toString(16).padStart(2,'0')).join('');i+=3;}
+      else if(ci>0&&ci<=CUSTOM_COLOURS.length) ringColour=CUSTOM_COLOURS[ci-1];
+      const ringThick=bytes[i++]/10;
+      const ringStyle=['solid','dashed','dotted'][bytes[i++]]||'solid';
+      const noteLen=bytes[i++]; const note=dec.decode(bytes.slice(i,i+noteLen)); i+=noteLen;
+      const cmtLen=(bytes[i]<<8)|bytes[i+1]; i+=2; const comment=dec.decode(bytes.slice(i,i+cmtLen)); i+=cmtLen;
+      const hidden=(bytes[i++]&1)===1;
+      icons.push({lat,lng,icon,ringColour,ringThick,ringStyle,note,comment,hidden});
+    }
+    return icons;
+  } else {
+    // Old JSON format (backwards compatible)
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+}
+
 // ─── Permalink: read URL hash on load ────────────────────────────────────────
 (function readPermalink() {
   const hash = window.location.hash.replace('#','');
@@ -569,10 +628,8 @@ function finishRoute() {
     // m[5] = shared icons
     if (m[5]) {
       try {
-        const bin = atob(m[5].replace(/-/g,'+').replace(/_/g,'/'));
-        const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
-        const icons = JSON.parse(new TextDecoder().decode(bytes));
-        if (Array.isArray(icons)) window._permalinkIcons = icons;
+        const icons = _decodeIconsBin(m[5]);
+        if (Array.isArray(icons) && icons.length) window._permalinkIcons = icons;
       } catch(e) { console.warn('icon decode error:', e); }
     }
     // m[6] = route code(s) separated by ~
@@ -737,13 +794,7 @@ function openShareModal() {
     // Selected icons
     const selIcons=customMarkers.filter((_,i)=>iconChecks[i]?.checked);
     if (cbIco.checked && selIcons.length) {
-      try {
-        const json = JSON.stringify(selIcons.map(({lat,lng,icon,ringColour,ringThick,ringStyle,note,comment})=>({lat,lng,icon,ringColour:ringColour||null,ringThick:ringThick||3,ringStyle:ringStyle||'solid',note,comment})));
-        // TextEncoder handles emoji and all Unicode correctly
-        const bytes = new TextEncoder().encode(json);
-        let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b));
-        hash += `&i=${btoa(bin).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_')}`;
-      } catch(e) { console.warn('icon encode error:', e); }
+      try { hash += `&i=${_encodeIconsBin(selIcons)}`; } catch(e) { console.warn('icon encode error:', e); }
     }
     // Selected route (single)
     if (cbRte.checked && selectedRouteIdx>=0) {

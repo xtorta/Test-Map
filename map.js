@@ -589,93 +589,135 @@ function copyPermalink() { openShareModal(); }
 function openShareModal() {
   document.getElementById('share-modal')?.remove();
   const c=map.getCenter(), z=map.getZoom();
+  const SS='font-family:Noto,sans-serif;';
 
   const overlay=document.createElement('div');
   overlay.id='share-modal';
   overlay.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(20,12,4,0.72);backdrop-filter:blur(3px);padding:1em;';
 
   const modal=document.createElement('div');
-  modal.style.cssText='background:#eddece;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,0.55);width:min(360px,100%);overflow:hidden;border:2px solid #b89060;font-family:Noto,sans-serif;';
+  modal.style.cssText=SS+'background:#eddece;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,0.55);width:min(340px,100%);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;border:2px solid #b89060;';
 
   // Header
   const header=document.createElement('div');
-  header.style.cssText='background:linear-gradient(108deg,#785a37 55%,#9e7a50 55%);padding:0.65em 1em;display:flex;align-items:center;';
-  const htitle=document.createElement('span'); htitle.textContent='Share Link'; htitle.style.cssText='color:#f5e8d0;font-weight:800;font-size:1em;flex:1;';
-  const closeBtn=document.createElement('button'); closeBtn.textContent='✕'; closeBtn.style.cssText='background:rgba(0,0,0,0.3);border:none;color:#f5e8d0;font-size:1em;width:1.8em;height:1.8em;border-radius:5px;cursor:pointer;';
+  header.style.cssText='background:linear-gradient(108deg,#785a37 55%,#9e7a50 55%);padding:0.65em 1em;display:flex;align-items:center;flex-shrink:0;';
+  const htitle=document.createElement('span'); htitle.textContent='Share'; htitle.style.cssText='color:#f5e8d0;font-weight:800;font-size:1.1em;flex:1;';
+  const closeBtn=document.createElement('button'); closeBtn.textContent='✕';
+  closeBtn.style.cssText='background:rgba(0,0,0,0.3);border:none;color:#f5e8d0;font-size:1em;width:1.8em;height:1.8em;border-radius:5px;cursor:pointer;';
   closeBtn.onclick=()=>overlay.remove();
   header.append(htitle,closeBtn);
 
   const body=document.createElement('div');
-  body.style.cssText='padding:0.9em 1em;display:flex;flex-direction:column;gap:0.5em;';
+  body.style.cssText='padding:0.85em 1em;display:flex;flex-direction:column;gap:0.4em;overflow-y:auto;';
 
-  const hint=document.createElement('div'); hint.textContent='Choose what to include:';
-  hint.style.cssText='font-size:0.82em;font-weight:700;color:#5a3a1a;margin-bottom:0.2em;';
-  body.appendChild(hint);
-
-  function mkCheck(label, checked, sub='') {
-    const row=document.createElement('label');
-    row.style.cssText='display:flex;align-items:flex-start;gap:0.55em;padding:0.45em 0.6em;background:rgb(225,220,210);border-radius:6px;cursor:pointer;border:1.5px solid transparent;transition:border-color 0.12s;';
-    const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=checked; cb.style.cssText='margin-top:0.15em;flex-shrink:0;accent-color:#785a37;width:15px;height:15px;cursor:pointer;';
-    const txt=document.createElement('div');
-    const main=document.createElement('div'); main.style.cssText='font-size:0.85em;font-weight:700;color:#3a2e1e;'; main.textContent=label;
-    txt.appendChild(main);
-    if (sub) { const s=document.createElement('div'); s.style.cssText='font-size:0.73em;color:#7a6050;margin-top:0.05em;'; s.textContent=sub; txt.appendChild(s); }
-    row.append(cb,txt);
-    row.addEventListener('mouseenter',()=>row.style.borderColor='#9e7a50');
-    row.addEventListener('mouseleave',()=>row.style.borderColor='transparent');
-    return {row,cb};
+  // Section helper
+  function mkSection(emoji, title, sub, checked, disabled) {
+    const wrap=document.createElement('div');
+    wrap.style.cssText='border-radius:7px;overflow:hidden;border:2px solid transparent;transition:border-color 0.12s;';
+    const header=document.createElement('label');
+    header.style.cssText='display:flex;align-items:center;gap:0.6em;padding:0.5em 0.7em;background:rgb(218,212,200);cursor:'+(disabled?'default':'pointer')+';';
+    const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=!!checked; cb.disabled=!!disabled;
+    cb.style.cssText='width:16px;height:16px;flex-shrink:0;accent-color:#785a37;cursor:inherit;';
+    const lbl=document.createElement('div'); lbl.style.cssText='flex:1;';
+    const top=document.createElement('div'); top.style.cssText='font-size:0.95em;font-weight:700;color:#2a1e0e;'; top.textContent=`${emoji} ${title}`;
+    const bot=document.createElement('div'); bot.style.cssText='font-size:0.78em;color:#7a6050;margin-top:0.05em;'; bot.textContent=sub;
+    lbl.append(top,bot);
+    header.append(cb,lbl);
+    if (!disabled) header.addEventListener('mouseenter',()=>wrap.style.borderColor='#9e7a50');
+    header.addEventListener('mouseleave',()=>wrap.style.borderColor='transparent');
+    // Sub-panel slot
+    const subPanel=document.createElement('div');
+    subPanel.style.cssText='background:rgb(230,225,213);display:none;flex-direction:column;gap:0.25em;padding:0.5em 0.7em;border-top:1px solid rgba(0,0,0,0.08);';
+    wrap.append(header,subPanel);
+    return {wrap,cb,subPanel};
   }
 
-  const {row:rLoc,   cb:cbLoc}    = mkCheck('📍 Map Location & Zoom','true', `Currently at ${c.lat.toFixed(0)}, ${c.lng.toFixed(0)} zoom ${z.toFixed(1)}`);
-  const {row:rFilt,  cb:cbFilt}   = mkCheck('🔍 Filter List',        true,  'Your current layer visibility');
-  const {row:rIcons, cb:cbIcons}  = mkCheck('📌 Custom Icons',       false, `${customMarkers.length} placed icon${customMarkers.length!==1?'s':''}`);
-  const {row:rRoutes,cb:cbRoutes} = mkCheck('🗺️ Custom Routes',      false, customRoutes.length?`${customRoutes.length} route${customRoutes.length!==1?'s':''} — pick below`:'No routes yet');
-  cbLoc.checked=true; cbLoc.disabled=true; // location always included
+  const {wrap:wLoc, cb:cbLoc}   = mkSection('📍','Map Location & Zoom',`${c.lat.toFixed(0)}, ${c.lng.toFixed(0)} · zoom ${z.toFixed(1)}`, true, true);
+  const {wrap:wFilt,cb:cbFilt}  = mkSection('🔍','Filter List','Your current layer visibility', true, false);
+  const {wrap:wIco, cb:cbIco, subPanel:spIco}  = mkSection('📌','Custom Icons', customMarkers.length?`${customMarkers.length} icon${customMarkers.length!==1?'s':''} — pick below`:'No icons placed', false, !customMarkers.length);
+  const {wrap:wRte, cb:cbRte, subPanel:spRte}  = mkSection('🗺️','Custom Route', customRoutes.length?'Select one route below':'No routes yet', false, !customRoutes.length);
 
-  body.append(rLoc, rFilt, rIcons, rRoutes);
+  body.append(wLoc,wFilt,wIco,wRte);
 
-  // Route picker (shown when routes checked)
-  const routePicker=document.createElement('div');
-  routePicker.style.cssText='display:none;flex-direction:column;gap:0.3em;margin-left:0.5em;';
-  const rpHint=document.createElement('div'); rpHint.textContent='Select route(s) to include:';
-  rpHint.style.cssText='font-size:0.75em;font-weight:700;color:#7a5a30;';
-  routePicker.appendChild(rpHint);
-  const routeChecks=customRoutes.map((rt,i)=>{
-    const {row,cb}=mkCheck((rt.colour?`●  `:'')+(rt.note||`Route ${i+1}`), false, `${rt.points.length} waypoints`);
-    const dot=document.createElement('span'); dot.style.cssText=`color:${rt.colour||'#e74c3c'};margin-right:0.1em;font-size:1.1em;`;
-    dot.textContent='●'; row.querySelector('label,div')?.prepend(dot);
-    routePicker.appendChild(row);
-    return cb;
-  });
-  body.appendChild(routePicker);
-  cbRoutes.addEventListener('change',()=>{ routePicker.style.display=cbRoutes.checked&&customRoutes.length?'flex':'none'; });
-  if (!customRoutes.length) cbRoutes.disabled=true;
+  // Icon picker
+  const iconChecks=[];
+  if (customMarkers.length) {
+    const iHint=document.createElement('div'); iHint.textContent='Select icons to include:';
+    iHint.style.cssText='font-size:0.8em;font-weight:700;color:#5a3a1a;margin-bottom:0.1em;';
+    spIco.appendChild(iHint);
+    customMarkers.forEach((cm,i)=>{
+      const row=document.createElement('label');
+      row.style.cssText='display:flex;align-items:center;gap:0.5em;padding:0.3em 0.4em;border-radius:5px;cursor:pointer;background:rgb(220,215,203);';
+      const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=false;
+      cb.style.cssText='width:14px;height:14px;accent-color:#785a37;flex-shrink:0;';
+      const ico=document.createElement('span'); ico.textContent=cm.icon||'📍';
+      ico.style.cssText=`font-size:1.1em;color:${cm.colour||'#e74c3c'};flex-shrink:0;`;
+      const name=document.createElement('span'); name.textContent=cm.note||`Icon ${i+1}`;
+      name.style.cssText='font-size:0.88em;font-weight:600;color:#2a1e0e;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      row.append(cb,ico,name); spIco.appendChild(row);
+      iconChecks.push(cb);
+    });
+    cbIco.addEventListener('change',()=>{ spIco.style.display=cbIco.checked?'flex':'none'; });
+  }
+
+  // Route picker — radio buttons, single selection
+  let selectedRouteIdx=-1;
+  const routeRadios=[];
+  if (customRoutes.length) {
+    const rHint=document.createElement('div'); rHint.textContent='Select one route:';
+    rHint.style.cssText='font-size:0.8em;font-weight:700;color:#5a3a1a;margin-bottom:0.1em;';
+    spRte.appendChild(rHint);
+    customRoutes.forEach((rt,i)=>{
+      const row=document.createElement('label');
+      row.style.cssText='display:flex;align-items:center;gap:0.5em;padding:0.3em 0.4em;border-radius:5px;cursor:pointer;background:rgb(220,215,203);';
+      const rb=document.createElement('input'); rb.type='radio'; rb.name='share-route'; rb.value=i;
+      rb.style.cssText='width:14px;height:14px;accent-color:#785a37;flex-shrink:0;';
+      const dot=document.createElement('span'); dot.textContent='●';
+      dot.style.cssText=`color:${rt.colour||'#e74c3c'};font-size:1em;flex-shrink:0;`;
+      const name=document.createElement('span'); name.textContent=rt.note||`Route ${i+1}`;
+      name.style.cssText='font-size:0.88em;font-weight:600;color:#2a1e0e;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      const pts=document.createElement('span'); pts.textContent=`${rt.points.length}pt`;
+      pts.style.cssText='font-size:0.73em;color:#7a6050;flex-shrink:0;';
+      rb.addEventListener('change',()=>{ if(rb.checked) selectedRouteIdx=i; });
+      row.append(rb,dot,name,pts); spRte.appendChild(row);
+      routeRadios.push(rb);
+    });
+    cbRte.addEventListener('change',()=>{ spRte.style.display=cbRte.checked?'flex':'none'; if(!cbRte.checked){selectedRouteIdx=-1;routeRadios.forEach(r=>r.checked=false);} });
+  }
 
   // Copy button
   const copyBtn=document.createElement('button');
-  copyBtn.style.cssText='margin-top:0.4em;width:100%;padding:0.6em;border-radius:6px;border:none;background:linear-gradient(135deg,#785a37,#9e7a50);color:#f5e8d0;font-family:Noto,sans-serif;font-size:0.9em;font-weight:800;cursor:pointer;';
+  copyBtn.style.cssText=SS+'margin-top:0.3em;width:100%;padding:0.65em;border-radius:6px;border:none;background:linear-gradient(135deg,#785a37,#9e7a50);color:#f5e8d0;font-size:1em;font-weight:800;cursor:pointer;';
   copyBtn.textContent='📋 Copy Link';
   copyBtn.addEventListener('click',()=>{
-    const parts=[];
-    // Always include location
     let hash=`#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)}`;
-    // Filter
     if (cbFilt.checked) hash+=`,${_buildFilterCode()}`;
-    // Icons (encoded as JSON in a separate param)
-    if (cbIcons.checked && customMarkers.length) {
-      const iconData=btoa(JSON.stringify(customMarkers.map(({lat,lng,icon,colour,note,comment})=>({lat,lng,icon,colour,note,comment})))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-      hash+=`&i=${iconData}`;
+    // Selected icons
+    const selIcons=customMarkers.filter((_,i)=>iconChecks[i]?.checked);
+    if (cbIco.checked && selIcons.length) {
+      try {
+        const d=btoa(JSON.stringify(selIcons.map(({lat,lng,icon,colour,note,comment})=>({lat,lng,icon,colour,note,comment})))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+        hash+=`&i=${d}`;
+      } catch(e) {}
     }
-    // Selected routes
-    const selectedRoutes=customRoutes.filter((_,i)=>routeChecks[i]?.checked);
-    if (cbRoutes.checked && selectedRoutes.length===1) {
-      hash+=`&r=${encodeRouteCode(selectedRoutes[0])}`;
-    } else if (cbRoutes.checked && selectedRoutes.length>1) {
-      // Multiple routes: encode all, join with ~
-      hash+=`&r=${selectedRoutes.map(rt=>encodeRouteCode(rt)).join('~')}`;
+    // Selected route (single)
+    if (cbRte.checked && selectedRouteIdx>=0) {
+      try { hash+=`&r=${encodeRouteCode(customRoutes[selectedRouteIdx])}`; } catch(e) {}
     }
     const url=location.origin+location.pathname+hash;
-    navigator.clipboard?.writeText(url).then(()=>{ showToast('📋 Link copied!'); overlay.remove(); }).catch(()=>{ prompt('Copy this link:',url); overlay.remove(); });
+    // Robust clipboard copy with fallback
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(url).then(()=>{ showToast('📋 Link copied!'); overlay.remove(); }).catch(()=>{ prompt('Copy this link:',url); overlay.remove(); });
+      } else {
+        // Fallback for non-secure or unavailable clipboard API
+        const ta=document.createElement('textarea'); ta.value=url; ta.style.cssText='position:fixed;opacity:0;top:0;left:0;';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('📋 Link copied!'); overlay.remove();
+      }
+    } catch(e) { prompt('Copy this link:',url); overlay.remove(); }
   });
   body.appendChild(copyBtn);
 
@@ -1707,7 +1749,7 @@ function buildRoutesPanel(panel) {
       colDot.addEventListener('click',e=>{ e.stopPropagation(); colSwatchRow.style.display=colSwatchRow.style.display==='none'?'flex':'none'; });
 
       const nameInp=mk('input'); Object.assign(nameInp,{type:'text',value:rt.note||`Route ${i+1}`,style:'flex:1;padding:0.2em 0.4em;border:1px solid #a09880;border-radius:3px;font-size:0.79em;background:transparent;color:#3a2e1e;outline:none;font-weight:600;cursor:text;min-width:0;'});
-      nameInp.addEventListener('change',()=>{ rt.note=nameInp.value.trim()||`Route ${i+1}`; saveCustom(); });
+      nameInp.addEventListener('change',()=>{ rt.note=nameInp.value.trim()||`Route ${i+1}`; saveCustom(); refreshRouteList(); });
       const upBtn=mk('button',{style:'background:none;border:none;cursor:pointer;color:#555;font-size:0.8em;padding:0.1em;'}); upBtn.textContent='↑';
       upBtn.addEventListener('click',()=>{ if(i>0){[customRoutes[i-1],customRoutes[i]]=[customRoutes[i],customRoutes[i-1]]; saveCustom(); renderRoutes(); refreshRouteList();} });
       const dnBtn=mk('button',{style:'background:none;border:none;cursor:pointer;color:#555;font-size:0.8em;padding:0.1em;'}); dnBtn.textContent='↓';

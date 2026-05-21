@@ -333,26 +333,20 @@ function rdpSimplify(pts, epsilon=6) {
 }
 
 // Catmull-Rom spline: given keypoints, generate smooth interpolated points
-// tension 0=loose, 0.5=standard, 1=tight
 function catmullRom(pts, tension=0.5, segments=8) {
   if (pts.length < 2) return pts;
-  if (pts.length === 2) return pts;
   const out = [];
-  // Pad ends so first and last points are included
+  // Pad ends so first and last keypoints are included
   const p = [pts[0], ...pts, pts[pts.length-1]];
   for (let i=1; i<p.length-2; i++) {
     const [p0,p1,p2,p3] = [p[i-1],p[i],p[i+1],p[i+2]];
     for (let t=0; t<segments; t++) {
-      const s = t/segments;
-      const s2=s*s, s3=s2*s;
-      const h0 = -tension*s3 + 2*tension*s2 - tension*s;
-      const h1 = (2-tension)*s3 + (tension-3)*s2 + 1;
-      const h2 = (tension-2)*s3 + (3-2*tension)*s2 + tension*s;
-      const h3 = tension*s3 - tension*s2;
-      out.push([
-        h0*p0[0]+h1*p1[0]+h2*p2[0]+h3*p3[0],
-        h0*p0[1]+h1*p1[1]+h2*p2[1]+h3*p3[1]
-      ]);
+      const s=t/segments, s2=s*s, s3=s2*s;
+      const h0=-tension*s3+2*tension*s2-tension*s;
+      const h1=(2-tension)*s3+(tension-3)*s2+1;
+      const h2=(tension-2)*s3+(3-2*tension)*s2+tension*s;
+      const h3=tension*s3-tension*s2;
+      out.push([h0*p0[0]+h1*p1[0]+h2*p2[0]+h3*p3[0], h0*p0[1]+h1*p1[1]+h2*p2[1]+h3*p3[1]]);
     }
   }
   out.push(pts[pts.length-1]);
@@ -426,9 +420,10 @@ function drawRouteOnLayer(points, colour, opacity, layer) {
 
   // Directional arrows along smoothed path
   const total = smooth.length;
-  const interval = Math.max(8, Math.floor(total * 0.18));
-  for (let i = Math.floor(interval/2); i < total - 2; i += interval) {
-    const a = smooth[i], b = smooth[Math.min(i+5, total-1)];
+  // Place arrows every ~15% of path length, minimum 1 arrow if path long enough
+  const interval = Math.max(6, Math.floor(total * 0.15));
+  for (let i = Math.floor(interval/2); i < total - 1; i += interval) {
+    const a = smooth[i], b = smooth[Math.min(i+3, total-1)];
     const dX = b[1]-a[1], dY = b[0]-a[0];
     const angle = Math.atan2(dX, dY) * 180 / Math.PI;
     L.marker([a[0],a[1]], { interactive:false, icon: L.divIcon({

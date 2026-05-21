@@ -897,24 +897,19 @@ function initMap(data) {
   updateCounts();
   updateMultiFactionIcons();
   applyPermalinkFilters(layers); // override filters if shared link has filter state
-  // Auto-import route from shared link
-  let routeImported = false;
+  // Render temporary route from shared link (not saved to My Routes)
   if (window._permalinkRoute) {
     const rt = window._permalinkRoute;
     window._permalinkRoute = null;
-    const incoming = encodeRouteCode(rt);
-    const alreadyHave = customRoutes.some(r => encodeRouteCode(r) === incoming);
-    if (!alreadyHave) {
-      customRoutes.push({ points: rt.points, colour: rt.colour||'#e74c3c', note: rt.note||'Shared route', opacity: 0.88 });
-      saveCustom();
-      routeImported = true;
-    }
+    const tempLayer = L.layerGroup().addTo(map);
+    L.polyline(rt.points.map(p=>[p[0],p[1]]), {
+      color: rt.colour||'#e74c3c', weight:4, opacity:0.85, smoothFactor:1.5
+    }).addTo(tempLayer);
+    setTimeout(() => showToast('🗺️ Shared route shown — not saved to My Routes'), 600);
   }
   loadRegions().then(() => refreshRegionVisibility());
   renderCustomMarkers();
   renderRoutes();
-  window._routeRenderHook?.();
-  if (routeImported) setTimeout(() => showToast('🗺️ Route loaded into My Routes'), 600);
   // Fit full map now that sidebar is rendered, unless a permalink set the view
   if (!window._permalinkApplied) {
     setTimeout(() => { map.invalidateSize(); map.fitBounds(bounds, {animate:false}); refreshRegionVisibility(); }, 150);
@@ -985,7 +980,12 @@ function buildSidebar(layers) {
   shareBtn.addEventListener('click', copyPermalink);
   const shareRouteBtn=mkToolBtn('sb-share-route-btn',`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="12" cy="13" r="2"/><line x1="6" y1="9" x2="10" y2="12"/><line x1="10" y1="4" x2="6" y2="7"/><polyline points="9,0 12,3 9,6" fill="none"/></svg>`,'Share Route');
   shareRouteBtn.addEventListener('click', openShareRouteModal);
-  iconTools.appendChild(searchToolBtn); iconTools.appendChild(completedRow); iconTools.appendChild(shareBtn); iconTools.appendChild(shareRouteBtn);
+  // Put the two share buttons side-by-side in a row
+  const shareRow = mk('div', {style:'display:flex;flex-direction:row;border-bottom:1px solid rgba(0,0,0,0.07);'});
+  shareBtn.style.cssText += 'border-bottom:none;border-right:1px solid rgba(0,0,0,0.07);flex:1;';
+  shareRouteBtn.style.cssText += 'border-bottom:none;flex:1;';
+  shareRow.appendChild(shareBtn); shareRow.appendChild(shareRouteBtn);
+  iconTools.appendChild(searchToolBtn); iconTools.appendChild(completedRow); iconTools.appendChild(shareRow);
   sidebar.appendChild(iconTools);
   // filterPanel follows directly — zone toggles have sep after them
 

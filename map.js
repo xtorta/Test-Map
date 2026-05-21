@@ -639,13 +639,13 @@ function openShareModal() {
   // Icon picker
   const iconChecks=[];
   if (customMarkers.length) {
-    const iHint=document.createElement('div'); iHint.textContent='Select icons to include:';
+    const iHint=document.createElement('div'); iHint.textContent='Uncheck any icons to exclude:';
     iHint.style.cssText='font-size:0.8em;font-weight:700;color:#5a3a1a;margin-bottom:0.1em;';
     spIco.appendChild(iHint);
     customMarkers.forEach((cm,i)=>{
       const row=document.createElement('label');
       row.style.cssText='display:flex;align-items:center;gap:0.5em;padding:0.3em 0.4em;border-radius:5px;cursor:pointer;background:rgb(220,215,203);';
-      const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=false;
+      const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=true; // default all selected
       cb.style.cssText='width:14px;height:14px;accent-color:#785a37;flex-shrink:0;';
       const ico=document.createElement('span'); ico.textContent=cm.icon||'📍';
       ico.style.cssText=`font-size:1.1em;color:${cm.colour||'#e74c3c'};flex-shrink:0;`;
@@ -654,7 +654,10 @@ function openShareModal() {
       row.append(cb,ico,name); spIco.appendChild(row);
       iconChecks.push(cb);
     });
-    cbIco.addEventListener('change',()=>{ spIco.style.display=cbIco.checked?'flex':'none'; });
+    cbIco.addEventListener('change',()=>{
+      spIco.style.display=cbIco.checked?'flex':'none';
+      if (cbIco.checked) iconChecks.forEach(cb=>cb.checked=true); // re-select all when re-enabling
+    });
   }
 
   // Route picker — radio buttons, single selection

@@ -612,17 +612,7 @@ function getDungeonLabel(rawLabel, coords) {
   }
   return rawLabel;
 }
-function dungeonWikiLink(label) {
-  const entry = DUNGEON_WIKI[label]; if (!entry) return '';
-  const slug = entry.w;
-  // Use a data attribute + global handler so onclick works inside Leaflet popup HTML
-  return `<div style="margin-top:0.65em;">
-    <button onclick="openDungeonModal(${JSON.stringify(label)},${JSON.stringify(slug)})"
-      style="width:100%;display:flex;align-items:center;justify-content:center;gap:0.5em;padding:0.55em 1em;border-radius:6px;border:none;cursor:pointer;background:linear-gradient(135deg,#6e1ac7 0%,#9e4aee 100%);color:white;font-size:1.05em;font-weight:700;letter-spacing:0.02em;box-shadow:0 2px 8px rgba(80,20,160,0.3);">
-      📖 Dungeon Info &amp; Loot
-    </button>
-  </div>`;
-}
+// dungeonWikiLink replaced by inline DOM button in initMap + openDungeonModal
 
 
 async function loadData() {
@@ -771,9 +761,23 @@ function initMap(data) {
     }
     // Fix dungeon display names and add wiki link
     const displayLabel = cat==='Dungeons' ? getDungeonLabel(item.label, coords) : item.label;
-    const wikiLink = cat==='Dungeons' ? dungeonWikiLink(displayLabel) : '';
     allMarkers.push({markerId:mid,marker:m,category:effectiveCat,label:displayLabel,coords,subKey:subInfo?.subKey,mainCat:subInfo?.mainCat||mobFaction?'Mobs':null});
-    m.bindPopup(`<div style="text-align:center;font-family:Noto,sans-serif;">${displayLabel}${wikiLink}</div>`);
+    if (cat === 'Dungeons') {
+      const entry = DUNGEON_WIKI[displayLabel];
+      const popupEl = document.createElement('div');
+      popupEl.style.cssText = 'text-align:center;font-family:Noto,sans-serif;';
+      popupEl.innerHTML = `<strong>${displayLabel}</strong>`;
+      if (entry) {
+        const btn = document.createElement('button');
+        btn.style.cssText = 'margin-top:0.65em;width:100%;display:flex;align-items:center;justify-content:center;gap:0.5em;padding:0.55em 1em;border-radius:6px;border:none;cursor:pointer;background:linear-gradient(135deg,#6e1ac7 0%,#9e4aee 100%);color:white;font-size:1em;font-weight:700;letter-spacing:0.02em;box-shadow:0 2px 8px rgba(80,20,160,0.3);';
+        btn.innerHTML = '⚔️🛡️ Dungeon Info &amp; Loot';
+        btn.addEventListener('click', () => openDungeonModal(displayLabel, entry.w));
+        popupEl.appendChild(btn);
+      }
+      m.bindPopup(popupEl);
+    } else {
+      m.bindPopup(`<div style="text-align:center;font-family:Noto,sans-serif;">${displayLabel}</div>`);
+    }
     m.on('contextmenu',e=>{ L.DomEvent.preventDefault(e); L.DomEvent.stopPropagation(e); m.closePopup(); toggleComplete(mid,m,cat); });
     m.on('click',e=>{ if (!isMobile()||routeDrawing) return; toggleComplete(mid,m,cat); });
     m.on('add',()=>setTimeout(()=>applyCompletedStyle(m,completedMarkers.has(mid)),0));

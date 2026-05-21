@@ -1303,44 +1303,76 @@ function toggleGroupVisibility(group, layers, eyeBtn) {
   if (group.hasMobSub) updateMultiFactionIcons();
 }
 
-// ─── Route share codes ────────────────────────────────────────────────────────
+// ─── Route share codes — compact binary base64url ─────────────────────────────
+// Format: 3 bytes colour | 2 bytes point count | 4 bytes first point (signed /4)
+// Then per delta: 1 byte if |v|≤62, else 2 bytes. base64url encoded.
+// ~60% shorter than old text-delta format. Old format still decoded (legacy).
+function _packInt(v, out) {
+  if (v >= -62 && v <= 62) { out.push(v < 0 ? 0x80 | (-v) : v); }
+  else { const s=v<0?1:0, a=Math.abs(v); out.push(0xC0|(s<<5)|(a>>8), a&0xFF); }
+}
+function _unpackInt(bytes, i) {
+  const b = bytes[i];
+  if (!(b & 0x40)) return { v: (b & 0x80) ? -(b & 0x3F) : b, len: 1 };
+  const b2 = bytes[i+1], neg=(b>>5)&1, mag=((b&0x1F)<<8)|b2;
+  return { v: neg ? -mag : mag, len: 2 };
+}
 function encodeRouteCode(route) {
-  const c = (route.colour||'#e74c3c').replace('#','');
-  const r3 = Math.round(parseInt(c.slice(0,2),16)/17).toString(16);
-  const g3 = Math.round(parseInt(c.slice(2,4),16)/17).toString(16);
-  const b3 = Math.round(parseInt(c.slice(4,6),16)/17).toString(16);
-  const colCode = r3+g3+b3;
-  // Delta encode: store first point then differences, rounded to nearest 2 units
   const pts = route.points;
-  const first = [Math.round(pts[0][0]/2), Math.round(pts[0][1]/2)];
-  const deltas = [first[0]+','+first[1]];
-  for (let i=1;i<pts.length;i++) {
-    const da = Math.round(pts[i][0]/2) - Math.round(pts[i-1][0]/2);
-    const db = Math.round(pts[i][1]/2) - Math.round(pts[i-1][1]/2);
-    deltas.push(da+','+db);
+  const c = (route.colour||'#e74c3c').replace('#','');
+  const bytes = [
+    parseInt(c.slice(0,2),16), parseInt(c.slice(2,4),16), parseInt(c.slice(4,6),16),
+    (pts.length>>8)&0xFF, pts.length&0xFF,
+  ];
+  const ax=Math.round(pts[0][0]/4), ay=Math.round(pts[0][1]/4);
+  bytes.push((ax>>8)&0xFF, ax&0xFF, (ay>>8)&0xFF, ay&0xFF);
+  for (let i=1; i<pts.length; i++) {
+    _packInt(Math.round(pts[i][0]/4)-Math.round(pts[i-1][0]/4), bytes);
+    _packInt(Math.round(pts[i][1]/4)-Math.round(pts[i-1][1]/4), bytes);
   }
-  const raw = colCode+'|'+deltas.join(';');
-  return btoa(raw).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  // encode bytes to base64url
+  const bin = String.fromCharCode(...bytes);
+  return btoa(bin).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
 }
 function decodeRouteCode(code) {
+  if (!code) return null;
   try {
-    const padded = code.replace(/-/g,'+').replace(/_/g,'/');
-    const raw = atob(padded + '=='.slice(0,(4-padded.length%4)%4));
-    const pipe = raw.indexOf('|');
-    const colCode = raw.slice(0,pipe), ptsStr = raw.slice(pipe+1);
-    const r=parseInt(colCode[0],16)*17, g=parseInt(colCode[1],16)*17, b=parseInt(colCode[2],16)*17;
-    const colour = '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
-    const deltas = ptsStr.split(';').map(s=>s.split(',').map(Number));
-    if (!deltas.length) return null;
-    const points = [[deltas[0][0]*2, deltas[0][1]*2]];
-    for (let i=1;i<deltas.length;i++) {
-      const prev = [Math.round(points[i-1][0]/2), Math.round(points[i-1][1]/2)];
-      points.push([(prev[0]+deltas[i][0])*2, (prev[1]+deltas[i][1])*2]);
+    const padded = code.replace(/-/g,'+').replace(/_/g,'/') + '=='.slice(0,(4-code.replace(/-/g,'+').replace(/_/g,'/').length%4)%4);
+    const raw = atob(padded);
+    const bytes = Uint8Array.from(raw, c=>c.charCodeAt(0));
+    // Legacy format: bytes[3] would be point count high byte — but legacy stored text
+    // Detect legacy: if raw contains '|' it's the old text-delta format
+    if (raw.includes('|')) {
+      const pipe = raw.indexOf('|');
+      const colCode = raw.slice(0,pipe), ptsStr = raw.slice(pipe+1);
+      const r=parseInt(colCode[0],16)*17, g=parseInt(colCode[1],16)*17, b=parseInt(colCode[2],16)*17;
+      const colour = '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+      const deltas = ptsStr.split(';').map(s=>s.split(',').map(Number));
+      if (!deltas.length) return null;
+      const points = [[deltas[0][0]*2, deltas[0][1]*2]];
+      for (let i=1;i<deltas.length;i++) {
+        const prev=[Math.round(points[i-1][0]/2),Math.round(points[i-1][1]/2)];
+        points.push([(prev[0]+deltas[i][0])*2,(prev[1]+deltas[i][1])*2]);
+      }
+      return points.length>=2 ? {colour,points,note:''} : null;
     }
-    if (points.length<2) return null;
-    // Try legacy format (flat coords, no delta) if points look wrong
-    return {colour, points, note:''};
-  } catch { return null; }
+    // New binary format
+    if (bytes.length < 9) return null;
+    const colour = '#'+Array.from(bytes.slice(0,3)).map(v=>v.toString(16).padStart(2,'0')).join('');
+    const count = (bytes[3]<<8)|bytes[4];
+    const ax=(bytes[5]<<8|bytes[6]); const axS=ax>32767?ax-65536:ax;
+    const ay=(bytes[7]<<8|bytes[8]); const ayS=ay>32767?ay-65536:ay;
+    const points = [[axS*4, ayS*4]];
+    let i=9;
+    while (points.length<count && i<bytes.length) {
+      const dx=_unpackInt(bytes,i); i+=dx.len;
+      if (i>=bytes.length) break;
+      const dy=_unpackInt(bytes,i); i+=dy.len;
+      const prev=points[points.length-1];
+      points.push([(Math.round(prev[0]/4)+dx.v)*4,(Math.round(prev[1]/4)+dy.v)*4]);
+    }
+    return points.length>=2 ? {colour,points,note:''} : null;
+  } catch(e) { console.warn('decodeRouteCode:', e); return null; }
 }
 
 // ─── Routes Panel ─────────────────────────────────────────────────────────────

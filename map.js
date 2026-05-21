@@ -536,7 +536,69 @@ const DUNGEON_WIKI = {
   'Crimson Barracks':         { w:'Crimson_Barracks',         a:'Crimson_Barracks' },
   "Chakram's Chapel":         { w:"Chakram's_Chapel",         a:"Chakram's_Chapel" },
 };
-const WIKI_LOOT_PAGE = 'https://farever.wiki/Dungeons_loots:_Armors_%26_Weapons';
+// ─── Dungeon wiki modal ───────────────────────────────────────────────────────
+function openDungeonModal(label, wikiSlug) {
+  document.getElementById('dungeon-modal')?.remove();
+  const wikiUrl = 'https://farever.wiki/' + encodeURIComponent(wikiSlug);
+
+  const overlay = document.createElement('div');
+  overlay.id = 'dungeon-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(20,12,4,0.72);backdrop-filter:blur(3px);padding:1em;';
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:#eddece;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,0.6);width:min(820px,100%);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;border:2px solid #b89060;';
+
+  // Header
+  const header = document.createElement('div');
+  header.style.cssText = 'background:linear-gradient(108deg,#785a37 55%,#9e7a50 55%);padding:0.7em 1em;display:flex;align-items:center;gap:0.6em;flex-shrink:0;';
+  const title = document.createElement('span');
+  title.textContent = label;
+  title.style.cssText = 'color:#f5e8d0;font-weight:800;font-size:1.1em;flex:1;';
+  const openBtn = document.createElement('a');
+  openBtn.href = wikiUrl;
+  openBtn.target = '_blank';
+  openBtn.rel = 'noopener';
+  openBtn.textContent = '↗ Open in Wiki';
+  openBtn.style.cssText = 'color:#f5e8d0;font-size:0.8em;opacity:0.85;text-decoration:none;border:1px solid rgba(245,232,208,0.4);padding:0.2em 0.5em;border-radius:4px;white-space:nowrap;';
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = 'background:rgba(0,0,0,0.3);border:none;color:#f5e8d0;font-size:1.1em;width:2em;height:2em;border-radius:5px;cursor:pointer;flex-shrink:0;';
+  closeBtn.onclick = () => overlay.remove();
+  header.append(title, openBtn, closeBtn);
+
+  // iframe body
+  const body = document.createElement('div');
+  body.style.cssText = 'flex:1;overflow:hidden;position:relative;min-height:200px;';
+
+  const iframe = document.createElement('iframe');
+  iframe.src = wikiUrl;
+  iframe.style.cssText = 'width:100%;height:100%;min-height:500px;border:none;background:#fff;';
+  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
+
+  // Fallback message shown if iframe blocked
+  const fallback = document.createElement('div');
+  fallback.style.cssText = 'display:none;flex-direction:column;align-items:center;justify-content:center;gap:1em;padding:2em;text-align:center;height:100%;';
+  fallback.innerHTML = `<div style="font-size:2em;">📖</div>
+    <div style="font-weight:700;color:#5a3a1a;font-size:1.05em;">${label}</div>
+    <div style="color:#7a5a30;font-size:0.9em;">The wiki couldn't load in the preview.<br>Click below to open it directly.</div>
+    <a href="${wikiUrl}" target="_blank" rel="noopener"
+       style="background:linear-gradient(135deg,#785a37,#9e7a50);color:#f5e8d0;padding:0.6em 1.4em;border-radius:6px;text-decoration:none;font-weight:700;">
+      Open ${label} Wiki Page ↗
+    </a>`;
+
+  iframe.onerror = () => { iframe.style.display='none'; fallback.style.display='flex'; };
+  // Also detect X-Frame-Options block (iframe loads but shows error page)
+  iframe.onload = () => {
+    try { void iframe.contentDocument; } catch(e) { iframe.style.display='none'; fallback.style.display='flex'; }
+  };
+
+  body.append(iframe, fallback);
+  modal.append(header, body);
+  overlay.append(modal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
 function getDungeonLabel(rawLabel, coords) {
   if (DUNGEON_NAME_FIX[rawLabel]) return DUNGEON_NAME_FIX[rawLabel];
   if (rawLabel === 'Dungeon entrance') {
@@ -552,15 +614,14 @@ function getDungeonLabel(rawLabel, coords) {
 }
 function dungeonWikiLink(label) {
   const entry = DUNGEON_WIKI[label]; if (!entry) return '';
-  const weaponUrl = WIKI_LOOT_PAGE + '#Weapons';
-  const armorUrl  = WIKI_LOOT_PAGE + '#' + entry.a;
-  const base = 'display:flex;align-items:center;justify-content:center;gap:0.4em;padding:0.5em 1em;border-radius:5px;text-decoration:none;font-size:1.05em;font-weight:700;color:white;letter-spacing:0.02em;';
-  const wStyle = base + 'background:linear-gradient(135deg,#b0665d 50%,#ce715c 50%);';
-  const aStyle = base + 'background:linear-gradient(135deg,#6e1ac7 50%,#8a35e0 50%);';
-  return '<div style="display:flex;flex-direction:column;gap:0.4em;margin-top:0.65em;">'
-    + '<a href="' + weaponUrl + '" target="_blank" rel="noopener" style="' + wStyle + '">&#9876;&#xFE0F; Weapon Loot</a>'
-    + '<a href="' + armorUrl  + '" target="_blank" rel="noopener" style="' + aStyle + '">&#128737;&#xFE0F; Armor Loot</a>'
-    + '</div>';
+  const slug = entry.w;
+  // Use a data attribute + global handler so onclick works inside Leaflet popup HTML
+  return `<div style="margin-top:0.65em;">
+    <button onclick="openDungeonModal(${JSON.stringify(label)},${JSON.stringify(slug)})"
+      style="width:100%;display:flex;align-items:center;justify-content:center;gap:0.5em;padding:0.55em 1em;border-radius:6px;border:none;cursor:pointer;background:linear-gradient(135deg,#6e1ac7 0%,#9e4aee 100%);color:white;font-size:1.05em;font-weight:700;letter-spacing:0.02em;box-shadow:0 2px 8px rgba(80,20,160,0.3);">
+      📖 Dungeon Info &amp; Loot
+    </button>
+  </div>`;
 }
 
 
@@ -898,7 +959,7 @@ function buildSidebar(layers) {
   const hideBtn=mk('button',{id:'sb-hide-btn',class:'sb-tool-btn',style:'border-bottom:none;border-right:1px solid rgba(0,0,0,0.07);flex:1;'}); hideBtn.setAttribute('data-tip','Hide Completed'); hideBtn.innerHTML=`${SVG.eye}<span class="sb-tool-label">Hide Completed</span>`;
   const resetBtn=mk('button',{id:'sb-reset-btn',class:'sb-tool-btn',style:'border-bottom:none;flex:1;color:#c0392b;'}); resetBtn.setAttribute('data-tip','Reset Completed'); resetBtn.innerHTML=`${SVG.reset}<span class="sb-tool-label">Reset Completed</span>`;
   completedRow.appendChild(hideBtn); completedRow.appendChild(resetBtn);
-  const shareBtn=mkToolBtn('sb-share-btn',`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="12" cy="13" r="2"/><line x1="6" y1="9" x2="10" y2="12"/><line x1="10" y1="4" x2="6" y2="7"/></svg>`,'Share Location & Filter');
+  const shareBtn=mkToolBtn('sb-share-btn',`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="12" cy="13" r="2"/><line x1="6" y1="9" x2="10" y2="12"/><line x1="10" y1="4" x2="6" y2="7"/></svg>`,'Share Location');
   shareBtn.addEventListener('click', copyPermalink);
   iconTools.appendChild(searchToolBtn); iconTools.appendChild(completedRow); iconTools.appendChild(shareBtn);
   sidebar.appendChild(iconTools);

@@ -376,15 +376,24 @@ function renderCustomMarkers() {
 }
 function buildCustPopup(cm, i) {
   const div = document.createElement('div');
-  div.style.cssText='font-family:Noto,sans-serif;min-width:140px;';
-  const noteEl = document.createElement('textarea');
-  noteEl.className='cust-popup-note-area';
-  noteEl.rows=3; noteEl.value=cm.note||''; noteEl.placeholder='Add a note…';
-  noteEl.addEventListener('change', () => { cm.note=noteEl.value; saveCustom(); });
+  div.style.cssText='font-family:Noto,sans-serif;min-width:160px;';
+
+  // Name
+  const nameLabel=document.createElement('div'); nameLabel.style.cssText='font-size:0.72em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; nameLabel.textContent='Icon Name';
+  const nameEl=document.createElement('input'); nameEl.type='text'; nameEl.value=cm.note||''; nameEl.placeholder='Icon name…';
+  nameEl.style.cssText='width:100%;padding:0.25em 0.4em;border:1px solid #a09880;border-radius:4px;font-size:0.85em;font-weight:600;color:#3a2e1e;background:rgb(235,228,215);outline:none;box-sizing:border-box;margin-bottom:0.5em;';
+  nameEl.addEventListener('change', () => { cm.note=nameEl.value; saveCustom(); window._refreshMyIcons?.(); });
+
+  // Comment
+  const commentLabel=document.createElement('div'); commentLabel.style.cssText='font-size:0.72em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; commentLabel.textContent='Comment';
+  const commentEl=document.createElement('textarea'); commentEl.rows=3; commentEl.value=cm.comment||''; commentEl.placeholder='Add a comment or description…';
+  commentEl.style.cssText='width:100%;padding:0.25em 0.4em;border:1px solid #a09880;border-radius:4px;font-size:0.8em;color:#3a2e1e;background:rgb(235,228,215);outline:none;resize:vertical;box-sizing:border-box;margin-bottom:0.5em;';
+  commentEl.addEventListener('change', () => { cm.comment=commentEl.value; saveCustom(); window._refreshMyIcons?.(); });
+
   const delBtn = document.createElement('button');
   delBtn.className='cust-popup-del'; delBtn.textContent='🗑 Delete Marker';
   delBtn.addEventListener('click', () => { customMarkers.splice(i,1); saveCustom(); renderCustomMarkers(); window._refreshMyIcons?.(); map.closePopup(); });
-  div.appendChild(noteEl); div.appendChild(delBtn);
+  div.append(nameLabel, nameEl, commentLabel, commentEl, delBtn);
   return div;
 }
 
@@ -473,13 +482,23 @@ function renderRoutes() {
   window._routeRenderHook?.();
 }
 function buildRoutePopup(route, ri) {
-  const div=document.createElement('div'); div.style.cssText='font-family:Noto,sans-serif;min-width:140px;';
-  const label=document.createElement('div'); label.style.cssText='font-size:0.82em;font-weight:700;color:#3a2e1e;margin-bottom:0.4em;'; label.textContent=`Route (${route.points.length} waypoints)`;
-  const noteEl=document.createElement('textarea'); noteEl.className='cust-popup-note-area'; noteEl.rows=3; noteEl.value=route.note||''; noteEl.placeholder='Add a note…';
-  noteEl.addEventListener('change',()=>{route.note=noteEl.value;saveCustom();});
+  const div=document.createElement('div'); div.style.cssText='font-family:Noto,sans-serif;min-width:160px;';
+
+  // Name / rename
+  const nameLabel=document.createElement('div'); nameLabel.style.cssText='font-size:0.72em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; nameLabel.textContent='Route Name';
+  const nameEl=document.createElement('input'); nameEl.type='text'; nameEl.value=route.note||`Route ${ri+1}`; nameEl.placeholder='Route name…';
+  nameEl.style.cssText='width:100%;padding:0.25em 0.4em;border:1px solid #a09880;border-radius:4px;font-size:0.85em;font-weight:600;color:#3a2e1e;background:rgb(235,228,215);outline:none;box-sizing:border-box;margin-bottom:0.5em;';
+  nameEl.addEventListener('change',()=>{ route.note=nameEl.value.trim()||`Route ${ri+1}`; saveCustom(); window._routeRenderHook?.(); });
+
+  // Comment
+  const commentLabel=document.createElement('div'); commentLabel.style.cssText='font-size:0.72em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; commentLabel.textContent='Comment';
+  const commentEl=document.createElement('textarea'); commentEl.rows=3; commentEl.value=route.comment||''; commentEl.placeholder='Add a comment or description…';
+  commentEl.style.cssText='width:100%;padding:0.25em 0.4em;border:1px solid #a09880;border-radius:4px;font-size:0.8em;color:#3a2e1e;background:rgb(235,228,215);outline:none;resize:vertical;box-sizing:border-box;margin-bottom:0.5em;';
+  commentEl.addEventListener('change',()=>{ route.comment=commentEl.value; saveCustom(); window._routeRenderHook?.(); });
+
   const delBtn=document.createElement('button'); delBtn.className='cust-popup-del'; delBtn.textContent='🗑 Delete Route';
-  delBtn.addEventListener('click',()=>{customRoutes.splice(ri,1);saveCustom();renderRoutes();map.closePopup();});
-  div.appendChild(label); div.appendChild(noteEl); div.appendChild(delBtn);
+  delBtn.addEventListener('click',()=>{ customRoutes.splice(ri,1); saveCustom(); renderRoutes(); window._routeRenderHook?.(); map.closePopup(); });
+  div.append(nameLabel, nameEl, commentLabel, commentEl, delBtn);
   return div;
 }
 function updateRoutePreview() {
@@ -499,34 +518,36 @@ function finishRoute() {
 // ─── Permalink: read URL hash on load ────────────────────────────────────────
 (function readPermalink() {
   const hash = window.location.hash.replace('#','');
-  const m = hash.match(/^@(-?\d+\.?\d*),(-?\d+\.?\d*),([-\d.]+)(?:,([^&]*))?(?:&r=([A-Za-z0-9+/=_-]+))?$/);
+  const m = hash.match(/^@(-?\d+\.?\d*),(-?\d+\.?\d*),([-\d.]+)(?:,([^&]*))?(?:&i=([A-Za-z0-9+/=_-]*))?(?:&r=([A-Za-z0-9+/=_~-]*))?$/);
   if (m) {
     map.setView([parseFloat(m[1]), parseFloat(m[2])], parseFloat(m[3]));
     window._permalinkApplied = true;
-    // m[4] = base64-encoded filter state if present
+    // m[4] = filter code
     if (m[4]) {
       try {
         const filterStr = atob(m[4].replace(/-/g,'+').replace(/_/g,'/'));
         window._permalinkFilters = filterStr ? new Set(filterStr.split(',')) : null;
       } catch(e) {}
     }
-    // m[5] = route code — decode and queue for import after map loads
+    // m[5] = shared icons
     if (m[5]) {
       try {
-        const rt = decodeRouteCode(m[5]);
-        if (rt) window._permalinkRoute = rt;
+        const icons = JSON.parse(atob(m[5].replace(/-/g,'+').replace(/_/g,'/')));
+        if (Array.isArray(icons)) window._permalinkIcons = icons;
+      } catch(e) {}
+    }
+    // m[6] = route code(s) separated by ~
+    if (m[6]) {
+      try {
+        const routes = m[6].split('~').map(c=>decodeRouteCode(c.trim())).filter(Boolean);
+        if (routes.length) window._permalinkRoutes = routes;
       } catch(e) {}
     }
     return;
   }
-  // Priority 2: last saved position in localStorage
   try {
     const saved = localStorage.getItem('mapLastPos');
-    if (saved) {
-      const {lat,lng,zoom} = JSON.parse(saved);
-      map.setView([lat,lng], zoom);
-      window._permalinkApplied = true;
-    }
+    if (saved) { const {lat,lng,zoom}=JSON.parse(saved); map.setView([lat,lng],zoom); window._permalinkApplied=true; }
   } catch(e) {}
 })();
 
@@ -534,7 +555,7 @@ function finishRoute() {
 // Skipped for route-share links — those should never touch the viewer's filters
 function applyPermalinkFilters(layers) {
   if (!window._permalinkFilters) return;
-  if (window._permalinkRoute) return; // route-share link — leave filters alone
+  if (window._permalinkRoutes) return; // route-share — leave filters alone
   const active = window._permalinkFilters;
   document.querySelectorAll('#sb-cat-list input[type="checkbox"][data-layer]').forEach(cb => {
     const n = cb.dataset.layer;
@@ -564,10 +585,104 @@ function _buildFilterCode() {
 function _copyUrl(url, toast) {
   navigator.clipboard?.writeText(url).then(() => showToast(toast)).catch(() => prompt('Copy this link:', url));
 }
-function copyPermalink() {
-  const c = map.getCenter(), z = map.getZoom();
-  const hash = `#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)},${_buildFilterCode()}`;
-  _copyUrl(location.origin + location.pathname + hash, '📋 Location & filter copied!');
+function copyPermalink() { openShareModal(); }
+function openShareModal() {
+  document.getElementById('share-modal')?.remove();
+  const c=map.getCenter(), z=map.getZoom();
+
+  const overlay=document.createElement('div');
+  overlay.id='share-modal';
+  overlay.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(20,12,4,0.72);backdrop-filter:blur(3px);padding:1em;';
+
+  const modal=document.createElement('div');
+  modal.style.cssText='background:#eddece;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,0.55);width:min(360px,100%);overflow:hidden;border:2px solid #b89060;font-family:Noto,sans-serif;';
+
+  // Header
+  const header=document.createElement('div');
+  header.style.cssText='background:linear-gradient(108deg,#785a37 55%,#9e7a50 55%);padding:0.65em 1em;display:flex;align-items:center;';
+  const htitle=document.createElement('span'); htitle.textContent='Share Link'; htitle.style.cssText='color:#f5e8d0;font-weight:800;font-size:1em;flex:1;';
+  const closeBtn=document.createElement('button'); closeBtn.textContent='✕'; closeBtn.style.cssText='background:rgba(0,0,0,0.3);border:none;color:#f5e8d0;font-size:1em;width:1.8em;height:1.8em;border-radius:5px;cursor:pointer;';
+  closeBtn.onclick=()=>overlay.remove();
+  header.append(htitle,closeBtn);
+
+  const body=document.createElement('div');
+  body.style.cssText='padding:0.9em 1em;display:flex;flex-direction:column;gap:0.5em;';
+
+  const hint=document.createElement('div'); hint.textContent='Choose what to include:';
+  hint.style.cssText='font-size:0.82em;font-weight:700;color:#5a3a1a;margin-bottom:0.2em;';
+  body.appendChild(hint);
+
+  function mkCheck(label, checked, sub='') {
+    const row=document.createElement('label');
+    row.style.cssText='display:flex;align-items:flex-start;gap:0.55em;padding:0.45em 0.6em;background:rgb(225,220,210);border-radius:6px;cursor:pointer;border:1.5px solid transparent;transition:border-color 0.12s;';
+    const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=checked; cb.style.cssText='margin-top:0.15em;flex-shrink:0;accent-color:#785a37;width:15px;height:15px;cursor:pointer;';
+    const txt=document.createElement('div');
+    const main=document.createElement('div'); main.style.cssText='font-size:0.85em;font-weight:700;color:#3a2e1e;'; main.textContent=label;
+    txt.appendChild(main);
+    if (sub) { const s=document.createElement('div'); s.style.cssText='font-size:0.73em;color:#7a6050;margin-top:0.05em;'; s.textContent=sub; txt.appendChild(s); }
+    row.append(cb,txt);
+    row.addEventListener('mouseenter',()=>row.style.borderColor='#9e7a50');
+    row.addEventListener('mouseleave',()=>row.style.borderColor='transparent');
+    return {row,cb};
+  }
+
+  const {row:rLoc,   cb:cbLoc}    = mkCheck('📍 Map Location & Zoom','true', `Currently at ${c.lat.toFixed(0)}, ${c.lng.toFixed(0)} zoom ${z.toFixed(1)}`);
+  const {row:rFilt,  cb:cbFilt}   = mkCheck('🔍 Filter List',        true,  'Your current layer visibility');
+  const {row:rIcons, cb:cbIcons}  = mkCheck('📌 Custom Icons',       false, `${customMarkers.length} placed icon${customMarkers.length!==1?'s':''}`);
+  const {row:rRoutes,cb:cbRoutes} = mkCheck('🗺️ Custom Routes',      false, customRoutes.length?`${customRoutes.length} route${customRoutes.length!==1?'s':''} — pick below`:'No routes yet');
+  cbLoc.checked=true; cbLoc.disabled=true; // location always included
+
+  body.append(rLoc, rFilt, rIcons, rRoutes);
+
+  // Route picker (shown when routes checked)
+  const routePicker=document.createElement('div');
+  routePicker.style.cssText='display:none;flex-direction:column;gap:0.3em;margin-left:0.5em;';
+  const rpHint=document.createElement('div'); rpHint.textContent='Select route(s) to include:';
+  rpHint.style.cssText='font-size:0.75em;font-weight:700;color:#7a5a30;';
+  routePicker.appendChild(rpHint);
+  const routeChecks=customRoutes.map((rt,i)=>{
+    const {row,cb}=mkCheck((rt.colour?`●  `:'')+(rt.note||`Route ${i+1}`), false, `${rt.points.length} waypoints`);
+    const dot=document.createElement('span'); dot.style.cssText=`color:${rt.colour||'#e74c3c'};margin-right:0.1em;font-size:1.1em;`;
+    dot.textContent='●'; row.querySelector('label,div')?.prepend(dot);
+    routePicker.appendChild(row);
+    return cb;
+  });
+  body.appendChild(routePicker);
+  cbRoutes.addEventListener('change',()=>{ routePicker.style.display=cbRoutes.checked&&customRoutes.length?'flex':'none'; });
+  if (!customRoutes.length) cbRoutes.disabled=true;
+
+  // Copy button
+  const copyBtn=document.createElement('button');
+  copyBtn.style.cssText='margin-top:0.4em;width:100%;padding:0.6em;border-radius:6px;border:none;background:linear-gradient(135deg,#785a37,#9e7a50);color:#f5e8d0;font-family:Noto,sans-serif;font-size:0.9em;font-weight:800;cursor:pointer;';
+  copyBtn.textContent='📋 Copy Link';
+  copyBtn.addEventListener('click',()=>{
+    const parts=[];
+    // Always include location
+    let hash=`#@${c.lat.toFixed(1)},${c.lng.toFixed(1)},${z.toFixed(1)}`;
+    // Filter
+    if (cbFilt.checked) hash+=`,${_buildFilterCode()}`;
+    // Icons (encoded as JSON in a separate param)
+    if (cbIcons.checked && customMarkers.length) {
+      const iconData=btoa(JSON.stringify(customMarkers.map(({lat,lng,icon,colour,note,comment})=>({lat,lng,icon,colour,note,comment})))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+      hash+=`&i=${iconData}`;
+    }
+    // Selected routes
+    const selectedRoutes=customRoutes.filter((_,i)=>routeChecks[i]?.checked);
+    if (cbRoutes.checked && selectedRoutes.length===1) {
+      hash+=`&r=${encodeRouteCode(selectedRoutes[0])}`;
+    } else if (cbRoutes.checked && selectedRoutes.length>1) {
+      // Multiple routes: encode all, join with ~
+      hash+=`&r=${selectedRoutes.map(rt=>encodeRouteCode(rt)).join('~')}`;
+    }
+    const url=location.origin+location.pathname+hash;
+    navigator.clipboard?.writeText(url).then(()=>{ showToast('📋 Link copied!'); overlay.remove(); }).catch(()=>{ prompt('Copy this link:',url); overlay.remove(); });
+  });
+  body.appendChild(copyBtn);
+
+  modal.append(header,body);
+  overlay.append(modal);
+  overlay.addEventListener('click',e=>{ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
 }
 function openShareRouteModal() {
   if (!customRoutes.length) { showToast('⚠️ No routes to share — draw one first'); return; }
@@ -951,39 +1066,62 @@ function initMap(data) {
   updateCounts();
   updateMultiFactionIcons();
   applyPermalinkFilters(layers); // override filters if shared link has filter state
-  // Render temporary route from shared link (not saved to My Routes)
-  if (window._permalinkRoute) {
-    const rt = window._permalinkRoute;
-    window._permalinkRoute = null;
+  // Render temporary route(s) from shared link
+  if (window._permalinkRoutes?.length) {
+    const sharedRoutes = window._permalinkRoutes;
+    window._permalinkRoutes = null;
     const tempLayer = L.layerGroup().addTo(map);
-    drawRouteOnLayer(rt.points.map(p=>[p[0],p[1]]), rt.colour||'#e74c3c', 0.85, tempLayer);
-    setTimeout(() => showToast('🗺️ Shared route — not saved to My Routes'), 600);
-    // Floating "Save to My Routes" button — only shown for shared route links
-    const saveBar = document.createElement('div');
-    saveBar.id = 'shared-route-bar';
-    saveBar.style.cssText = 'position:fixed;bottom:1.2em;left:50%;transform:translateX(-50%);z-index:2000;display:flex;align-items:center;gap:0.6em;background:rgba(28,18,8,0.88);backdrop-filter:blur(4px);padding:0.5em 0.9em 0.5em 0.7em;border-radius:30px;box-shadow:0 4px 18px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);font-family:Noto,sans-serif;';
-    const dot = document.createElement('div');
-    dot.style.cssText = `width:12px;height:12px;border-radius:50%;background:${rt.colour||'#e74c3c'};flex-shrink:0;box-shadow:0 0 6px ${rt.colour||'#e74c3c'};`;
-    const label = document.createElement('span');
-    label.textContent = 'Shared route (temporary)';
-    label.style.cssText = 'color:rgba(255,255,255,0.75);font-size:0.8em;white-space:nowrap;';
-    const saveBtn = document.createElement('button');
-    saveBtn.textContent = '＋ Save to My Routes';
-    saveBtn.style.cssText = 'background:linear-gradient(135deg,#785a37,#9e7a50);border:none;color:#f5e8d0;font-family:Noto,sans-serif;font-size:0.8em;font-weight:700;padding:0.35em 0.8em;border-radius:20px;cursor:pointer;white-space:nowrap;';
-    saveBtn.addEventListener('click', () => {
-      customRoutes.push({ points: rt.points, colour: rt.colour||'#e74c3c', note: 'Shared route', opacity: 0.88 });
-      saveCustom();
-      renderRoutes();
-      window._routeRenderHook?.();
-      saveBar.remove();
-      showToast('✅ Route saved to My Routes!');
+    sharedRoutes.forEach(rt => drawRouteOnLayer(rt.points.map(p=>[p[0],p[1]]), rt.colour||'#e74c3c', 0.85, tempLayer));
+
+    // Floating save bar
+    const saveBar=document.createElement('div');
+    saveBar.id='shared-route-bar';
+    saveBar.style.cssText='position:fixed;bottom:1.2em;left:50%;transform:translateX(-50%);z-index:2000;display:flex;align-items:center;gap:0.6em;background:rgba(28,18,8,0.88);backdrop-filter:blur(4px);padding:0.5em 0.9em 0.5em 0.7em;border-radius:30px;box-shadow:0 4px 18px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);font-family:Noto,sans-serif;';
+    const label=document.createElement('span'); label.textContent=`${sharedRoutes.length} shared route${sharedRoutes.length>1?'s':''} (temporary)`;
+    label.style.cssText='color:rgba(255,255,255,0.75);font-size:0.8em;white-space:nowrap;';
+    const saveBtn=document.createElement('button'); saveBtn.textContent='＋ Save to My Routes';
+    saveBtn.style.cssText='background:linear-gradient(135deg,#785a37,#9e7a50);border:none;color:#f5e8d0;font-family:Noto,sans-serif;font-size:0.8em;font-weight:700;padding:0.35em 0.8em;border-radius:20px;cursor:pointer;white-space:nowrap;';
+    saveBtn.addEventListener('click',()=>{
+      sharedRoutes.forEach(rt=>customRoutes.push({points:rt.points,colour:rt.colour||'#e74c3c',note:rt.note||'Shared route',opacity:0.88}));
+      saveCustom(); renderRoutes(); window._routeRenderHook?.(); saveBar.remove();
+      showToast(`✅ ${sharedRoutes.length} route${sharedRoutes.length>1?'s':''} saved to My Routes!`);
     });
-    const dismissBtn = document.createElement('button');
-    dismissBtn.textContent = '✕';
-    dismissBtn.style.cssText = 'background:none;border:none;color:rgba(255,255,255,0.4);font-size:0.9em;cursor:pointer;padding:0 0.2em;';
-    dismissBtn.addEventListener('click', () => saveBar.remove());
-    saveBar.append(dot, label, saveBtn, dismissBtn);
+    const dismissBtn=document.createElement('button'); dismissBtn.textContent='✕';
+    dismissBtn.style.cssText='background:none;border:none;color:rgba(255,255,255,0.4);font-size:0.9em;cursor:pointer;padding:0 0.2em;';
+    dismissBtn.addEventListener('click',()=>saveBar.remove());
+    saveBar.append(label,saveBtn,dismissBtn);
     document.body.appendChild(saveBar);
+    setTimeout(()=>showToast(`🗺️ ${sharedRoutes.length} shared route${sharedRoutes.length>1?'s':''} — not saved`),600);
+  }
+
+  // Load shared icons (temporary — floating bar to save)
+  if (window._permalinkIcons?.length) {
+    const sharedIcons = window._permalinkIcons;
+    window._permalinkIcons = null;
+    // Render as temporary markers
+    const tempIconLayer = L.layerGroup().addTo(map);
+    sharedIcons.forEach(cm => {
+      const icon = makeCustMarkerIcon(cm.icon||'📍', cm.colour||'#e74c3c');
+      const m = L.marker([cm.lat,cm.lng], {icon, interactive:true});
+      if (cm.note||cm.comment) m.bindPopup(`<div style="font-family:Noto,sans-serif;min-width:120px;"><strong>${cm.note||''}</strong>${cm.comment?`<div style="font-size:0.82em;color:#5a4a2a;margin-top:0.3em;">${cm.comment}</div>`:''}</div>`);
+      m.addTo(tempIconLayer);
+    });
+    const iconBar=document.createElement('div');
+    iconBar.style.cssText='position:fixed;bottom:'+(window._permalinkRoutes?.length?4.2:1.2)+'em;left:50%;transform:translateX(-50%);z-index:1999;display:flex;align-items:center;gap:0.6em;background:rgba(28,18,8,0.88);backdrop-filter:blur(4px);padding:0.5em 0.9em 0.5em 0.7em;border-radius:30px;box-shadow:0 4px 18px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);font-family:Noto,sans-serif;';
+    const ilabel=document.createElement('span'); ilabel.textContent=`${sharedIcons.length} shared icon${sharedIcons.length>1?'s':''} (temporary)`;
+    ilabel.style.cssText='color:rgba(255,255,255,0.75);font-size:0.8em;white-space:nowrap;';
+    const isaveBtn=document.createElement('button'); isaveBtn.textContent='＋ Save to My Icons';
+    isaveBtn.style.cssText='background:linear-gradient(135deg,#785a37,#9e7a50);border:none;color:#f5e8d0;font-family:Noto,sans-serif;font-size:0.8em;font-weight:700;padding:0.35em 0.8em;border-radius:20px;cursor:pointer;white-space:nowrap;';
+    isaveBtn.addEventListener('click',()=>{
+      sharedIcons.forEach(cm=>customMarkers.push({lat:cm.lat,lng:cm.lng,icon:cm.icon||'📍',colour:cm.colour||'#e74c3c',note:cm.note||'',comment:cm.comment||''}));
+      saveCustom(); renderCustomMarkers(); window._refreshMyIcons?.(); iconBar.remove();
+      showToast(`✅ ${sharedIcons.length} icon${sharedIcons.length>1?'s':''} saved to My Icons!`);
+    });
+    const idismiss=document.createElement('button'); idismiss.textContent='✕';
+    idismiss.style.cssText='background:none;border:none;color:rgba(255,255,255,0.4);font-size:0.9em;cursor:pointer;padding:0 0.2em;';
+    idismiss.addEventListener('click',()=>iconBar.remove());
+    iconBar.append(ilabel,isaveBtn,idismiss);
+    document.body.appendChild(iconBar);
   }
   loadRegions().then(() => refreshRegionVisibility());
   renderCustomMarkers();
@@ -1580,6 +1718,20 @@ function buildRoutesPanel(panel) {
       delBtn.addEventListener('click',()=>{ customRoutes.splice(i,1); saveCustom(); renderRoutes(); refreshRouteList(); });
       topRow.appendChild(visChk); topRow.appendChild(colDot); topRow.appendChild(nameInp); topRow.appendChild(upBtn); topRow.appendChild(dnBtn); topRow.appendChild(flyBtn); topRow.appendChild(delBtn);
 
+      // Expandable comment section
+      const commentToggle=mk('div',{style:'font-size:0.72em;color:#7a6050;cursor:pointer;padding:0.15em 0;user-select:none;display:flex;align-items:center;gap:0.3em;'});
+      const commentArea=mk('div',{style:'display:none;margin-top:0.25em;'});
+      const commentTa=mk('textarea'); Object.assign(commentTa,{rows:2,value:rt.comment||'',placeholder:'Add a comment…'});
+      commentTa.style.cssText='width:100%;padding:0.25em 0.4em;border:1px solid #a09880;border-radius:4px;font-size:0.78em;color:#3a2e1e;background:rgb(225,220,208);outline:none;resize:vertical;box-sizing:border-box;font-family:Noto,sans-serif;';
+      commentTa.addEventListener('change',()=>{ rt.comment=commentTa.value; saveCustom(); updateCommentToggle(); });
+      commentArea.appendChild(commentTa);
+      function updateCommentToggle() {
+        const has = rt.comment && rt.comment.trim();
+        commentToggle.innerHTML = `<span style="opacity:0.6">${commentArea.style.display==='none'?'▶':'▼'}</span> ${has ? '💬 '+rt.comment.trim().slice(0,40)+(rt.comment.trim().length>40?'…':'') : '+ Add comment'}`;
+      }
+      updateCommentToggle();
+      commentToggle.addEventListener('click',()=>{ commentArea.style.display=commentArea.style.display==='none'?'block':'none'; updateCommentToggle(); });
+
       // Share code row
       const code=encodeRouteCode(rt);
       const codeRow=mk('div',{style:'display:flex;align-items:center;gap:0.3em;margin-top:0.3em;'});
@@ -1587,7 +1739,7 @@ function buildRoutesPanel(panel) {
       codeBox.addEventListener('click',()=>{ navigator.clipboard?.writeText(code).then(()=>{ codeBox.style.background='rgb(200,230,200)'; setTimeout(()=>codeBox.style.background='',1000); }); });
       codeRow.appendChild(codeBox);
 
-      row.appendChild(topRow); row.appendChild(colSwatchRow); row.appendChild(codeRow);
+      row.appendChild(topRow); row.appendChild(colSwatchRow); row.appendChild(commentToggle); row.appendChild(commentArea); row.appendChild(codeRow);
       routeList.appendChild(row);
     });
   }
@@ -1734,7 +1886,22 @@ function buildCustomPanel(panel) {
       delBtn.addEventListener('click',()=>{ customMarkers.splice(i,1); saveCustom(); renderCustomMarkers(); refreshMyIcons(); });
 
       topRow.appendChild(iconPrev); topRow.appendChild(nameInp); topRow.appendChild(upBtn); topRow.appendChild(dnBtn); topRow.appendChild(flyBtn); topRow.appendChild(delBtn);
-      row.appendChild(topRow);
+
+      // Expandable comment
+      const cmtToggle=mk('div',{style:'font-size:0.72em;color:#7a6050;cursor:pointer;padding:0.15em 0;user-select:none;display:flex;align-items:center;gap:0.3em;'});
+      const cmtArea=mk('div',{style:'display:none;margin-top:0.25em;'});
+      const cmtTa=mk('textarea'); Object.assign(cmtTa,{rows:2,value:cm.comment||'',placeholder:'Add a comment…'});
+      cmtTa.style.cssText='width:100%;padding:0.25em 0.4em;border:1px solid #a09880;border-radius:4px;font-size:0.78em;color:#3a2e1e;background:rgb(225,220,208);outline:none;resize:vertical;box-sizing:border-box;font-family:Noto,sans-serif;';
+      cmtTa.addEventListener('change',()=>{ cm.comment=cmtTa.value; saveCustom(); updateCmtToggle(); });
+      cmtArea.appendChild(cmtTa);
+      function updateCmtToggle() {
+        const has=cm.comment&&cm.comment.trim();
+        cmtToggle.innerHTML=`<span style="opacity:0.6">${cmtArea.style.display==='none'?'▶':'▼'}</span> ${has?'💬 '+cm.comment.trim().slice(0,40)+(cm.comment.trim().length>40?'…':''):'+ Add comment'}`;
+      }
+      updateCmtToggle();
+      cmtToggle.addEventListener('click',()=>{ cmtArea.style.display=cmtArea.style.display==='none'?'block':'none'; updateCmtToggle(); });
+
+      row.appendChild(topRow); row.appendChild(cmtToggle); row.appendChild(cmtArea);
       myList.appendChild(row);
     });
   }

@@ -542,9 +542,12 @@ function applyPermalinkFilters(layers) {
     if (active.has(n) && !hiddenGroups.has(n) && layers[n]) map.addLayer(layers[n]);
     else if (layers[n]) map.removeLayer(layers[n]);
   });
-  updateLocalStorage();
+  // NOTE: deliberately NOT calling updateLocalStorage() — shared filters are
+  // session-only. The user's own filter prefs stay intact in localStorage.
+  // If they change a filter manually, that will save as normal.
   updateMultiFactionIcons();
   window._permalinkFilters = null;
+  showToast('🔍 Shared filters applied — not saved to your settings');
 }
 
 // Save position continuously

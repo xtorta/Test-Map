@@ -381,20 +381,20 @@ function buildCustPopup(cm, i) {
   const nameLabel=document.createElement('div'); nameLabel.style.cssText='font-size:0.78em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; nameLabel.textContent='Name';
   const nameEl=document.createElement('input'); nameEl.type='text'; nameEl.value=cm.note||''; nameEl.placeholder='Icon name…';
   nameEl.style.cssText='width:100%;padding:0.3em 0.5em;border:1px solid #a09880;border-radius:4px;font-size:0.95em;font-weight:600;color:#3a2e1e;background:rgb(235,228,215);outline:none;box-sizing:border-box;margin-bottom:0.5em;';
+  cm._popNameEl = nameEl;
   nameEl.addEventListener('input', () => {
     cm.note = nameEl.value;
     saveCustom();
-    // Sync to sidebar name input
     if (cm._sbNameEl) cm._sbNameEl.value = cm.note;
   });
 
   const commentLabel=document.createElement('div'); commentLabel.style.cssText='font-size:0.78em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; commentLabel.textContent='Comment';
   const commentEl=document.createElement('textarea'); commentEl.rows=3; commentEl.value=cm.comment||''; commentEl.placeholder='Add a comment…';
   commentEl.style.cssText='width:100%;padding:0.3em 0.5em;border:1px solid #a09880;border-radius:4px;font-size:0.9em;line-height:1.4;color:#3a2e1e;background:rgb(235,228,215);outline:none;resize:vertical;box-sizing:border-box;margin-bottom:0.5em;font-family:Noto,sans-serif;';
+  cm._popCommentEl = commentEl;
   commentEl.addEventListener('input', () => {
     cm.comment = commentEl.value;
     saveCustom();
-    // Sync to sidebar comment textarea and refresh toggle
     if (cm._sbCommentEl) { cm._sbCommentEl.value = cm.comment; cm._sbCommentEl.dispatchEvent(new Event('_sync')); }
   });
 
@@ -495,20 +495,20 @@ function buildRoutePopup(route, ri) {
   const nameLabel=document.createElement('div'); nameLabel.style.cssText='font-size:0.78em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; nameLabel.textContent='Route Name';
   const nameEl=document.createElement('input'); nameEl.type='text'; nameEl.value=route.note||`Route ${ri+1}`; nameEl.placeholder='Route name…';
   nameEl.style.cssText='width:100%;padding:0.3em 0.5em;border:1px solid #a09880;border-radius:4px;font-size:0.95em;font-weight:600;color:#3a2e1e;background:rgb(235,228,215);outline:none;box-sizing:border-box;margin-bottom:0.5em;';
+  route._popNameEl = nameEl;
   nameEl.addEventListener('input',()=>{
     route.note = nameEl.value.trim()||`Route ${ri+1}`;
     saveCustom();
-    // Sync to sidebar name input
     if (route._sbNameEl) route._sbNameEl.value = route.note;
   });
 
   const commentLabel=document.createElement('div'); commentLabel.style.cssText='font-size:0.78em;font-weight:700;color:#7a6a50;margin-bottom:0.15em;text-transform:uppercase;letter-spacing:0.04em;'; commentLabel.textContent='Comment';
   const commentEl=document.createElement('textarea'); commentEl.rows=3; commentEl.value=route.comment||''; commentEl.placeholder='Add a comment…';
   commentEl.style.cssText='width:100%;padding:0.3em 0.5em;border:1px solid #a09880;border-radius:4px;font-size:0.9em;line-height:1.4;color:#3a2e1e;background:rgb(235,228,215);outline:none;resize:vertical;box-sizing:border-box;margin-bottom:0.5em;font-family:Noto,sans-serif;';
+  route._popCommentEl = commentEl;
   commentEl.addEventListener('input',()=>{
     route.comment = commentEl.value;
     saveCustom();
-    // Sync to sidebar comment textarea and update its toggle label
     if (route._sbCommentEl) { route._sbCommentEl.value = route.comment; route._sbCommentEl.dispatchEvent(new Event('_sync')); }
   });
 
@@ -1774,8 +1774,12 @@ function buildRoutesPanel(panel) {
       colDot.addEventListener('click',e=>{ e.stopPropagation(); colSwatchRow.style.display=colSwatchRow.style.display==='none'?'flex':'none'; });
 
       const nameInp=mk('input'); Object.assign(nameInp,{type:'text',value:rt.note||`Route ${i+1}`,style:'flex:1;padding:0.2em 0.4em;border:1px solid #a09880;border-radius:3px;font-size:0.79em;background:transparent;color:#3a2e1e;outline:none;font-weight:600;cursor:text;min-width:0;'});
-      rt._sbNameEl = nameInp; // register so popup can sync to this
-      nameInp.addEventListener('input',()=>{ rt.note=nameInp.value.trim()||`Route ${i+1}`; saveCustom(); });
+      rt._sbNameEl = nameInp;
+      nameInp.addEventListener('input',()=>{
+        rt.note = nameInp.value.trim()||`Route ${i+1}`;
+        saveCustom();
+        if (rt._popNameEl) rt._popNameEl.value = rt.note;
+      });
       const upBtn=mk('button',{style:'background:none;border:none;cursor:pointer;color:#555;font-size:0.8em;padding:0.1em;'}); upBtn.textContent='↑';
       upBtn.addEventListener('click',()=>{ if(i>0){[customRoutes[i-1],customRoutes[i]]=[customRoutes[i],customRoutes[i-1]]; saveCustom(); renderRoutes(); refreshRouteList();} });
       const dnBtn=mk('button',{style:'background:none;border:none;cursor:pointer;color:#555;font-size:0.8em;padding:0.1em;'}); dnBtn.textContent='↓';
@@ -1791,9 +1795,14 @@ function buildRoutesPanel(panel) {
       const commentArea=mk('div',{style:'display:none;margin-top:0.25em;'});
       const commentTa=mk('textarea'); Object.assign(commentTa,{rows:2,value:rt.comment||'',placeholder:'Add a comment…'});
       commentTa.style.cssText='width:100%;padding:0.25em 0.4em;border:1px solid #a09880;border-radius:4px;font-size:0.78em;color:#3a2e1e;background:rgb(225,220,208);outline:none;resize:vertical;box-sizing:border-box;font-family:Noto,sans-serif;';
-      rt._sbCommentEl = commentTa; // register so popup can sync to this
-      commentTa.addEventListener('input',()=>{ rt.comment=commentTa.value; saveCustom(); updateCommentToggle(); });
-      commentTa.addEventListener('_sync',()=>{ updateCommentToggle(); }); // called by popup to refresh toggle label
+      rt._sbCommentEl = commentTa;
+      commentTa.addEventListener('input',()=>{
+        rt.comment = commentTa.value;
+        saveCustom();
+        updateCommentToggle();
+        if (rt._popCommentEl) rt._popCommentEl.value = rt.comment;
+      });
+      commentTa.addEventListener('_sync',()=>{ updateCommentToggle(); });
       commentArea.appendChild(commentTa);
       function updateCommentToggle() {
         const has = rt.comment && rt.comment.trim();
@@ -1940,7 +1949,11 @@ function buildCustomPanel(panel) {
       // Editable note/name
       const nameInp = mk('input'); Object.assign(nameInp,{type:'text',value:cm.note||'',placeholder:'Add a name…',style:'flex:1;padding:0.2em 0.4em;border:1px solid #a09880;border-radius:3px;font-size:0.79em;background:transparent;color:#3a2e1e;outline:none;min-width:0;cursor:text;'});
       cm._sbNameEl = nameInp;
-      nameInp.addEventListener('input',()=>{ cm.note=nameInp.value.trim(); saveCustom(); });
+      nameInp.addEventListener('input',()=>{
+        cm.note = nameInp.value.trim();
+        saveCustom();
+        if (cm._popNameEl) cm._popNameEl.value = cm.note;
+      });
 
       // Up/down sort
       const upBtn = mk('button',{style:'background:none;border:none;cursor:pointer;color:#555;font-size:0.8em;padding:0.1em;line-height:1;'}); upBtn.textContent='↑';
@@ -1963,8 +1976,13 @@ function buildCustomPanel(panel) {
       const cmtArea=mk('div',{style:'display:none;margin-top:0.25em;'});
       const cmtTa=mk('textarea'); Object.assign(cmtTa,{rows:2,value:cm.comment||'',placeholder:'Add a comment…'});
       cmtTa.style.cssText='width:100%;padding:0.25em 0.4em;border:1px solid #a09880;border-radius:4px;font-size:0.78em;color:#3a2e1e;background:rgb(225,220,208);outline:none;resize:vertical;box-sizing:border-box;font-family:Noto,sans-serif;';
-      cmtTa.addEventListener('input',()=>{ cm.comment=cmtTa.value; saveCustom(); updateCmtToggle(); });
-      cmtTa.addEventListener('_sync',()=>{ updateCmtToggle(); }); // called by popup to refresh toggle
+      cmtTa.addEventListener('input',()=>{
+        cm.comment = cmtTa.value;
+        saveCustom();
+        updateCmtToggle();
+        if (cm._popCommentEl) cm._popCommentEl.value = cm.comment;
+      });
+      cmtTa.addEventListener('_sync',()=>{ updateCmtToggle(); });
       cmtArea.appendChild(cmtTa);
       cm._sbCommentEl = cmtTa;
       function updateCmtToggle() {

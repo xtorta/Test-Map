@@ -298,11 +298,13 @@ const CUSTOM_COLOURS = ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#1abc9c','#3498
 let customMarkers = JSON.parse(localStorage.getItem('customMarkers')||'[]');
 let customRoutes  = JSON.parse(localStorage.getItem('customRoutes') ||'[]');
 // Backwards compatibility: ensure all markers/routes have new fields
-customMarkers.forEach(cm => { if (cm.hidden===undefined) cm.hidden=false; if (cm.ringColour===undefined) cm.ringColour=null; if (cm.comment===undefined) cm.comment=''; });
+customMarkers.forEach(cm => { if (cm.hidden===undefined) cm.hidden=false; if (cm.ringColour===undefined) cm.ringColour=null; if (cm.ringThick===undefined) cm.ringThick=3; if (cm.ringStyle===undefined) cm.ringStyle='solid'; if (cm.comment===undefined) cm.comment=''; });
 customRoutes.forEach(rt => { if (rt.hidden===undefined) rt.hidden=false; if (rt.comment===undefined) rt.comment=''; });
 let selectedCustIcon   = localStorage.getItem('custIcon')  || '⚔️';
 let selectedCustColour = localStorage.getItem('custColour')|| '#e74c3c';
 let selectedRingColour = localStorage.getItem('ringColour') || null;
+let selectedRingThick  = parseFloat(localStorage.getItem('ringThick')||'3');
+let selectedRingStyle  = localStorage.getItem('ringStyle') || 'solid';
 // ─── Route drawing state ──────────────────────────────────────────────────────
 let routeDrawing = false;
 let routeDrawActive = false; // mouse is held down drawing
@@ -361,13 +363,32 @@ const custMarkerLayer = L.layerGroup().addTo(map);
 const custRouteLayer  = L.layerGroup().addTo(map);
 
 function saveCustom() {
-  localStorage.setItem('customMarkers', JSON.stringify(customMarkers.map(({lat,lng,icon,colour,ringColour,note,comment})=>({lat,lng,icon,colour,ringColour:ringColour||null,note,comment:comment||''}))));
+  localStorage.setItem('customMarkers', JSON.stringify(customMarkers.map(({lat,lng,icon,ringColour,ringThick,ringStyle,note,comment,hidden})=>({lat,lng,icon,ringColour:ringColour||null,ringThick:ringThick||3,ringStyle:ringStyle||'solid',note,comment:comment||'',hidden:hidden||false}))));
+
   localStorage.setItem('customRoutes',  JSON.stringify(customRoutes.map(({points,colour,note,comment,opacity})=>({points,colour,note:note||'',comment:comment||'',opacity:opacity??0.88}))));
 }
-function makeCustMarkerIcon(icon, colour, ringColour) {
-  const ring = ringColour ? `<svg width="44" height="44" style="position:absolute;top:-6px;left:-6px;pointer-events:none;" viewBox="0 0 44 44"><circle cx="22" cy="22" r="19" fill="none" stroke="${ringColour}" stroke-width="3.5" opacity="0.92"/><circle cx="22" cy="22" r="19" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="1" opacity="0.5"/></svg>` : '';
+function makeCustMarkerIcon(icon, ringColour, ringThick, ringStyle) {
+  let ring = '';
+  if (ringColour) {
+    const t = ringThick || 3;
+    const r = 19;
+    let strokeDash = '';
+    let filter = '';
+    if (ringStyle === 'dashed') strokeDash = `stroke-dasharray="${t*2.5} ${t*1.5}"`;
+    else if (ringStyle === 'dotted') strokeDash = `stroke-dasharray="${t*0.5} ${t*2}"`;
+    else if (ringStyle === 'glow') filter = `filter="url(#glow${i})"`;
+    const glowDef = ringStyle==='glow' ? `<defs><filter id="glow${Math.random().toString(36).slice(2,7)}"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>` : '';
+    const glowId = `glow_${Math.random().toString(36).slice(2,6)}`;
+    const glowDef2 = ringStyle==='glow' ? `<defs><filter id="${glowId}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>` : '';
+    const glowAttr = ringStyle==='glow' ? `filter="url(#${glowId})"` : '';
+    ring = `<svg width="44" height="44" style="position:absolute;top:-6px;left:-6px;pointer-events:none;" viewBox="0 0 44 44">
+      ${glowDef2}
+      <circle cx="22" cy="22" r="${r}" fill="none" stroke="${ringColour}" stroke-width="${t}" ${strokeDash} ${glowAttr} opacity="0.95"/>
+      ${ringStyle!=='glow'?`<circle cx="22" cy="22" r="${r}" fill="none" stroke="rgba(0,0,0,0.25)" stroke-width="1" opacity="0.4"/>`:''}
+    </svg>`;
+  }
   return L.divIcon({
-    html: `<div style="position:relative;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">${ring}<span style="font-size:1.55em;color:${colour};text-shadow:1px 1px 3px rgba(0,0,0,0.7),0 0 6px rgba(0,0,0,0.4);line-height:1;position:relative;z-index:1;cursor:pointer;">${icon}</span></div>`,
+    html: `<div style="position:relative;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">${ring}<span style="font-size:1.55em;text-shadow:1px 1px 3px rgba(0,0,0,0.7),0 0 6px rgba(0,0,0,0.4);line-height:1;position:relative;z-index:1;cursor:pointer;">${icon}</span></div>`,
     className:'', iconAnchor:[16,28], iconSize:[32,32]
   });
 }
@@ -375,7 +396,7 @@ function renderCustomMarkers() {
   custMarkerLayer.clearLayers();
   customMarkers.forEach((cm, i) => {
     if (cm.hidden) return; // skip hidden markers
-    const m = L.marker([cm.lat, cm.lng], { icon:makeCustMarkerIcon(cm.icon||'⚔️', cm.colour||'#e74c3c', cm.ringColour||null), draggable:true });
+    const m = L.marker([cm.lat, cm.lng], { icon:makeCustMarkerIcon(cm.icon||'⚔️', cm.ringColour||null, cm.ringThick||3, cm.ringStyle||'solid'), draggable:true });
     m.bindPopup(buildCustPopup(cm, i), {maxWidth:200});
     m.on('click', () => openCustPopup(m));
     m.on('dragend', () => { const p=m.getLatLng(); cm.lat=p.lat; cm.lng=p.lng; saveCustom(); });
@@ -724,7 +745,7 @@ function openShareModal() {
     const selIcons=customMarkers.filter((_,i)=>iconChecks[i]?.checked);
     if (cbIco.checked && selIcons.length) {
       try {
-        const json = JSON.stringify(selIcons.map(({lat,lng,icon,colour,ringColour,note,comment})=>({lat,lng,icon,colour,ringColour:ringColour||null,note,comment})));
+        const json = JSON.stringify(selIcons.map(({lat,lng,icon,ringColour,ringThick,ringStyle,note,comment})=>({lat,lng,icon,ringColour:ringColour||null,ringThick:ringThick||3,ringStyle:ringStyle||'solid',note,comment})));
         // TextEncoder handles emoji and all Unicode correctly
         const bytes = new TextEncoder().encode(json);
         let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b));
@@ -1120,7 +1141,7 @@ function initMap(data) {
   map.on('click', e => {
     if (routeDrawing) return;
     if (pendingCustPlace) {
-      const cm = {lat:e.latlng.lat, lng:e.latlng.lng, icon:selectedCustIcon, colour:selectedCustColour, ringColour:selectedRingColour||null, note:''};
+      const cm = {lat:e.latlng.lat, lng:e.latlng.lng, icon:selectedCustIcon, ringColour:selectedRingColour||null, ringThick:selectedRingThick, ringStyle:selectedRingStyle, note:'', comment:'', hidden:false};
       customMarkers.push(cm);
       saveCustom();
       renderCustomMarkers();
@@ -1181,7 +1202,7 @@ function initMap(data) {
     window._permalinkIcons = null;
     const tempIconLayer = L.layerGroup().addTo(map);
     sharedIcons.forEach(cm => {
-      const icon = makeCustMarkerIcon(cm.icon||'📍', cm.colour||'#e74c3c', cm.ringColour||null);
+      const icon = makeCustMarkerIcon(cm.icon||'📍', cm.ringColour||null, cm.ringThick||3, cm.ringStyle||'solid');
       const mk2 = L.marker([cm.lat,cm.lng], {icon, interactive:true});
       const hasInfo = cm.note || cm.comment;
       if (hasInfo) mk2.bindPopup(`<div style="font-family:Noto,sans-serif;min-width:130px;font-size:1em;"><div style="font-weight:700;font-size:1em;color:#2a1e0e;margin-bottom:0.3em;">${cm.note||''}</div>${cm.comment?`<div style="font-size:0.9em;color:#5a4a2a;line-height:1.4;">${cm.comment}</div>`:''}</div>`);
@@ -1191,7 +1212,7 @@ function initMap(data) {
       `📌 ${sharedIcons.length} shared icon${sharedIcons.length>1?'s':''} (temporary)`,
       '＋ Save to My Icons',
       () => {
-        sharedIcons.forEach(cm => customMarkers.push({lat:cm.lat,lng:cm.lng,icon:cm.icon||'📍',colour:cm.colour||'#e74c3c',ringColour:cm.ringColour||null,note:cm.note||'',comment:cm.comment||''}));
+        sharedIcons.forEach(cm => customMarkers.push({lat:cm.lat,lng:cm.lng,icon:cm.icon||'📍',ringColour:cm.ringColour||null,ringThick:cm.ringThick||3,ringStyle:cm.ringStyle||'solid',note:cm.note||'',comment:cm.comment||'',hidden:false}));
         saveCustom(); renderCustomMarkers(); window._refreshMyIcons?.();
         showToast(`✅ ${sharedIcons.length} icon${sharedIcons.length>1?'s':''} saved!`);
       }
@@ -1918,53 +1939,77 @@ function buildCustomPanel(panel) {
     iconGrid.appendChild(b);
   });
 
-  // Ring colour picker — collapsible, optional
-  const ringToggleBtn=mk('div',{style:'font-size:0.78em;font-weight:700;color:#7a6050;cursor:pointer;padding:0.2em 0;user-select:none;display:flex;align-items:center;gap:0.3em;border-radius:4px;'});
-  ringToggleBtn.innerHTML=`<span style="opacity:0.6">▶</span> Ring Colour <span style="font-size:0.85em;opacity:0.6;">(optional)</span>`;
-  const ringBody=mk('div',{style:'display:none;'});
-  const ringTitle=mk('div',{class:'cust-section-title'}); ringTitle.style.marginTop='0.2em'; ringTitle.textContent='Ring Colour';
-  const ringRow=mk('div',{class:'color-swatch-row',style:'flex-wrap:wrap;gap:0.3em;'});
-  ringToggleBtn.addEventListener('click',()=>{
-    const open=ringBody.style.display==='block';
-    ringBody.style.display=open?'none':'block';
-    ringToggleBtn.querySelector('span').textContent=open?'▶':'▼';
-  });
-  ringBody.appendChild(ringTitle); ringBody.appendChild(ringRow);
-  let selRingSwatch=null;
-  // "None" option
-  const noneBtn=mk('div',{style:`width:1.4em;height:1.4em;border-radius:50%;background:transparent;border:2px dashed #a09880;cursor:pointer;flex-shrink:0;box-sizing:border-box;position:relative;${!selectedRingColour?'outline:2px solid #785a37;outline-offset:2px;':''}`});
-  noneBtn.title='No ring';
-  noneBtn.addEventListener('click',()=>{
-    selectedRingColour=null; localStorage.removeItem('ringColour');
-    selRingSwatch?.style.removeProperty('outline'); selRingSwatch?.style.removeProperty('outline-offset'); selRingSwatch=null;
-    noneBtn.style.outline='2px solid #785a37'; noneBtn.style.outlineOffset='2px';
-  });
-  ringRow.appendChild(noneBtn);
-  CUSTOM_COLOURS.forEach(col=>{
-    const s=mk('div',{class:'color-swatch'+(col===selectedRingColour?' selected':'')}); s.style.background=col;
-    s.addEventListener('click',()=>{
-      selectedRingColour=col; localStorage.setItem('ringColour',col);
-      selRingSwatch?.classList.remove('selected'); s.classList.add('selected'); selRingSwatch=s;
-      noneBtn.style.removeProperty('outline'); noneBtn.style.removeProperty('outline-offset');
-    });
-    if(col===selectedRingColour) selRingSwatch=s;
-    ringRow.appendChild(s);
-  });
-
   panel.appendChild(statusEl);
   panel.appendChild(iconGrid);
   panel.appendChild(sep());
-  const icoColTitle=mk('div',{class:'cust-section-title'}); icoColTitle.textContent='Icon Colour';
-  const icoColRow=mk('div',{class:'color-swatch-row'});
-  let selColSwatch=null;
-  CUSTOM_COLOURS.forEach(col=>{
-    const s=mk('div',{class:'color-swatch'+(col===selectedCustColour?' selected':'')}); s.style.background=col;
-    s.addEventListener('click',()=>{ selectedCustColour=col; localStorage.setItem('custColour',col); selColSwatch?.classList.remove('selected'); s.classList.add('selected'); selColSwatch=s; });
-    if(col===selectedCustColour) selColSwatch=s;
-    icoColRow.appendChild(s);
+
+  // ── Ring settings (collapsible) ──────────────────────────────────
+  const ringToggleBtn=mk('div',{style:'font-size:0.82em;font-weight:700;color:#5a3a1a;cursor:pointer;padding:0.2em 0.1em;user-select:none;display:flex;align-items:center;gap:0.3em;'});
+  const ringBody=mk('div',{style:'display:none;padding-top:0.3em;display:flex;flex-direction:column;gap:0.4em;'});
+  ringBody.style.display='none';
+
+  function updateRingToggleLabel() {
+    const has = selectedRingColour;
+    ringToggleBtn.innerHTML=`<span style="opacity:0.6">${ringBody.style.display==='none'?'▶':'▼'}</span> ⭕ Ring${has?' — '+selectedRingStyle+', '+selectedRingThick+'px':' (none)'}`;
+  }
+  updateRingToggleLabel();
+  ringToggleBtn.addEventListener('click',()=>{
+    const open=ringBody.style.display==='flex';
+    ringBody.style.display=open?'none':'flex';
+    updateRingToggleLabel();
   });
-  panel.appendChild(icoColTitle); panel.appendChild(icoColRow);
-  panel.appendChild(sep());
+
+  // Colour row
+  const rcLbl=mk('div',{style:'font-size:0.75em;font-weight:700;color:#7a6050;'}); rcLbl.textContent='Ring Colour';
+  const rcRow=mk('div',{style:'display:flex;flex-wrap:wrap;gap:0.3em;align-items:center;'});
+  let selRS=null;
+  // None
+  const rcNone=mk('div',{style:`width:1.3em;height:1.3em;border-radius:50%;border:2.5px dashed #a09880;cursor:pointer;flex-shrink:0;box-sizing:border-box;${!selectedRingColour?'outline:2px solid #785a37;outline-offset:2px;':''}`});
+  rcNone.title='No ring';
+  rcNone.addEventListener('click',()=>{
+    selectedRingColour=null; localStorage.removeItem('ringColour');
+    selRS?.style.removeProperty('outline'); selRS=null;
+    rcNone.style.outline='2px solid #785a37'; rcNone.style.outlineOffset='2px';
+    updateRingToggleLabel();
+  });
+  rcRow.appendChild(rcNone);
+  CUSTOM_COLOURS.forEach(col=>{
+    const s=mk('div',{style:`width:1.3em;height:1.3em;border-radius:50%;background:${col};cursor:pointer;flex-shrink:0;border:2px solid ${col===selectedRingColour?'#1a1a1a':'transparent'};`});
+    s.addEventListener('click',()=>{
+      selectedRingColour=col; localStorage.setItem('ringColour',col);
+      if(selRS) selRS.style.borderColor='transparent'; s.style.borderColor='#1a1a1a'; selRS=s;
+      rcNone.style.removeProperty('outline'); rcNone.style.removeProperty('outline-offset');
+      updateRingToggleLabel();
+    });
+    if(col===selectedRingColour){s.style.borderColor='#1a1a1a';selRS=s;}
+    rcRow.appendChild(s);
+  });
+
+  // Thickness slider
+  const rtLbl=mk('div',{style:'font-size:0.75em;font-weight:700;color:#7a6050;'}); rtLbl.textContent='Thickness';
+  const rtRow=mk('div',{style:'display:flex;align-items:center;gap:0.5em;'});
+  const rtSlider=mk('input'); Object.assign(rtSlider,{type:'range',min:'1',max:'8',step:'0.5',value:String(selectedRingThick),style:'flex:1;accent-color:#785a37;cursor:pointer;'});
+  const rtVal=mk('span',{style:'font-size:0.78em;color:#5a3a1a;width:2em;text-align:right;flex-shrink:0;'}); rtVal.textContent=selectedRingThick+'px';
+  rtSlider.addEventListener('input',()=>{ selectedRingThick=parseFloat(rtSlider.value); localStorage.setItem('ringThick',selectedRingThick); rtVal.textContent=selectedRingThick+'px'; updateRingToggleLabel(); });
+  rtRow.append(rtSlider,rtVal);
+
+  // Style buttons
+  const rsLbl=mk('div',{style:'font-size:0.75em;font-weight:700;color:#7a6050;'}); rsLbl.textContent='Ring Style';
+  const rsRow=mk('div',{style:'display:flex;gap:0.3em;flex-wrap:wrap;'});
+  const RING_STYLES=[['solid','━━━'],['dashed','╌╌╌'],['dotted','┄┄┄'],['glow','✦ Glow']];
+  RING_STYLES.forEach(([val,label])=>{
+    const b=mk('button',{style:`padding:0.2em 0.5em;border-radius:4px;border:1.5px solid ${val===selectedRingStyle?'#785a37':'#b09878'};background:${val===selectedRingStyle?'rgba(120,90,55,0.15)':'transparent'};font-size:0.78em;color:#3a2e1e;cursor:pointer;font-family:monospace;`});
+    b.textContent=label;
+    b.addEventListener('click',()=>{
+      selectedRingStyle=val; localStorage.setItem('ringStyle',val);
+      rsRow.querySelectorAll('button').forEach(x=>{x.style.borderColor='#b09878';x.style.background='transparent';});
+      b.style.borderColor='#785a37'; b.style.background='rgba(120,90,55,0.15)';
+      updateRingToggleLabel();
+    });
+    rsRow.appendChild(b);
+  });
+
+  ringBody.append(rcLbl,rcRow,rtLbl,rtRow,rsLbl,rsRow);
   panel.appendChild(ringToggleBtn); panel.appendChild(ringBody);
   panel.appendChild(sep());
 
@@ -2020,50 +2065,52 @@ function buildCustomPanel(panel) {
 
       topRow.appendChild(visChk); topRow.appendChild(iconPrev); topRow.appendChild(nameInp); topRow.appendChild(upBtn); topRow.appendChild(dnBtn); topRow.appendChild(flyBtn); topRow.appendChild(delBtn);
 
-      // Collapsible colour + ring row
+      // Collapsible ring settings per icon
       const colToggle=mk('div',{style:'font-size:0.72em;color:#7a6050;cursor:pointer;padding:0.15em 0;user-select:none;display:flex;align-items:center;gap:0.3em;'});
-      const colArea=mk('div',{style:'display:none;margin-top:0.25em;'});
-      const colRingRow=mk('div',{style:'display:flex;align-items:center;gap:0.4em;flex-wrap:wrap;'});
+      const colArea=mk('div',{style:'display:none;margin-top:0.25em;padding:0.3em 0.2em;border-top:1px solid rgba(0,0,0,0.07);'});
 
-      // Icon colour swatches
-      const colLbl=mk('span',{style:'font-size:0.7em;font-weight:700;color:#7a6050;white-space:nowrap;'}); colLbl.textContent='Icon:';
-      colRingRow.appendChild(colLbl);
+      // Ring colour row
+      const rcRow2=mk('div',{style:'display:flex;flex-wrap:wrap;gap:0.25em;align-items:center;margin-bottom:0.3em;'});
+      const rcLbl2=mk('span',{style:'font-size:0.7em;font-weight:700;color:#7a6050;width:100%;'}); rcLbl2.textContent='Ring Colour';
+      rcRow2.appendChild(rcLbl2);
+      let selRS2=null;
+      const rNone2=mk('div',{style:`width:1.1em;height:1.1em;border-radius:50%;background:transparent;border:2px dashed #a09880;cursor:pointer;flex-shrink:0;box-sizing:border-box;${!cm.ringColour?'outline:2px solid #785a37;outline-offset:1px;':''}`});
+      rNone2.addEventListener('click',()=>{ cm.ringColour=null; saveCustom(); renderCustomMarkers(); selRS2?.style.removeProperty('outline'); selRS2=null; rNone2.style.outline='2px solid #785a37'; rNone2.style.outlineOffset='1px'; updateColToggle(); });
+      rcRow2.appendChild(rNone2);
       CUSTOM_COLOURS.forEach(col=>{
-        const s=mk('div',{style:`width:1.1em;height:1.1em;border-radius:3px;background:${col};cursor:pointer;border:2px solid ${col===(cm.colour||'#e74c3c')?'#1a1a1a':'transparent'};flex-shrink:0;`});
-        s.addEventListener('click',()=>{ cm.colour=col; saveCustom(); renderCustomMarkers();
-          colRingRow.querySelectorAll('div[data-ico]').forEach(d=>d.style.borderColor='transparent');
-          s.style.borderColor='#1a1a1a';
-        });
-        s.setAttribute('data-ico','1');
-        colRingRow.appendChild(s);
+        const s=mk('div',{style:`width:1.1em;height:1.1em;border-radius:50%;background:${col};cursor:pointer;flex-shrink:0;border:2px solid ${col===(cm.ringColour||'')?'#1a1a1a':'transparent'};`});
+        s.addEventListener('click',()=>{ cm.ringColour=col; saveCustom(); renderCustomMarkers(); if(selRS2) selRS2.style.borderColor='transparent'; s.style.borderColor='#1a1a1a'; selRS2=s; rNone2.style.removeProperty('outline'); rNone2.style.removeProperty('outline-offset'); updateColToggle(); });
+        if(col===(cm.ringColour||'')) selRS2=s;
+        rcRow2.appendChild(s);
       });
-      // Ring colour swatches
-      const ringLbl=mk('span',{style:'font-size:0.7em;font-weight:700;color:#7a6050;white-space:nowrap;margin-left:0.3em;'}); ringLbl.textContent='Ring:';
-      colRingRow.appendChild(ringLbl);
-      const rNone=mk('div',{style:`width:1.1em;height:1.1em;border-radius:50%;background:transparent;border:2px dashed #a09880;cursor:pointer;flex-shrink:0;box-sizing:border-box;${!cm.ringColour?'outline:2px solid #785a37;outline-offset:1px;':''}`});
-      rNone.title='No ring';
-      rNone.addEventListener('click',()=>{ cm.ringColour=null; saveCustom(); renderCustomMarkers();
-        colRingRow.querySelectorAll('div[data-ring]').forEach(d=>d.style.borderColor='transparent');
-        rNone.style.outline='2px solid #785a37'; rNone.style.outlineOffset='1px';
+
+      // Thickness slider per icon
+      const rtRow2=mk('div',{style:'display:flex;align-items:center;gap:0.4em;margin-bottom:0.3em;'});
+      const rtLbl2=mk('span',{style:'font-size:0.7em;font-weight:700;color:#7a6050;white-space:nowrap;'}); rtLbl2.textContent='Thickness';
+      const rtSlider2=mk('input'); Object.assign(rtSlider2,{type:'range',min:'1',max:'8',step:'0.5',value:String(cm.ringThick||3),style:'flex:1;accent-color:#785a37;cursor:pointer;'});
+      const rtVal2=mk('span',{style:'font-size:0.72em;color:#5a3a1a;width:2em;text-align:right;flex-shrink:0;'}); rtVal2.textContent=(cm.ringThick||3)+'px';
+      rtSlider2.addEventListener('input',()=>{ cm.ringThick=parseFloat(rtSlider2.value); rtVal2.textContent=cm.ringThick+'px'; saveCustom(); renderCustomMarkers(); });
+      rtRow2.append(rtLbl2,rtSlider2,rtVal2);
+
+      // Style buttons per icon
+      const rsRow2=mk('div',{style:'display:flex;gap:0.25em;flex-wrap:wrap;'});
+      const rsLbl2=mk('span',{style:'font-size:0.7em;font-weight:700;color:#7a6050;width:100%;margin-bottom:0.1em;'}); rsLbl2.textContent='Style';
+      rsRow2.appendChild(rsLbl2);
+      const RING_STYLES2=[['solid','━━'],['dashed','╌╌'],['dotted','┄┄'],['glow','✦']];
+      RING_STYLES2.forEach(([val,label])=>{
+        const b=mk('button',{style:`padding:0.15em 0.4em;border-radius:3px;border:1.5px solid ${val===(cm.ringStyle||'solid')?'#785a37':'#b09878'};background:${val===(cm.ringStyle||'solid')?'rgba(120,90,55,0.15)':'transparent'};font-size:0.75em;color:#3a2e1e;cursor:pointer;font-family:monospace;`});
+        b.textContent=label; b.title=val;
+        b.addEventListener('click',()=>{ cm.ringStyle=val; saveCustom(); renderCustomMarkers(); rsRow2.querySelectorAll('button').forEach(x=>{x.style.borderColor='#b09878';x.style.background='transparent';}); b.style.borderColor='#785a37'; b.style.background='rgba(120,90,55,0.15)'; });
+        rsRow2.appendChild(b);
       });
-      colRingRow.appendChild(rNone);
-      CUSTOM_COLOURS.forEach(col=>{
-        const s=mk('div',{style:`width:1.1em;height:1.1em;border-radius:50%;background:${col};cursor:pointer;border:2px solid ${col===(cm.ringColour||'')?'#1a1a1a':'transparent'};flex-shrink:0;`});
-        s.setAttribute('data-ring','1');
-        s.addEventListener('click',()=>{ cm.ringColour=col; saveCustom(); renderCustomMarkers();
-          colRingRow.querySelectorAll('div[data-ring]').forEach(d=>d.style.borderColor='transparent');
-          s.style.borderColor='#1a1a1a';
-          rNone.style.removeProperty('outline'); rNone.style.removeProperty('outline-offset');
-        });
-        colRingRow.appendChild(s);
-      });
-      colArea.appendChild(colRingRow);
-      colToggle.innerHTML=`<span style="opacity:0.6">▶</span> 🎨 Colours`;
-      colToggle.addEventListener('click',()=>{
-        const open=colArea.style.display==='block';
-        colArea.style.display=open?'none':'block';
-        colToggle.querySelector('span').textContent=open?'▶':'▼';
-      });
+
+      colArea.append(rcRow2, rtRow2, rsRow2);
+      function updateColToggle() {
+        const col=cm.ringColour;
+        colToggle.innerHTML=`<span style="opacity:0.6">${colArea.style.display==='none'?'▶':'▼'}</span> ⭕ Ring${col?' — '+col.slice(0,7):' (none)'}`;
+      }
+      updateColToggle();
+      colToggle.addEventListener('click',()=>{ colArea.style.display=colArea.style.display==='none'?'block':'none'; updateColToggle(); });
 
       // Expandable comment
       const cmtToggle=mk('div',{style:'font-size:0.72em;color:#7a6050;cursor:pointer;padding:0.15em 0;user-select:none;display:flex;align-items:center;gap:0.3em;'});

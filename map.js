@@ -68,6 +68,7 @@ const FILTER_GROUPS = [
   { key:'collectables',title:'Collectables',      icon:'📦', cats:['Chests','Secret orbs','Orb chests','Recipes','Critters'] },
   { key:'gatherables', title:'Gatherables',       icon:'🌿', cats:['Plants','Ores'], hasSub:true },
   { key:'enemies',     title:'Enemies',           icon:'⚔️', cats:['Minibosses','Sparkling mobs'], hasMobSub:true },
+  { key:'unassigned',  title:'Unassigned',        icon:'❓', cats:['__unassigned__'] },
 ];
 const MOB_FACTIONS = {
   'Bees':     { icon:'./icons/mobs/bee.png' },
@@ -1036,7 +1037,21 @@ function initMap(data) {
       : mobFaction === '__Critters__' ? 'Critters'
       : mobFaction ? mobFaction
       : cat;
-    if (!layers[effectiveCat]) layers[effectiveCat]=L.layerGroup();
+
+    // Check if this cat belongs to any known filter group
+    const knownCats = new Set([
+      ...FILTER_GROUPS.flatMap(g=>g.cats).filter(c=>c!=='__unassigned__'),
+      ...Object.keys(MOB_FACTIONS), 'Critters',
+      // sub-layer keys built from gatherables/enemies
+    ]);
+    // Also accept any cat that already has a layer (built by sub-panels) or is a mob faction
+    const isKnown = knownCats.has(effectiveCat)
+      || FILTER_GROUPS.some(g=>g.cats.includes(effectiveCat))
+      || Object.keys(MOB_FACTIONS).includes(effectiveCat)
+      || effectiveCat === 'Sparkling mobs' || effectiveCat === 'Minibosses';
+    const finalCat = isKnown ? effectiveCat : '__unassigned__';
+
+    if (!layers[finalCat]) layers[finalCat]=L.layerGroup();
     let m;
     if (subInfo && subInfo.iconUrl) {
       const sz=28;
@@ -1059,17 +1074,20 @@ function initMap(data) {
     } else if (cat in stylingDict) {
       m = L.circleMarker(coords,stylingDict[cat]);
     } else {
-      m = L.circleMarker(coords,new cMarker().props);
+      // Unassigned — use a distinct purple circle marker
+      const uStyle = finalCat==='__unassigned__'
+        ? {radius:6,fillColor:'#9b59b6',color:'#6c3483',weight:1.5,fillOpacity:0.8}
+        : new cMarker().props;
+      m = L.circleMarker(coords, uStyle);
     }
     const mid=getMarkerId(item,idx);
-    // Track counts for subtype layers (gatherables, mob factions)
     if (subInfo && categoryRegistry[effectiveCat]) {
       categoryRegistry[effectiveCat].total++;
       categoryRegistry[effectiveCat].markerIds.push(mid);
     }
     // Fix dungeon display names and add wiki link
     const displayLabel = cat==='Dungeons' ? getDungeonLabel(item.label, coords) : item.label;
-    allMarkers.push({markerId:mid,marker:m,category:effectiveCat,label:displayLabel,coords,subKey:subInfo?.subKey,mainCat:subInfo?.mainCat||mobFaction?'Mobs':null});
+    allMarkers.push({markerId:mid,marker:m,category:finalCat,label:displayLabel,coords,subKey:subInfo?.subKey,mainCat:subInfo?.mainCat||mobFaction?'Mobs':null});
     if (cat === 'Dungeons') {
       const entry = DUNGEON_WIKI[displayLabel];
       const popupEl = document.createElement('div');
@@ -1126,7 +1144,7 @@ function initMap(data) {
       // Add directly to map — visibility controlled by updateMultiFactionIcons
       m.addTo(map);
     } else {
-      m.addTo(layers[effectiveCat]);
+      m.addTo(layers[finalCat]);
       extraFactions.forEach(f => { if (layers[f]) m.addTo(layers[f]); });
     }
   });
@@ -1459,6 +1477,10 @@ function buildSidebar(layers) {
       if (categoryRegistry['Mobs']) mobRows.appendChild(buildCatRow('Mobs', layers));
       mobDiv.appendChild(mobRows);
       groupRows.appendChild(mobDiv);
+    } else if (group.key === 'unassigned') {
+      // Only show if there are unassigned items
+      if (!layers['__unassigned__']) return;
+      groupRows.appendChild(buildCatRow('__unassigned__', layers, '❓'));
     } else {
       group.cats.forEach(cat => { if (layers[cat]) groupRows.appendChild(buildCatRow(cat, layers)); });
     }
@@ -2193,14 +2215,15 @@ function buildCustomPanel(panel) {
 // ─── Build category row ───────────────────────────────────────────────────────
 function buildCatRow(name, layers, iconOverride) {
   const colour = COLOURS[name]||'#ffa958';
+  const displayName = name === '__unassigned__' ? 'Unassigned' : name;
   const iconUrl = iconOverride || ICONS[name];
-  const total = categoryRegistry[name]?.total||0;
-  const row = mk('label',{class:'sb-cat-row'}); row.setAttribute('data-tip',name);
+  const total = categoryRegistry[name]?.total || (layers[name] ? layers[name].getLayers().length : 0);
+  const row = mk('label',{class:'sb-cat-row'}); row.setAttribute('data-tip', displayName);
   const indicator = iconUrl
     ? `<img src="${iconUrl}" class="sb-cat-icon" alt="">`
     : `<span class="sb-cat-dot-wrap"><span class="sb-cat-dot" style="background:${colour}"></span></span>`;
   const isCollectable = COMPLETABLE.has(name);
-  row.innerHTML=`<input type="checkbox" data-layer="${name}" class="category" style="display:none"><span class="sb-check-img"></span>${indicator}<span class="sb-cat-name">${name}</span><span class="sb-cat-count" data-cat="${name}">${isCollectable?`0/${total}`:total}</span>`;
+  row.innerHTML=`<input type="checkbox" data-layer="${name}" class="category" style="display:none"><span class="sb-check-img"></span>${indicator}<span class="sb-cat-name">${displayName}</span><span class="sb-cat-count" data-cat="${name}">${isCollectable?`0/${total}`:total}</span>`;
   return row;
 }
 

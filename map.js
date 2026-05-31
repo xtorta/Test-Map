@@ -362,6 +362,20 @@ function catmullRom(pts, tension=0.5, segments=8) {
 const custMarkerLayer = L.layerGroup().addTo(map);
 const custRouteLayer  = L.layerGroup().addTo(map);
 
+// ─── Mob patrol path layers ───────────────────────────────────────────────────
+// One LayerGroup per effectiveCat/faction, drawn under mob markers
+const mobPathLayers = {}; // key → L.layerGroup
+function getMobPathLayer(key) {
+  if (!mobPathLayers[key]) mobPathLayers[key] = L.layerGroup();
+  return mobPathLayers[key];
+}
+function syncMobPathLayer(key) {
+  const pl = mobPathLayers[key]; if (!pl) return;
+  map.hasLayer(pl) ? null : null; // only toggled via showMobPath/hideMobPath
+}
+function showMobPathLayer(key) { const pl = mobPathLayers[key]; if (pl && !map.hasLayer(pl)) pl.addTo(map); }
+function hideMobPathLayer(key) { const pl = mobPathLayers[key]; if (pl) map.removeLayer(pl); }
+
 function saveCustom() {
   localStorage.setItem('customMarkers', JSON.stringify(customMarkers.map(({lat,lng,icon,ringColour,ringThick,ringStyle,note,comment,hidden})=>({lat,lng,icon,ringColour:ringColour||null,ringThick:ringThick||3,ringStyle:ringStyle||'solid',note,comment:comment||'',hidden:hidden||false}))));
 
@@ -1129,7 +1143,55 @@ function initMap(data) {
       m.addTo(layers[effectiveCat]);
       extraFactions.forEach(f => { if (layers[f]) m.addTo(layers[f]); });
     }
+
+    // ── Patrol path ────────────────────────────────────────────────
+    if (item.pathPoints && item.pathPoints.length >= 2) {
+      // Transform pathPoints using the same coordinate system as marker coords
+      const pathLatLngs = item.pathPoints.map(([px, py]) => [s1*(4096-py)+b1, s2*(px+b2)]);
+      const pathColour = COLOURS[effectiveCat] || COLOURS[cat] || '#e74c3c';
+      const pathLayer  = getMobPathLayer(effectiveCat);
+
+      // Draw a semi-transparent patrol line with directional arrows
+      // Points are already dense — draw direct, no Catmull-Rom needed
+      L.polyline(pathLatLngs, {
+        color: pathColour, weight: 2.5, opacity: 0.55, smoothFactor: 1,
+        dashArray: null
+      }).addTo(pathLayer);
+
+      // Directional arrows every ~12% of path
+      const total = pathLatLngs.length;
+      const interval = Math.max(8, Math.floor(total * 0.12));
+      for (let i = Math.floor(interval / 2); i < total - 1; i += interval) {
+        const a = pathLatLngs[i], b = pathLatLngs[Math.min(i + 3, total - 1)];
+        const dX = b[1]-a[1], dY = b[0]-a[0];
+        const angle = Math.atan2(dX, dY) * 180 / Math.PI;
+        L.marker([a[0],a[1]], { interactive:false, icon: L.divIcon({
+          className:'',
+          iconAnchor:[6,8], iconSize:[12,16],
+          html:`<div style="transform:rotate(${angle}deg);transform-origin:50% 50%;opacity:0.75;">
+            <svg width="12" height="16" viewBox="0 0 12 16" fill="none">
+              <line x1="6" y1="15" x2="6" y2="1" stroke="${pathColour}" stroke-width="2" stroke-linecap="round"/>
+              <polyline points="1,7 6,1 11,7" stroke="${pathColour}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg></div>`
+        })}).addTo(pathLayer);
+      }
+    }
   });
+
+  // Sync patrol path layers: show/hide together with their marker layer.
+  // We monkey-patch map.addLayer / map.removeLayer just for known layer keys.
+  const _origAdd = map.addLayer.bind(map);
+  const _origRem = map.removeLayer.bind(map);
+  map.addLayer = function(layer) {
+    _origAdd(layer);
+    const key = Object.keys(layers).find(k => layers[k] === layer);
+    if (key && mobPathLayers[key]) _origAdd(mobPathLayers[key]);
+  };
+  map.removeLayer = function(layer) {
+    _origRem(layer);
+    const key = Object.keys(layers).find(k => layers[k] === layer);
+    if (key && mobPathLayers[key]) _origRem(mobPathLayers[key]);
+  };
 
   // Map mouse/touch events for route drawing and marker placement
   const mapEl = map.getContainer();

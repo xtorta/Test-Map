@@ -1148,8 +1148,11 @@ function initMap(data) {
     if (item.pathPoints && item.pathPoints.length >= 2) {
       // Transform pathPoints using the same coordinate system as marker coords
       const pathLatLngs = item.pathPoints.map(([px, py]) => [s1*(4096-py)+b1, s2*(px+b2)]);
-      const pathColour = COLOURS[effectiveCat] || COLOURS[cat] || '#e74c3c';
-      const pathLayer  = getMobPathLayer(effectiveCat);
+      // Key paths by raw category ('Mobs', 'Sparkling mobs', 'Critters') so the
+      // monkey-patched map.addLayer/removeLayer can find them via layers[key].
+      const pathKey = cat;
+      const pathColour = COLOURS[cat] || '#e74c3c';
+      const pathLayer  = getMobPathLayer(pathKey);
 
       // Draw a semi-transparent patrol line with directional arrows
       // Points are already dense — draw direct, no Catmull-Rom needed
@@ -1179,13 +1182,18 @@ function initMap(data) {
   });
 
   // Sync patrol path layers: show/hide together with their marker layer.
-  // We monkey-patch map.addLayer / map.removeLayer just for known layer keys.
+  // Respects the per-category path visibility toggle stored in localStorage.
   const _origAdd = map.addLayer.bind(map);
   const _origRem = map.removeLayer.bind(map);
+  map._origAdd = _origAdd;
+  map._origRem = _origRem;
   map.addLayer = function(layer) {
     _origAdd(layer);
     const key = Object.keys(layers).find(k => layers[k] === layer);
-    if (key && mobPathLayers[key]) _origAdd(mobPathLayers[key]);
+    if (key && mobPathLayers[key]) {
+      const pathVisible = localStorage.getItem(`mobPathVisible_${key}`) !== '0';
+      if (pathVisible) _origAdd(mobPathLayers[key]);
+    }
   };
   map.removeLayer = function(layer) {
     _origRem(layer);
@@ -2263,6 +2271,31 @@ function buildCatRow(name, layers, iconOverride) {
     : `<span class="sb-cat-dot-wrap"><span class="sb-cat-dot" style="background:${colour}"></span></span>`;
   const isCollectable = COMPLETABLE.has(name);
   row.innerHTML=`<input type="checkbox" data-layer="${name}" class="category" style="display:none"><span class="sb-check-img"></span>${indicator}<span class="sb-cat-name">${name}</span><span class="sb-cat-count" data-cat="${name}">${isCollectable?`0/${total}`:total}</span>`;
+
+  // Patrol path toggle button — only for categories that have path data
+  if (mobPathLayers[name]) {
+    const pathKey = `mobPathVisible_${name}`;
+    const pathVisible = localStorage.getItem(pathKey) !== '0';
+    const pathBtn = mk('button',{class:'sb-path-tog'});
+    pathBtn.title = 'Toggle patrol paths';
+    pathBtn.style.cssText = 'margin-left:0.3em;padding:0 0.28em;border:none;border-radius:3px;cursor:pointer;font-size:0.82em;line-height:1.6;background:transparent;color:inherit;flex-shrink:0;';
+    pathBtn.innerHTML = SVG.route;
+    pathBtn.style.opacity = pathVisible ? '1' : '0.3';
+    pathBtn.classList.toggle('path-tog-on', pathVisible);
+    pathBtn.addEventListener('click', e => {
+      e.preventDefault(); e.stopPropagation();
+      const on = !pathBtn.classList.contains('path-tog-on');
+      pathBtn.classList.toggle('path-tog-on', on);
+      pathBtn.style.opacity = on ? '1' : '0.3';
+      localStorage.setItem(pathKey, on ? '1' : '0');
+      const pl = mobPathLayers[name]; if (!pl) return;
+      const markerOn = layers[name] && map.hasLayer(layers[name]);
+      if (on && markerOn) { if (!map.hasLayer(pl)) pl.addTo(map); }
+      else { if (map.hasLayer(pl)) map.removeLayer(pl); }
+    });
+    row.appendChild(pathBtn);
+  }
+
   return row;
 }
 

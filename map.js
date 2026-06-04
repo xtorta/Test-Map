@@ -70,21 +70,24 @@ const FILTER_GROUPS = [
   { key:'enemies',     title:'Enemies',           icon:'⚔️', cats:['Minibosses','Sparkling mobs'], hasMobSub:true },
 ];
 const MOB_FACTIONS = {
-  'Bees':     { icon:'./icons/mobs/bee.png' },
-  'Boars':    { icon:'./icons/mobs/boar.png' },
-  'Coyotes':  { icon:'./icons/mobs/coyote.png' },
-  'Crabs':    { icon:'./icons/mobs/crab.png' },
-  'Crimson':  { icon:'./icons/mobs/crimson.png' },
-  'Demons':   { icon:'./icons/mobs/demon.png' },
-  'Golems':   { icon:'./icons/mobs/golem.png' },
-  'Sparkles': { icon:'./icons/mobs/sparkle.png' },
-  'Kobolds':  { icon:'./icons/mobs/kobold.png' },
-  'Nepsids':  { icon:'./icons/mobs/nepsid.png' },
-  'Skunks':   { icon:'./icons/mobs/skunk.png' },
-  'Slimes':   { icon:'./icons/mobs/slime.png' },
-  'Spirits':  { icon:'./icons/mobs/spirits.png' },
-  'Sprouts':  { icon:'./icons/mobs/sprout.png' },
-  'Wolves':   { icon:'./icons/mobs/wolf.png' },
+  'Bees':         { icon:'./icons/mobs/bee.png' },
+  'Boars':        { icon:'./icons/mobs/boar.png' },
+  'Coyotes':      { icon:'./icons/mobs/coyote.png' },
+  'Crabs':        { icon:'./icons/mobs/crab.png' },
+  'Crimson':      { icon:'./icons/mobs/crimson.png' },
+  'Demons':       { icon:'./icons/mobs/demon.png' },
+  'Fire Golems':  { icon:'./icons/mobs/golem.png' },
+  'Golems':       { icon:'./icons/mobs/golem.png' },
+  'Kobolds':      { icon:'./icons/mobs/kobold.png' },
+  'Nepsids':      { icon:'./icons/mobs/nepsid.png' },
+  'Skunks':       { icon:'./icons/mobs/skunk.png' },
+  'Slimes':       { icon:'./icons/mobs/slime.png' },
+  'Sparkles':     { icon:'./icons/mobs/sparkle.png' },
+  'Spirits':      { icon:'./icons/mobs/spirits.png' },
+  'Sprouts':      { icon:'./icons/mobs/sprout.png' },
+  'Water Golems': { icon:'./icons/mobs/golem.png' },
+  'Wind Golems':  { icon:'./icons/mobs/golem.png' },
+  'Wolves':       { icon:'./icons/mobs/wolf.png' },
 };
 const ORE_SUBS   = {
   'Copper':    { labels:['Copper Ore Large','Copper Ore Small'], icon:'./icons/gatherables/copper.png?v=3' },
@@ -141,6 +144,8 @@ const MOB_UNIT_FACTION = {
   'Z1_World_Critters_Sheep':'__Critters__',
   // Dummy — skip
   'Dummy':'__skip__',
+  // Companion critters
+  'Companions':'__Critters__',
 };
 const GATHERABLE_SUBS = { Ores: ORE_SUBS, Plants: PLANT_SUBS };
 const SVG = {
@@ -1137,8 +1142,9 @@ function initMap(data) {
       m.setIcon(makeMultiIcon(allFactions));
       m._allFactions = allFactions;
       m._makeMultiIcon = makeMultiIcon;
-      // Add directly to map — visibility controlled by updateMultiFactionIcons
-      m.addTo(map);
+      // Add to primary faction layer + all extra faction layers so toggles work normally
+      m.addTo(layers[effectiveCat]);
+      extraFactions.forEach(f => { if (layers[f]) m.addTo(layers[f]); });
     } else {
       m.addTo(layers[effectiveCat]);
       extraFactions.forEach(f => { if (layers[f]) m.addTo(layers[f]); });

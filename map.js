@@ -70,24 +70,21 @@ const FILTER_GROUPS = [
   { key:'enemies',     title:'Enemies',           icon:'⚔️', cats:['Minibosses','Sparkling mobs'], hasMobSub:true },
 ];
 const MOB_FACTIONS = {
-  'Bees':         { icon:'./icons/mobs/bee.png' },
-  'Boars':        { icon:'./icons/mobs/boar.png' },
-  'Coyotes':      { icon:'./icons/mobs/coyote.png' },
-  'Crabs':        { icon:'./icons/mobs/crab.png' },
-  'Crimson':      { icon:'./icons/mobs/crimson.png' },
-  'Demons':       { icon:'./icons/mobs/demon.png' },
-  'Fire Golems':  { icon:'./icons/mobs/golem.png' },
-  'Golems':       { icon:'./icons/mobs/golem.png' },
-  'Kobolds':      { icon:'./icons/mobs/kobold.png' },
-  'Nepsids':      { icon:'./icons/mobs/nepsid.png' },
-  'Skunks':       { icon:'./icons/mobs/skunk.png' },
-  'Slimes':       { icon:'./icons/mobs/slime.png' },
-  'Sparkles':     { icon:'./icons/mobs/sparkle.png' },
-  'Spirits':      { icon:'./icons/mobs/spirits.png' },
-  'Sprouts':      { icon:'./icons/mobs/sprout.png' },
-  'Water Golems': { icon:'./icons/mobs/golem.png' },
-  'Wind Golems':  { icon:'./icons/mobs/golem.png' },
-  'Wolves':       { icon:'./icons/mobs/wolf.png' },
+  'Bees':     { icon:'./icons/mobs/bee.png' },
+  'Boars':    { icon:'./icons/mobs/boar.png' },
+  'Coyotes':  { icon:'./icons/mobs/coyote.png' },
+  'Crabs':    { icon:'./icons/mobs/crab.png' },
+  'Crimson':  { icon:'./icons/mobs/crimson.png' },
+  'Demons':   { icon:'./icons/mobs/demon.png' },
+  'Golems':   { icon:'./icons/mobs/golem.png' },
+  'Kobolds':  { icon:'./icons/mobs/kobold.png' },
+  'Nepsids':  { icon:'./icons/mobs/nepsid.png' },
+  'Skunks':   { icon:'./icons/mobs/skunk.png' },
+  'Slimes':   { icon:'./icons/mobs/slime.png' },
+  'Sparkles': { icon:'./icons/mobs/sparkle.png' },
+  'Spirits':  { icon:'./icons/mobs/spirits.png' },
+  'Sprouts':  { icon:'./icons/mobs/sprout.png' },
+  'Wolves':   { icon:'./icons/mobs/wolf.png' },
 };
 const ORE_SUBS   = {
   'Copper':    { labels:['Copper Ore Large','Copper Ore Small'], icon:'./icons/gatherables/copper.png?v=3' },
@@ -144,6 +141,10 @@ const MOB_UNIT_FACTION = {
   'Z1_World_Critters_Sheep':'__Critters__',
   // Dummy — skip
   'Dummy':'__skip__',
+  // Wind / Water / Fire Golems in new assets — all are golem-family sparkles
+  'Wind Golems':'Sparkles',
+  'Water Golems':'Sparkles',
+  'Fire Golems':'Sparkles',
   // Companion critters
   'Companions':'__Critters__',
 };
@@ -1045,7 +1046,9 @@ function initMap(data) {
       ? (/^sparkling\b/i.test(item.label||'') ? 'Sparkling mobs'
          : /\bsparkle\b/i.test(item.label||'') ? 'Sparkles'
          : /\bslime\b/i.test(item.label||'') ? 'Slimes'
-         : item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction
+         : /^TODO Z 2W Peasant$/i.test((item.label||'').trim()) ? 'Crimson'
+         : /^Elemental Z 2W Underwater 2$/i.test((item.label||'').trim()) ? 'Sparkles'
+         : item.unitFaction && (MOB_FACTIONS[item.unitFaction] || MOB_UNIT_FACTION[item.unitFaction]) ? (MOB_UNIT_FACTION[item.unitFaction] || item.unitFaction)
          : MOB_UNIT_FACTION[item.unit||''] || null)
       : null;
     // Skip dummy/test markers

@@ -23,7 +23,7 @@ const categoryRegistry = {};
 const hiddenGroups = new Set();
 function saveCompleted() { localStorage.setItem('completedMarkers', JSON.stringify([...completedMarkers])); }
 function getMarkerId(item, idx) { return `${item.label}__${idx}`; }
-const COMPLETABLE = new Set(['Chests','Orb chests','Secret orbs','Recipes','Critters']);
+const COMPLETABLE = new Set(['Chests','Orb chests','Secret orbs','Recipes','Critters','Vault Chests']);
 
 function getMarkerEl(marker) {
   const el = marker.getElement(); if (!el) return null;
@@ -44,7 +44,7 @@ function toggleComplete(mid, marker, category) {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const COLOURS = {
-  'Misc':'#ffa958','Plants':'#ee74a3','Chests':'#c68a09','Orb chests':'#bb5b11',
+  'Misc':'#ffa958','Plants':'#ee74a3','Chests':'#c68a09','Orb chests':'#bb5b11','Vault Chests':'#9b59b6',
   'Ores':'#8758d3','NPCs':'#27ad71','Haydn Seek':'#388e9f','Obelisks':'#6e1ac7',
   'Mobs':'#d13a3a','Sparkling mobs':'#eb19c8','Dungeons':'#430dd8',
   'Checkpoints':'#4db3db','Minibosses':'#eb681c','Critters':'#de58ff',
@@ -65,7 +65,7 @@ const ICONS = {
 const FILTER_GROUPS = [
   { key:'npcs',        title:'NPCs',              icon:'👤', cats:['NPCs','Haydn Seek'] },
   { key:'poi',         title:'Points of Interest',icon:'⭐', cats:['Obelisks','Dungeons','Checkpoints'] },
-  { key:'collectables',title:'Collectables',      icon:'📦', cats:['Chests','Secret orbs','Orb chests','Recipes','Critters'] },
+  { key:'collectables',title:'Collectables',      icon:'📦', cats:['Chests','Vault Chests','Secret orbs','Orb chests','Recipes','Critters'] },
   { key:'gatherables', title:'Gatherables',       icon:'🌿', cats:['Plants','Ores'], hasSub:true },
   { key:'enemies',     title:'Enemies',           icon:'⚔️', cats:['Minibosses','Sparkling mobs'], hasMobSub:true },
 ];
@@ -153,7 +153,7 @@ const SVG = {
   region:  `<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="5"/><circle cx="7" cy="7" r="2"/></svg>`,
   sub:     `<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="10" height="10" rx="2"/></svg>`,
   zone:    `<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="7,1 13,13 1,13"/></svg>`,
-  route:   `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2 12 Q4 5 9 4"/><polyline points="7,2 9,4 7,6" fill="none"/></svg>`,
+  route:   `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="3" cy="11" r="1.6" stroke-width="1.8"/><circle cx="11" cy="3" r="1.6" stroke-width="1.8"/><path d="M3 9.4 C3 6 6 5 9 4.6" stroke-width="1.8" stroke-dasharray="1.5 1.8"/><polyline points="9,2 11,3 9.5,5" stroke-width="1.8" fill="none"/></svg>`,
   trash:   `<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="1,3 13,3"/><path d="M4 3V2h6v1"/><rect x="3" y="4" width="8" height="9" rx="1"/></svg>`,
 };
 
@@ -948,7 +948,7 @@ function initMap(data) {
   class circleArea { constructor(f={}){this.props={radius:coordToMapScalar*50,fillColor:'#ffa958',color:'#ffffff',weight:1.05,opacity:1,fillOpacity:1};for(const[k,v]of Object.entries(f))this.props[k]=v;}}
   const stylingDict={
     'Misc':new cMarker().props,'Plants':new cMarker({fillColor:'#ee74a3'}).props,
-    'Chests':new cMarker({fillColor:'#c68a09',color:'#fffb00'}).props,'Orb chests':new cMarker({fillColor:'#bb5b11',color:'#fffb00'}).props,
+    'Chests':new cMarker({fillColor:'#c68a09',color:'#fffb00'}).props,'Orb chests':new cMarker({fillColor:'#bb5b11',color:'#fffb00'}).props,'Vault Chests':new cMarker({fillColor:'#9b59b6',color:'#fffb00'}).props,
     'Ores':new cMarker({fillColor:'#8758d3'}).props,'NPCs':new cMarker({fillColor:'#27ad71'}).props,
     'Haydn Seek':new cMarker({fillColor:'#388e9f'}).props,'Obelisks':new cMarker({fillColor:'#6e1ac7'}).props,
     'Mobs':new cMarker({fillColor:'#d13a3a',radius:8}).props,'Sparkling mobs':new cMarker({fillColor:'#eb19c8'}).props,
@@ -957,7 +957,7 @@ function initMap(data) {
     'Recipes':new cMarker({fillColor:'#9b7700'}).props,'Secret orbs':new cMarker({fillColor:'#a23030'}).props,
   };
   const iconDict={
-    'Obelisks':new iconMarker({iconUrl:'./icons/mapMarker5.png'}).props,'Chests':new iconMarker({iconUrl:'./icons/mapMarker2.png'}).props,
+    'Obelisks':new iconMarker({iconUrl:'./icons/mapMarker5.png'}).props,'Chests':new iconMarker({iconUrl:'./icons/mapMarker2.png'}).props,'Vault Chests':new iconMarker({iconUrl:'./icons/mapMarker2.png'}).props,
     'Orb chests':new iconMarker({iconUrl:'./icons/mapMarker11.png'}).props,'NPCs':new iconMarker({iconUrl:'./icons/mapMarker8.png'}).props,
     'Dungeons':new iconMarker({iconUrl:'./icons/mapMarker3.png'}).props,'Checkpoints':new iconMarker({iconUrl:'./icons/mapMarker6.png'}).props,
     'Minibosses':new iconMarker({iconUrl:'./icons/mapMarker1.png'}).props,
@@ -2270,18 +2270,29 @@ function buildCatRow(name, layers, iconOverride) {
     ? `<img src="${iconUrl}" class="sb-cat-icon" alt="">`
     : `<span class="sb-cat-dot-wrap"><span class="sb-cat-dot" style="background:${colour}"></span></span>`;
   const isCollectable = COMPLETABLE.has(name);
-  row.innerHTML=`<input type="checkbox" data-layer="${name}" class="category" style="display:none"><span class="sb-check-img"></span>${indicator}<span class="sb-cat-name">${name}</span><span class="sb-cat-count" data-cat="${name}">${isCollectable?`0/${total}`:total}</span>`;
 
-  // Patrol path toggle button — only for categories that have path data
-  if (mobPathLayers[name]) {
-    const pathKey = `mobPathVisible_${name}`;
-    const pathVisible = localStorage.getItem(pathKey) !== '0';
-    const pathBtn = mk('button',{class:'sb-path-tog'});
+  // Build count cell — route toggle sits LEFT of the number when paths exist
+  const hasPath = !!mobPathLayers[name];
+  const pathKey = `mobPathVisible_${name}`;
+  const pathVisible = hasPath && localStorage.getItem(pathKey) !== '0';
+
+  // Route toggle button (created early so we can insert it before count)
+  let pathBtn = null;
+  if (hasPath) {
+    pathBtn = mk('button',{class:'sb-path-tog'+(pathVisible?' path-tog-on':'')} );
     pathBtn.title = 'Toggle patrol paths';
-    pathBtn.style.cssText = 'margin-left:0.3em;padding:0 0.28em;border:none;border-radius:3px;cursor:pointer;font-size:0.82em;line-height:1.6;background:transparent;color:inherit;flex-shrink:0;';
+    pathBtn.style.cssText = 'padding:0 0.22em;border:none;border-radius:3px;cursor:pointer;font-size:0.85em;line-height:1.5;background:transparent;color:inherit;flex-shrink:0;vertical-align:middle;';
     pathBtn.innerHTML = SVG.route;
     pathBtn.style.opacity = pathVisible ? '1' : '0.3';
-    pathBtn.classList.toggle('path-tog-on', pathVisible);
+  }
+
+  row.innerHTML=`<input type="checkbox" data-layer="${name}" class="category" style="display:none"><span class="sb-check-img"></span>${indicator}<span class="sb-cat-name">${name}</span><span class="sb-cat-count" data-cat="${name}">${isCollectable?`0/${total}`:total}</span>`;
+
+  if (pathBtn) {
+    // Insert route toggle immediately before the count span
+    const countSpan = row.querySelector('.sb-cat-count');
+    row.insertBefore(pathBtn, countSpan);
+
     pathBtn.addEventListener('click', e => {
       e.preventDefault(); e.stopPropagation();
       const on = !pathBtn.classList.contains('path-tog-on');
@@ -2293,7 +2304,6 @@ function buildCatRow(name, layers, iconOverride) {
       if (on && markerOn) { if (!map.hasLayer(pl)) pl.addTo(map); }
       else { if (map.hasLayer(pl)) map.removeLayer(pl); }
     });
-    row.appendChild(pathBtn);
   }
 
   return row;

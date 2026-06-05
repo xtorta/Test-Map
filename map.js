@@ -57,7 +57,7 @@ const COLOURS = {
   'Madrigold':'#e8a030','Lavendula':'#9b59b6','Ancient Thyme':'#5d8a5e','Zealotus':'#c0392b',
 };
 const ICONS = {
-  'Obelisks':'./icons/mapMarker5.png','Chests':'./icons/mapMarker2.png',
+  'Obelisks':'./icons/mapMarker5.png','Chests':'./icons/mapMarker2.png','Vault Chests':'./icons/mapMarker13.png',
   'Orb chests':'./icons/mapMarker11.png','NPCs':'./icons/mapMarker8.png',
   'Dungeons':'./icons/mapMarker3.png','Checkpoints':'./icons/mapMarker6.png',
   'Minibosses':'./icons/mapMarker1.png',
@@ -963,7 +963,7 @@ function initMap(data) {
     'Recipes':new cMarker({fillColor:'#9b7700'}).props,'Secret orbs':new cMarker({fillColor:'#a23030'}).props,
   };
   const iconDict={
-    'Obelisks':new iconMarker({iconUrl:'./icons/mapMarker5.png'}).props,'Chests':new iconMarker({iconUrl:'./icons/mapMarker2.png'}).props,'Vault Chests':new iconMarker({iconUrl:'./icons/mapMarker2.png'}).props,
+    'Obelisks':new iconMarker({iconUrl:'./icons/mapMarker5.png'}).props,'Chests':new iconMarker({iconUrl:'./icons/mapMarker2.png'}).props,'Vault Chests':new iconMarker({iconUrl:'./icons/mapMarker13.png'}).props,
     'Orb chests':new iconMarker({iconUrl:'./icons/mapMarker11.png'}).props,'NPCs':new iconMarker({iconUrl:'./icons/mapMarker8.png'}).props,
     'Dungeons':new iconMarker({iconUrl:'./icons/mapMarker3.png'}).props,'Checkpoints':new iconMarker({iconUrl:'./icons/mapMarker6.png'}).props,
     'Minibosses':new iconMarker({iconUrl:'./icons/mapMarker1.png'}).props,
@@ -1048,6 +1048,8 @@ function initMap(data) {
          : /\bslime\b/i.test(item.label||'') ? 'Slimes'
          : /^TODO Z 2W Peasant$/i.test((item.label||'').trim()) ? 'Crimson'
          : /^Elemental Z 2W Underwater 2$/i.test((item.label||'').trim()) ? 'Sparkles'
+         : /^TODO Z 1W Herald Spirit$/i.test((item.label||'').trim()) ? 'Spirits'
+         : /^Dog Z 1W Crimson$/i.test((item.label||'').trim()) ? 'Crimson'
          : item.unitFaction && (MOB_FACTIONS[item.unitFaction] || MOB_UNIT_FACTION[item.unitFaction]) ? (MOB_UNIT_FACTION[item.unitFaction] || item.unitFaction)
          : MOB_UNIT_FACTION[item.unit||''] || null)
       : null;

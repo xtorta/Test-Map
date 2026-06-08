@@ -1050,6 +1050,8 @@ function initMap(data) {
          : /^Elemental Z 2W Underwater 2$/i.test((item.label||'').trim()) ? 'Sparkles'
          : /^TODO Z 1W Herald Spirit$/i.test((item.label||'').trim()) ? 'Spirits'
          : /^Dog Z 1W Crimson$/i.test((item.label||'').trim()) ? 'Crimson'
+         : /^Crimson Z 1W Sword 2$/i.test((item.label||'').trim()) ? 'Crimson'
+         : /^Crimson Z 1W Sword 2$/i.test((item.label||'').trim()) ? 'Crimson'
          : item.unitFaction && (MOB_FACTIONS[item.unitFaction] || MOB_UNIT_FACTION[item.unitFaction]) ? (MOB_UNIT_FACTION[item.unitFaction] || item.unitFaction)
          : MOB_UNIT_FACTION[item.unit||''] || null)
       : null;
@@ -1537,7 +1539,13 @@ function buildSidebar(layers) {
       Object.entries(MOB_FACTIONS).forEach(([faction,{icon}]) => {
         mobRows.appendChild(buildCatRow(faction, layers, icon));
       });
-      if (categoryRegistry['Mobs']) mobRows.appendChild(buildCatRow('Mobs', layers));
+      if (categoryRegistry['Mobs']) {
+        const dummyRow = buildCatRow('Mobs', layers);
+        // Relabel the display name to 'Dummy'
+        const nameEl = dummyRow.querySelector('.sb-cat-name');
+        if (nameEl) nameEl.textContent = 'Dummy';
+        mobRows.appendChild(dummyRow);
+      }
       mobDiv.appendChild(mobRows);
       groupRows.appendChild(mobDiv);
     } else {

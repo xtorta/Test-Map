@@ -23,6 +23,11 @@ const categoryRegistry = {};
 const hiddenGroups = new Set();
 function saveCompleted() { localStorage.setItem('completedMarkers', JSON.stringify([...completedMarkers])); }
 function getMarkerId(item, idx) { return `${item.label}__${idx}`; }
+// Display name overrides — internal key → label shown in sidebar
+const CAT_DISPLAY = {
+  'Vault Chests': 'Vault chests',
+  'Mobs': 'Dummy',
+};
 const COMPLETABLE = new Set(['Chests','Orb chests','Secret orbs','Recipes','Critters','Vault Chests']);
 
 function getMarkerEl(marker) {
@@ -997,7 +1002,7 @@ function initMap(data) {
         /^Crimson Z 1W Sword 2$/i.test(lbl) ? 'Crimson' : null;
       // unitFaction routing (matches initMap UF_MAP + MOB_FACTIONS)
       const ufRaw = item.unitFaction || '';
-      const ufMapped = {'Wind Golems':'Sparkles','Water Golems':'Sparkles','Fire Golems':'Sparkles','Companions':'__Critters__'}[ufRaw];
+      const ufMapped = {'Wind Golems':'Sparkles','Water Golems':'Sparkles','Fire Golems':'Sparkles','Companions':'__Critters__','NYI':null}[ufRaw];
       const uf = labelFaction || ufMapped || (MOB_FACTIONS[ufRaw] ? ufRaw : null) || (MOB_UNIT_FACTION[item.unit||''] || null);
       if (uf === '__skip__') return; // Dummy items
       if (uf === '__Critters__') {
@@ -1068,7 +1073,7 @@ function initMap(data) {
          : /^Dog Z 1W Crimson$/i.test((item.label||'').trim()) ? 'Crimson'
          : /^Crimson Z 1W Sword 2$/i.test((item.label||'').trim()) ? 'Crimson'
          : /^Crimson Z 1W Sword 2$/i.test((item.label||'').trim()) ? 'Crimson'
-         : item.unitFaction && (MOB_FACTIONS[item.unitFaction] || MOB_UNIT_FACTION[item.unitFaction]) ? (MOB_UNIT_FACTION[item.unitFaction] || item.unitFaction)
+         : item.unitFaction && item.unitFaction !== 'NYI' && (MOB_FACTIONS[item.unitFaction] || MOB_UNIT_FACTION[item.unitFaction]) ? (MOB_UNIT_FACTION[item.unitFaction] || item.unitFaction)
          : MOB_UNIT_FACTION[item.unit||''] || null)
       : null;
     // Skip dummy/test markers
@@ -1557,9 +1562,6 @@ function buildSidebar(layers) {
       });
       if (categoryRegistry['Mobs']) {
         const dummyRow = buildCatRow('Mobs', layers);
-        // Relabel the display name to 'Dummy'
-        const nameEl = dummyRow.querySelector('.sb-cat-name');
-        if (nameEl) nameEl.textContent = 'Dummy';
         mobRows.appendChild(dummyRow);
       }
       mobDiv.appendChild(mobRows);
@@ -2321,7 +2323,8 @@ function buildCatRow(name, layers, iconOverride) {
     pathBtn.style.opacity = pathVisible ? '1' : '0.3';
   }
 
-  row.innerHTML=`<input type="checkbox" data-layer="${name}" class="category" style="display:none"><span class="sb-check-img"></span>${indicator}<span class="sb-cat-name">${name}</span><span class="sb-cat-count" data-cat="${name}">${isCollectable?`0/${total}`:total}</span>`;
+  const displayName = CAT_DISPLAY[name] || name;
+  row.innerHTML=`<input type="checkbox" data-layer="${name}" class="category" style="display:none"><span class="sb-check-img"></span>${indicator}<span class="sb-cat-name">${displayName}</span><span class="sb-cat-count" data-cat="${name}">${isCollectable?`0/${total}`:total}</span>`;
 
   if (pathBtn) {
     // Insert route toggle immediately before the count span

@@ -99,7 +99,7 @@ const ORE_SUBS   = {
 const PLANT_SUBS = {
   'Madrigold':    { labels:['Madrigold Large','Madrigold Small'],          icon:'./icons/gatherables/madrigold.png?v=3' },
   'Lavendula':    { labels:['Lavendula Large','Lavendula Small','R 2Plant 2 Small','R 2Plant 3 Small','R 2Plant Rare Large','R 2Plant Rare Small'], icon:'./icons/gatherables/lavendula.png?v=3' },
-  'Ancient Thyme':{ labels:['Ancient Thyme Large','Ancient Thyme Small'],  icon:'./icons/gatherables/ancientthyme.png?v=3' },
+  'Ancient thyme':{ labels:['Ancient Thyme Large','Ancient Thyme Small'],  icon:'./icons/gatherables/ancientthyme.png?v=3' },
   'Zealotus':     { labels:['Zealotus','Zealotus Large','Zealotus Small'], icon:'./icons/gatherables/zealous.png?v=3' },
 };
 const MOB_UNIT_FACTION = {

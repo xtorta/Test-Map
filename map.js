@@ -982,9 +982,25 @@ function initMap(data) {
     const cat=item.categories?.[0]||'Misc';
     if (gatherableLabels.has(item.label.toLowerCase())) return;
     if (cat === 'Mobs') {
-      const uf = item.unitFaction && MOB_FACTIONS[item.unitFaction] ? item.unitFaction : MOB_UNIT_FACTION[item.unit||''];
+      const lbl = (item.label||'').trim();
+      const lbl_l = lbl.toLowerCase();
+      // Label-based routing (matches initMap mobFaction logic)
+      const labelFaction =
+        lbl === 'Dummy' ? '__skip__' :
+        lbl_l.startsWith('sparkling') ? 'Sparkling mobs' :
+        (lbl_l.includes('sparkle') && !lbl_l.includes('sparkling')) ? 'Sparkles' :
+        lbl_l.includes('slime') ? 'Slimes' :
+        /^TODO Z 2W Peasant$/i.test(lbl) ? 'Crimson' :
+        /^Elemental Z 2W Underwater 2$/i.test(lbl) ? 'Sparkles' :
+        /^TODO Z 1W Herald Spirit$/i.test(lbl) ? 'Spirits' :
+        /^Dog Z 1W Crimson$/i.test(lbl) ? 'Crimson' :
+        /^Crimson Z 1W Sword 2$/i.test(lbl) ? 'Crimson' : null;
+      // unitFaction routing (matches initMap UF_MAP + MOB_FACTIONS)
+      const ufRaw = item.unitFaction || '';
+      const ufMapped = {'Wind Golems':'Sparkles','Water Golems':'Sparkles','Fire Golems':'Sparkles','Companions':'__Critters__'}[ufRaw];
+      const uf = labelFaction || ufMapped || (MOB_FACTIONS[ufRaw] ? ufRaw : null) || (MOB_UNIT_FACTION[item.unit||''] || null);
       if (uf === '__skip__') return; // Dummy items
-      if (uf === '__Critters__') { // count toward Critters
+      if (uf === '__Critters__') {
         if(!categoryRegistry['Critters']) categoryRegistry['Critters']={total:0,markerIds:[],markers:[]};
         categoryRegistry['Critters'].total++; categoryRegistry['Critters'].markerIds.push(getMarkerId(item,idx)); return;
       }
